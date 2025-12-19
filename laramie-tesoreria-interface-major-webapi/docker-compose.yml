@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  laramie-tesoreria-interface-major-webapi:
+    #container_name: laramie-tesoreria-interface-major-webapi
+    image: laramie-tesoreria-interface-major-webapi:v1
+    build:
+      dockerfile: 'Dockerfile'
+    command: "npm run start-prod"
+
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - laramie-data_files:/var/lib/laramie-repository
+
+    ports:
+      - "3142:3142"
+
+volumes:
+  laramie-data_files:
+    external: true
+
+networks: 
+  default:
+    name: laramie
+    external: true
+    driver: bridge

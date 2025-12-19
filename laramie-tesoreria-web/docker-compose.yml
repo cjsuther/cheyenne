@@ -1,0 +1,20 @@
+version: "3.9"
+
+services:
+  laramie-tesoreria-web:
+    #container_name: laramie-tesoreria-web
+    image: laramie-tesoreria-web:v1
+    build:
+      dockerfile: 'Dockerfile'
+
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+    ports:
+      - "3040:80"
+
+networks: 
+  default: 
+    name: laramie
+    external: true

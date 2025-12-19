@@ -1,0 +1,20 @@
+USE LARAMIE_CAMPANA
+GO
+
+TRUNCATE TABLE tipo_acto_procesal
+GO
+
+INSERT INTO tipo_acto_procesal
+SELECT
+	CAST(COD_TIPO_ACTO_PROCESAL as bigint) id,
+	(case when isnull(COD_TIPO_ACTO_PROCESAL_PADRE,0)=0 then null else COD_TIPO_ACTO_PROCESAL_PADRE end) id_tipo_acto_procesal,
+	COD_TIPO_ACTO_PROCESAL codigo_acto_procesal,
+	DESCRIPCION,
+	PLAZO_DIAS,
+	PORCENTAJE_HONORARIOS,
+	MAJOR_CAMPANA.dbo.GET_FECHA(FECHA_BAJA) fecha_baja,
+	(case when isnull(COD_TIPO_ACTO_PROCESAL_PADRE,0)=0 then 1 else 2 end) nivel,
+	(ROW_NUMBER() OVER (ORDER BY COD_TIPO_ACTO_PROCESAL)) orden
+FROM MAJOR_CAMPANA.dbo.TIPO_ACTO_PROCESAL
+ORDER BY id
+GO

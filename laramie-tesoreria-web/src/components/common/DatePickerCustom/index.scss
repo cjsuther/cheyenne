@@ -1,0 +1,243 @@
+@import '../../../styles/config.scss';
+@import url('https://fonts.googleapis.com/css2?family=Montserrat&display=swap');
+
+
+// NOTE: the order of these styles DO matter
+ 
+// Will edit everything selected including everything between a range of dates
+
+.CalendarDay__default:hover {
+  background: $color-disabled;
+  border: 0px solid $color-disabled;
+  color: inherit;
+}
+
+.CalendarDay__selected_span {
+  background: $color-action; //background
+  color: white; //text
+  border: 1px solid $color-action; //default styles include a border
+}
+
+// Will edit selected date or the endpoints of a range of dates
+.CalendarDay__selected {
+  background: $color-action;
+  color: white !important;
+  border: 1px double $color-action
+}
+ 
+// Will edit when hovered over. _span style also has this property
+.CalendarDay__selected:hover {
+  background: $color-action;
+  color: white;
+  border: 1px double $color-action;
+}
+ 
+// Will edit when the second date (end date) in a range of dates
+// is not yet selected. Edits the dates between your mouse and said date
+.CalendarDay__hovered_span:hover,
+.CalendarDay__hovered_span {
+  background: $color-action;
+}
+
+.DateInput_input__focused {
+  border-bottom: 0 !important;
+}
+.DateInput_input__disabled {
+  font-style: normal;
+}
+.DateInput__disabled {
+  background: inherit !important;
+  color: inherit !important;
+  font-style: normal;
+}
+.SingleDatePickerInput_clearDate__default:hover {
+  background: transparent !important;
+}
+
+
+
+
+//styles custom
+div.datepicker-custom-container {
+  //border: 1px solid #B3B4B6;
+  padding: 0px !important;
+}
+//div.datepicker-custom-container div div div { border: 0px !important; }
+
+div.datepicker-custom-container div div div div input {
+  border: 0px !important;
+  font-size: inherit;
+  font-family: 'Montserrat', sans-serif;
+  color: $color-font-text;
+  padding-top: 8px;
+  padding-bottom: 7px;
+}
+
+.CalendarMonth_caption {
+  color: $color-neutro;
+  padding-top: 13px; //22
+  padding-bottom: 30px;
+  font-size:16px;
+  text-transform: capitalize;
+}
+
+.CalendarDay__default {
+  color: $color-neutro;
+  border: 0.01em solid $color-disabled;
+}
+
+.DayPicker_weekHeader{
+  color: $color-neutro;
+  top: 40px; //62px
+}
+
+.DayPickerNavigation_button__default {
+  border: 0px solid #e4e7e7;
+  color: $color-neutro;
+}
+
+.DayPickerNavigation_button__horizontalDefault {
+  top: 10px;  //18px
+}
+
+.DayPickerNavigation_button__default {
+  border: 0px solid #e4e7e7;
+  color: $color-neutro;
+}
+
+.DayPickerNavigation_button__default:focus, .DayPickerNavigation_button__default:hover {
+  border: 0px solid #c4c4c4;
+  background: none;
+}
+
+.DayPickerNavigation_svg__horizontal {
+  fill: $color-neutro;
+}
+
+.DayPickerNavigation_svg__horizontal:hover {
+  fill: $color-font-text;
+}
+
+.SingleDatePickerInput_clearDate_svg {
+    fill: $color-neutro;
+}
+
+.SingleDatePickerInput_clearDate_svg:hover {
+  fill: $color-font-text;
+}
+
+.SingleDatePickerInput__withBorder {
+    border-radius: 0px;
+    border: 0px solid #dbdbdb;
+}
+
+.wrapper {
+  position:relative;
+}
+
+.wrapper-date {
+  position: absolute;
+  max-width: 300px;
+  z-index: 10000;
+  border-radius: 0.375rem;
+  background-color: white;
+  margin-bottom: 5px;
+}
+
+.wrapper-calendar,  .wrapper-time {
+  font-family: 'Montserrat', sans-serif !important;
+  padding-bottom: 5px !important;
+}
+
+.wrapper-time{
+  display: flex;
+ /*  align-items: left;
+ border: 1px solid #a0a096;
+  border-radius: 8px; */
+  padding: 5px;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.icon-calendar{
+  padding: 20px;
+  position: absolute;
+  top:50%;
+  right:8px;
+  transform: translateY(-50%);
+  font-size: 20px !important;
+  cursor: pointer;
+}
+
+.icon-cruz{
+  padding: 4px;
+  position: absolute;
+  top:50%;
+  right:2px;
+  transform: translateY(-50%);
+  font-size: 20px !important;
+  cursor: pointer;
+}
+
+.icon-calendar:hover, .icon-cruz:hover{
+  color: $color-font-text;
+  font-variation-settings:
+        'wght' 300,
+}
+
+.react-calendar {
+border: 1px solid #a0a096;
+font-family: 'Montserrat', sans-serif !important;
+line-height: 1.125em;
+background-color: #ffffff !important;
+}
+
+.react-calendar__navigation__arrow {
+  font-size: 18px;
+  font-weight:400;
+}
+
+.react-calendar__navigation {
+  margin-bottom: 0px !important;
+}
+
+.react-calendar__navigation > button {
+  color: $color-font-text !important;
+  }
+
+.react-calendar__month-view__days__day {
+  color: $color-font-text !important;
+  }
+
+.react-calendar__month-view__days__day--neighboringMonth {
+  color: $color-neutro !important;
+}
+
+.react-calendar__month-view__days__day--weekend {
+  color: $color-error !important;
+}
+
+abbr[title]  {
+  text-decoration: none;
+  color: $color-neutro;
+}
+
+.react-calendar__tile--now { 
+  background: $color-disabled !important;
+}
+
+.react-calendar__tile:enabled:hover, .react-calendar__tile:enabled:focus{
+  background-color: $color-disabled !important;
+}
+
+.react-calendar__tile--active {
+  background: $color-action !important;
+  color: white !important;
+}
+
+.react-calendar__tile--active:enabled:hover, .react-calendar__tile--active:enabled:focus {
+  background: $color-action !important;
+  color: white !important;
+}
+
+

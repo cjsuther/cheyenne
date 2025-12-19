@@ -1,0 +1,11 @@
+@import '../../styles/config.scss';
+
+.grupo{
+    background-color: $color-disabled;
+    font-size: 14px;
+}
+
+.grupo button.nav-link.active {
+    background-color: initial;
+    border-color: #dee2e6 #dee2e6 #F3F3F4;
+}

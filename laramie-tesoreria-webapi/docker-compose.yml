@@ -1,0 +1,26 @@
+services:
+  laramie-tesoreria-webapi:
+    #container_name: laramie-tesoreria-webapi
+    image: laramie-tesoreria-webapi:v1
+    build:
+      dockerfile: 'Dockerfile'
+      network: host
+    command: "npm run start-prod"
+    
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - laramie-data_files:/var/lib/laramie-repository
+    
+    ports:
+      - "3042:3042"
+
+volumes:
+  laramie-data_files:
+    external: true
+
+networks:
+  default:
+    name: laramie
+    external: true
+    driver: bridge

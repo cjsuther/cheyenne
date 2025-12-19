@@ -1,0 +1,286 @@
+.title1 {
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+    font-weight: bold;
+}
+.underlineTitle0 {
+    font-family: Arial, sans-serif;
+    font-size: 30px;
+    font-weight: bold;
+    text-decoration: underline;
+}
+.underlineTitle05 {
+    font-family: Arial, sans-serif;
+    font-size: 25px;
+    font-weight: bold;
+    text-decoration: underline;
+}
+.underlineTitle1 {
+    font-family: Arial, sans-serif;
+    font-size: 20px;
+    font-weight: bold;
+    text-decoration: underline;
+}
+.title2 {
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+}
+.underlineTitle2 {
+    font-family: Arial, sans-serif;
+    font-size: 18px;
+    font-weight: bold;
+    text-decoration: underline;
+}
+.title3 {
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    font-weight: bold;
+}
+.title4 {
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.text0 {
+    font-family: Arial, sans-serif;
+    font-size: 32px;
+}
+.text05 {
+    font-family: Arial, sans-serif;
+    font-size: 24px;
+}
+.text1 {
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+}
+.text2 {
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+}
+.text3 {
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+}
+.text4 {
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+}
+.titleG1 {
+    font-family: Sans-serif;
+    font-size: 16px;
+    font-weight: bold;
+}
+.titleG2 {
+    font-family: Sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+}
+.titleG3 {
+    font-family: Sans-serif;
+    font-size: 13px;
+    font-weight: bold;
+}
+.titleG4 {
+    font-family: Sans-serif;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.textG1 {
+    font-family: Sans-serif;
+    font-size: 16px;
+}
+.textG2 {
+    font-family: Sans-serif;
+    font-size: 14px;
+}
+.textG3 {
+    font-family: Sans-serif;
+    font-size: 13px;
+}
+.textG4 {
+    font-family: Sans-serif;
+    font-size: 12px;
+}
+
+.titleG1 {
+    font-family: Sans-serif;
+    font-size: 16px;
+    font-weight: bold;
+}
+.titleG2 {
+    font-family: Sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+}
+.titleG3 {
+    font-family: Sans-serif;
+    font-size: 13px;
+    font-weight: bold;
+}
+.titleG4 {
+    font-family: Sans-serif;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.textG1 {
+    font-family: Sans-serif;
+    font-size: 16px;
+}
+.textG2 {
+    font-family: Sans-serif;
+    font-size: 14px;
+}
+.textG3 {
+    font-family: Sans-serif;
+    font-size: 13px;
+}
+.textG4 {
+    font-family: Sans-serif;
+    font-size: 12px;
+}
+
+.row {
+    width: 100%;
+    display: inline-flex;
+}
+
+.algin-center {
+    text-align: center;;
+}
+.algin-left {
+    text-align: left;;
+}
+.algin-right {
+    text-align: right;;
+}
+
+.col-1 {
+    width: 8%;
+}
+.col-2 {
+    width: 16%;
+}
+.col-3 {
+    width: 25%;
+}
+.col-4 {
+    width: 33%;
+}
+.col-5 {
+    width: 41%;
+}
+.col-6 {
+    width: 50%;
+}
+.col-7 {
+    width: 58%;
+}
+.col-8 {
+    width: 66%;
+}
+.col-9 {
+    width: 75%;
+}
+.col-10 {
+    width: 83%;
+}
+.col-11 {
+    width: 91%;
+}
+.col-12 {
+    width: 100%;
+}
+
+.m-b-8 {
+    margin-bottom: 8px;
+}
+.m-b-10 {
+    margin-bottom: 10px;
+}
+.m-b-20 {
+    margin-bottom: 20px;
+}
+.m-t-50 {
+    margin-top: 50px;
+}
+.m-t-20 {
+    margin-top: 20px;
+}
+.m-t-15 {
+    margin-top: 15px;
+}
+.m-t-10 {
+    margin-top: 10px;
+}
+.m-t-8 {
+    margin-top: 8px;
+}
+.m-t-4 {
+    margin-top: 4px;
+}
+.m-t-6 {
+    margin-top: 6px;
+}
+.m-t-0 {
+    margin-top: 0px;
+}
+.m-l-10 {
+    margin-left: 10px;
+}
+.m-l-20 {
+    margin-left: 20px;
+}
+.m-r-10 {
+    margin-right: 10px;
+}
+
+.p-t-5 {
+    padding-top: 5px;
+}
+.p-t-8 {
+    padding-top: 8px;
+}
+.p-t-10 {
+    padding-top: 10px;
+}
+.p-t-12 {
+    padding-top: 12px;
+}
+.p-t-15 {
+    padding-top: 15px;
+}
+.p-t-20 {
+    padding-top: 20px;
+}
+.p-t-30 {
+    padding-top: 30px;
+}
+.p-b-5 {
+    padding-bottom: 5px;
+}
+.p-l-5 {
+    padding-left: 5px;
+}
+.p-l-15 {
+    padding-left: 15px;
+}
+
+
+.margin {
+    margin: 40px 40px 40px 40px;
+}
+.margin-t-120 {
+    margin: 120px 40px 40px 40px;
+}
+
+.l-h-40 { 
+    line-height: 40px;
+}
+.b-b-2 {
+    border-bottom: 2px solid;
+    border-color: black;
+}

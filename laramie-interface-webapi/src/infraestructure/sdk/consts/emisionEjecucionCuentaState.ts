@@ -1,0 +1,10 @@
+
+export const EMISION_EJECUCION_CUENTA_STATE = {
+
+    PENDIENTE: 260,
+    PROCESO: 261,
+    FINALIZADA: 262,
+    CANCELADA: 263,
+    ERROR: 264
+    
+}

@@ -1,0 +1,15 @@
+USE LARAMIE_CAMPANA
+GO
+
+INSERT INTO inciso_vehiculo
+SELECT
+	ROW_NUMBER() OVER (ORDER BY COD_INCISO_VEHICULO) id,
+	COD_INCISO_VEHICULO codigo,
+	NOMBRE,
+	ROW_NUMBER() OVER (ORDER BY COD_INCISO_VEHICULO) orden,
+	--(case when ES_VEHICULO_MENOR = 'S' then 1 else 0 end) vehiculo_menor,
+	(case when COD_INCISO_VEHICULO = 'M' then 1 else 0 end) vehiculo_menor,
+	CODIGO_SUCERP
+FROM MAJOR_CAMPANA.dbo.INCISO_VEHICULO
+ORDER BY id
+GO

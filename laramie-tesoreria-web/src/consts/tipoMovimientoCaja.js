@@ -1,0 +1,5 @@
+export const TIPO_MOVIMIENTO_CAJA = {
+	COBRANZA: 10,
+	RETIRO: 11,
+	INGRESO: 12,
+}

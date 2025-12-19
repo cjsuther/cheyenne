@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  major-laramie-administracion-apigateway:
+    #container_name: major-laramie-administracion-apigateway
+    image: major-laramie-administracion-apigateway:v1
+    build:
+      dockerfile: 'Dockerfile'
+    command: "npm run start-prod"
+
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - major-laramie-data_files:/var/lib/major-laramie-repository
+
+    ports:
+      - "3011:3011"
+
+volumes:
+  major-laramie-data_files:
+    external: true
+
+networks: 
+  default: 
+    name: major-laramie

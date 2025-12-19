@@ -1,0 +1,7 @@
+
+export const MODE_SELECTION = {
+
+    PERIODO: 'PERIODO',
+    RANGO_PERIODO_CUOTA: 'RANGO_PERIODO_CUOTA'
+
+}

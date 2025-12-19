@@ -1,0 +1,35 @@
+@import '../../../styles/config.scss';
+@import url('https://fonts.googleapis.com/css2?family=Montserrat&display=swap');
+
+.section-frames {
+    display: flex;
+}
+.pro-sidebar {
+    margin-bottom: 100px;
+}
+.pro-sidebar, .pro-sidebar div {
+    z-index: 1 !important;
+}
+.section-main {
+    width: 100%;
+}
+.fa-xxs {
+    font-size: 6px;
+}
+
+$sidebar-bg-color: $color-li-neutro !default;
+$sidebar-color: $color-font-primary !default;
+$sidebar-width: 230px !default;
+$sidebar-collapsed-width: 0px !default;
+$highlight-color: $color-font-text !default;
+$submenu-bg-color: #EDEDF0 !default;
+$submenu-bg-color-collapsed: #EDEDF0 !default;
+$icon-bg-color: $color-li-neutro !default;
+$icon-size: 15px !default;
+$breakpoint-xs: 480px !default;
+$breakpoint-sm: 576px !default;
+$breakpoint-md: 768px !default;
+$breakpoint-lg: 992px !default;
+$breakpoint-xl: 1200px !default;
+
+@import '~react-pro-sidebar/dist/scss/styles.scss';

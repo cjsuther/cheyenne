@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/pluspagos-aes-encryption@1.0.0/dist/AESEncrypter.js"></script>
+</head>
+
+<body>
+<form id="miFormulario" method="post" action="{{FormAction}}" style="display: none">
+CallbackSuccess<input name="CallbackSuccess" id="CallbackSuccess" value="{{CallbackSuccess}}"/></br>
+CallbackCancel<input name="CallbackCancel" id="CallbackCancel" value="{{CallbackCancel}}"/></br>
+Comercio<input name="Comercio" value="{{Comercio}}"/></br>  
+SucursalComercio<input name="SucursalComercio" id="SucursalComercio" value="{{SucursalComercio}}"/></br>
+TransaccionComercioId<input name="TransaccionComercioId" id="TransaccionComercioId" value="{{TransaccionComercioId}}"/></br>
+Monto<input name="Monto" id="Monto" value="{{Monto}}"/></br>
+Producto[0]<input name="Producto[0]" value="{{Producto}}"/></br>
+MontoProducto[0]<input name="MontoProducto[0]" value=""/></br>
+<!-- Informacion<input name="Informacion" id="Informacion"/></br>-->
+<button type="submit"> COMPRAR </button>
+</form>
+
+<script type="text/javascript">
+    // Esperar a que la página termine de cargar
+    window.addEventListener('load', () => {
+            // Seleccionar el formulario
+            const formulario = document.getElementById('miFormulario');
+
+            // Verificar si el formulario existe
+            if (formulario) {
+                // Enviar el formulario automáticamente
+                formulario.submit();
+
+                // Opcional: Mostrar un mensaje en la consola
+                console.log("El formulario se envió automáticamente.");
+            } else {
+                console.error("El formulario no fue encontrado.");
+            }
+        });
+</script>
+</body>
+</html> 

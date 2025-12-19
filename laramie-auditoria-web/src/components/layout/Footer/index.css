@@ -1,0 +1,26 @@
+.footer {
+    width: 100%;
+    min-height: 30px;
+    position: fixed;
+    left: 0;
+    bottom: 0;
+}
+
+.footer-icons{
+    display: inline-flex;
+    color: #FFFFFF;
+}
+
+.ms-help {
+    font-size: 22px !important;
+    font-variation-settings:
+    'wght' 200
+}
+
+.container-fluid-footer {
+    width: 100%;
+    margin-left: 0px;
+    display: inline-flex;
+    justify-content: space-between;
+    align-items: center;
+} 

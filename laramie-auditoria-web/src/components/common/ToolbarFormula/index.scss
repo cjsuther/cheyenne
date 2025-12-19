@@ -1,0 +1,85 @@
+@import '../../../styles/config.scss';
+
+div#panel-toolbar {
+    border-style: solid;
+    border-width: 1px;
+    border-color: $color-li-neutro;
+}
+
+.input-formula-funcion {
+    color:#24C9A7 !important;
+}
+.input-formula-parametro {
+    color:#bdac63 !important;
+}
+.input-formula-variable {
+    color:#399c41 !important;
+}
+.input-formula-calculo {
+    color:#F8C04C !important;
+}
+.input-formula-rubro {
+    color:#2bb5ff !important;
+  }
+.input-formula-elemento {
+    color:#f695ee !important;
+}
+.input-formula-field {
+    color:#ca9bc6 !important;
+}
+
+div#panel-toolbar.panel-horizontal {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-style: solid;
+    border-width: 1px;
+    border-bottom-width: 0px;
+    border-left-width: 0px;
+    border-right-width: 0px;
+    border-color: $color-li-neutro;
+}
+
+div#panel-toolbar.panel-vertical {
+    border-style: solid;
+    border-width: 1px;
+    border-top-width: 0px;
+    border-right-width: 0px;
+    border-color: $color-li-neutro;
+}
+
+.modal-footer-unset {
+    display: unset !important;
+}
+
+div#panel-toolbar div.TableCustomBase {
+
+    div.rt-pagesize select {
+        font-size: 10px !important;
+    }
+
+    div.rt-page .form-control,
+    div.rt-globalFilter .form-control {
+        font-size: 10px !important;
+    }
+    
+    div.rt-globalFilter input {
+        font-size: 10px !important;
+    }
+
+    .pagecount-text{
+        font-size: 10px !important;
+    }
+
+    th {
+        font-size: 11px !important;
+    }
+
+    td {
+        font-size: 11px !important;
+    }
+
+    tbody tr:first-child {
+        border-top: 1px solid $color-li-neutro !important;
+    }
+    
+}

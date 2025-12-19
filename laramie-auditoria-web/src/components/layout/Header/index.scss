@@ -1,0 +1,33 @@
+@import '../../../styles/config.scss';
+
+.navbar{
+    padding-left: 2.5rem;
+    padding-right: 2.5rem;
+}
+
+.navbar-routes {
+    width: 100%;
+}
+
+.logo{
+    background-image: url('../../../assets/images/LogoMunicipio.png');
+}
+.logo:hover {
+    background-image: url('../../../assets/images/LogoMunicipioColor.png');
+}
+
+.dropdown-menu {
+    font-size: 14px;
+}
+
+.dropdown-menu li:not(li:last-child) {
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    border-bottom-color: $color-disabled;
+}
+.dropdown-menu li {
+    margin-left: 3px;
+    margin-right: 3px;
+    white-space: nowrap;
+    min-width: 180px;
+}

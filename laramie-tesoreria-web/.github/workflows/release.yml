@@ -1,0 +1,119 @@
+# Nombre de la GitHub Action que aparecerá en la interfaz de GitHub
+name: Lanzamiento y Despliegue a ECR
+
+# Eventos que disparan esta Action
+on:
+  push:
+    branches:
+      - staging # O la rama principal de tu proyecto (ej., master, develop)
+    paths:
+      - 'package.json' # Dispara la Action solo si el package.json ha cambiado
+                        # Si tu proyecto usa otro archivo para la versión, ajústalo aquí.
+
+# Definición de los jobs que componen esta Action
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest # Ejecuta el job en un sistema operativo Ubuntu
+    permissions:
+      contents: write # Permiso necesario para crear tags y releases
+      packages: write # Si usas GitHub Packages, puedes omitirlo si no lo necesitas
+
+    # Pasos que se ejecutarán en este job
+    steps:
+      - name: Descargar el código del repositorio
+        uses: actions/checkout@v4 # Action para clonar el repositorio
+
+      - name: Configurar Credenciales de AWS
+        uses: aws-actions/configure-aws-credentials@v1 # Action para configurar las credenciales de AWS
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Iniciar sesión en Amazon ECR
+        id: login-ecr # ID para referenciar este paso más tarde
+        uses: aws-actions/amazon-ecr-login@v1 # Action para autenticarse con ECR
+
+      - name: Instalar JQ (para parsear JSON)
+        # JQ es una herramienta de línea de comandos para extraer datos de JSON.
+        # Es útil si necesitas leer la versión desde un archivo JSON como package.json.
+        run: sudo apt-get install -y jq
+
+      - name: Obtener la versión actual de package.json
+        id: get_version # ID para referenciar este paso
+        # Lee el campo 'version' del package.json y lo guarda como una variable de entorno `APP_VERSION`.
+        # Si tu proyecto no es Node.js, debes adaptar esta línea para leer la versión de tu archivo.
+        # Ejemplo para un archivo 'version.txt': run: echo "APP_VERSION=$(cat version.txt)" >> $GITHUB_ENV
+        run: echo "APP_VERSION=$(jq -r .version package.json)" >> $GITHUB_ENV
+
+      - name: Construir la imagen Docker
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME }}
+        # Construye la imagen Docker usando el Dockerfile en el directorio actual.
+        # Se etiqueta con la versión de la aplicación y también con 'latest'.
+        run: |
+          docker build -t $ECR_REPOSITORY:$APP_VERSION .
+          docker tag $ECR_REPOSITORY:$APP_VERSION $ECR_REGISTRY/$ECR_REPOSITORY:$APP_VERSION
+          docker tag $ECR_REPOSITORY:$APP_VERSION $ECR_REGISTRY/$ECR_REPOSITORY:latest # Etiqueta opcional 'latest'
+      - name: Subir la imagen Docker a ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME }}
+        # Empuja la imagen etiquetada (con la versión y 'latest') a tu repositorio ECR.
+        run: |
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$APP_VERSION
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest # Sube también la imagen con etiqueta 'latest'
+      - name: Crear Tag de Git
+        id: create_tag # ID para referenciar este paso
+        uses: actions/github-script@v7 # Permite ejecutar código JavaScript para interactuar con la API de GitHub
+        with:
+          script: |
+            const version = process.env.APP_VERSION;
+            const tagName = `v${version}`;
+            console.log(`Intentando crear el tag: ${tagName}`);
+            try {
+              // Intenta obtener el tag para ver si ya existe
+              await github.rest.git.getRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `tags/${tagName}`
+              });
+              console.log(`El tag ${tagName} ya existe. Saltando la creación del tag.`);
+              core.setOutput('tag_created', 'false'); // Indica que el tag no fue creado (ya existía)
+            } catch (error) {
+              if (error.status === 404) {
+                // Si el tag no existe (error 404), procedemos a crearlo
+                await github.rest.git.createRef({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  ref: `refs/tags/${tagName}`,
+                  sha: context.sha
+                });
+                console.log(`Tag ${tagName} creado exitosamente.`);
+                core.setOutput('tag_created', 'true'); // Indica que el tag fue creado
+              } else {
+                // Otro tipo de error
+                console.error(`Error al verificar/crear el tag ${tagName}:`, error);
+                throw error; // Re-lanza el error para que el paso falle
+              }
+            }
+        env:
+          APP_VERSION: ${{ env.APP_VERSION }} # Pasa la versión como variable de entorno al script
+
+      - name: Crear GitHub Release
+        # Este paso solo se ejecuta si el paso 'create_tag' indicó que se creó un nuevo tag.
+        if: steps.create_tag.outputs.tag_created == 'true'
+        uses: softprops/action-gh-release@v2 # Action de terceros para crear GitHub Releases
+        with:
+          tag_name: v${{ env.APP_VERSION }} # Nombre del tag asociado a la release
+          name: Lanzamiento v${{ env.APP_VERSION }} # Nombre de la release
+          body: | # Cuerpo (descripción) de la release en Markdown
+            🎉 **Lanzamiento de la Versión ${{ env.APP_VERSION }}**
+            Esta release incluye la última versión compilada y disponible en ECR.
+            ---
+            _Generado automáticamente por GitHub Actions._
+          draft: false # Si es un borrador (false = publicar inmediatamente)
+          prerelease: false # Si es una pre-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Token proporcionado automáticamente por GitHub con permisos

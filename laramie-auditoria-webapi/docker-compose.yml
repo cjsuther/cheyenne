@@ -1,0 +1,24 @@
+version: "3.9"
+
+services:
+  major-laramie-seguridad-webapi:
+    #container_name: major-laramie-seguridad-webapi
+    image: major-laramie-seguridad-webapi:v1
+    build:
+      dockerfile: 'Dockerfile'
+    command: "npm run start-prod"
+
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+    ports:
+      - "3002:3002"
+
+    networks:
+      - major-laramie
+
+networks: 
+  major-laramie:
+    name: major-laramie
+    driver: bridge

@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  major-laramie-ingresos-publicos-webapi:
+    #container_name: major-laramie-ingresos-publicos-webapi
+    image: major-laramie-ingresos-publicos-webapi:v1
+    build:
+      dockerfile: 'Dockerfile'
+    environment:
+      - PUPPETEER_SKIP_DOWNLOAD=true
+
+    command: "npm run start-prod"
+
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - major-laramie-data_files:/var/lib/major-laramie-repository
+
+    ports:
+      - "3022:3022"
+
+    networks:
+      - major-laramie
+
+volumes:
+  major-laramie-data_files:
+    external: true
+
+networks: 
+  major-laramie:
+    name: major-laramie
+    driver: bridge

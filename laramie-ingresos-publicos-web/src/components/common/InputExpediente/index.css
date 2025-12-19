@@ -1,0 +1,9 @@
+.input-expediente {
+    cursor: pointer;
+}
+.input-expediente:disabled {
+    cursor: default;
+}
+.input-expediente:read-only:not(:disabled) {
+    background-color: #fff;
+}

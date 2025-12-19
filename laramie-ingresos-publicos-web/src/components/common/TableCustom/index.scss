@@ -1,0 +1,222 @@
+@import '../../../styles/config.scss';
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans&display=swap');
+
+
+
+div.TableCustomBase {
+
+    overflow-x: auto;
+
+    div.rt-page {
+        display: flow-root;
+        // position: relative;
+    }
+
+    div.rt-pagesize {
+        margin-top: 10px;
+        float: left;
+    }
+
+
+    div.rt-pagesize select {
+        width: 200px;
+        margin-bottom: 5px;
+        font-size: 11px;
+    }
+
+    div.rt-page .form-control,
+    div.rt-globalFilter .form-control {
+        display: block;
+        padding: 0.375rem 0.75rem;
+        font-size: 11px !important;
+        background-color: #FFFFFF;
+        background-clip: padding-box;
+        appearance: none;
+        border-radius: 0.25rem;
+    }
+
+
+    div.rt-pagecount {
+        display: flex;
+        margin-top: 10px;
+        float: right;
+        align-items: center;
+    }
+    div.rt-pagecount input {
+        width: 40px !important;
+        height: 22px;
+        margin-top: -3px;
+    }
+    div.rt-pagecount-current {
+        display: flex;
+    }
+
+    div.rt-globalFilter input {
+        width: 200px;
+        margin-bottom: 10px;
+        font-size: 11px;
+    }
+
+    div.rt-globalFilter {
+        float: left;
+    }
+
+    div.rt-download {
+        float: right;
+        margin-top: 15px;
+        margin-right: 5px;
+    }
+
+    div.rt-download i {
+        font-size: 18px;
+    }
+
+    div.rt-utilities {
+        display: flow-root;
+    }
+
+    div.rt-utilities button {
+        margin-left: auto;
+        margin-bottom: 10px;
+    }
+    
+    .form-control:focus {
+    border-color: $color-primary;
+    box-shadow: 0 0px 0px;
+    outline: 0 none;
+    }
+
+    .pagecount-text{
+    font-size: 11px;
+    margin-top: 3px;
+    }
+
+    table {
+        width: 100%;
+    }
+    tr {
+        border-style: solid;
+       border-width: 0px 0px 1px 0px;
+       border-color: $color-li-neutro;}
+
+    th {
+        height: 35px;
+        background-color: $color-neutro;
+        color: #ffffff;
+        text-align: left;
+        font-weight: 500;
+        font-size: 16px;
+        border-style: solid;
+        border-width: 1px 1px 0px 0px;
+        border-color: #ffffff;
+        // text-indent: 10px;
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    i.fa.fa-angle-right{
+        margin-left: 5px;
+    }
+
+    td {
+        height: 28px;
+        text-align: left;
+        // text-indent: 10px;
+        font-size: 13px;
+        color: $color-font-text;
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .cell-ellipsis {
+        max-width: 1px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+//    tr.rt-tr-row:nth-child(even) {
+//        border-bottom: 1px solid $color-li-neutro;}
+//    tr.rt-tr-row:nth-child(odd) {
+//       background-color: #FFFFFF;}
+    
+    tbody{
+        font-family:'Open Sans', sans-serif;
+    }
+    tbody td.empty-row {
+        text-align: center;
+    }
+
+    tbody td, tbody th {
+    border-right: 1px solid $color-li-neutro;
+    }
+    tbody tr:first-child th {
+    border-top: 0;
+    }
+    tbody tr:last-child td {
+    border-bottom: 0;
+    }
+
+ //   tbody tr:last-child {
+ //   border-bottom: 1px solid $color-li-neutro;}
+
+    tbody tr td:first-child,
+    tbody tr th:first-child {
+    border-left: 0;
+    }
+    tbody tr td:last-child,
+    tbody tr th:last-child {
+    border-right: 0;
+    }
+
+    
+    tfoot td {
+        height: 28px;
+        background-color: $color-neutro;
+        color: #ffffff;
+        text-indent: 10px;
+        font-size: 13px;
+        border-style: solid;
+        border-width: 0px 1px 0px 0px;
+        border-color: #ffffff;
+    }
+
+    tfoot tr:nth-child(2) td {
+        height: 0px;
+        border-width: 0px;
+        border-style: none;
+    }
+
+    .action {
+        display: flex;
+    }
+    .action div {
+        text-indent: 0px;
+    }
+    .action div i {
+        padding-left: 5px;
+        padding-right: 5px;
+        font-size: 14px;
+    }
+    th .action div i {
+        color: #ffffff;
+    }
+
+    .action-check {
+        display: flex;
+        justify-content: center;
+    }
+    .action-check input[type="checkbox"] {
+        width: 15px;
+        height: 15px;
+    }
+    .action-check input[type="checkbox"]:after, .action input[type="checkbox"]:hover {
+        background-color: #FFFFFF;
+        border: 2px solid $color-neutro;
+    }
+
+    .icon-expanded {
+        color: $color-font-text;
+    }
+
+}

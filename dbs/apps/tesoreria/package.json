@@ -1,0 +1,23 @@
+{
+   "name": "tesoreria-db",
+   "version": "1.0.0",
+   "description": "Tesorería DB",
+   "type": "commonjs",
+   "scripts": {
+      "typeorm": "typeorm-ts-node-commonjs",
+      "migration:create": "../scripts/create-migration-script.sh",
+      "migration:status": "env -S $(cat .env) sh -c 'npm run typeorm -- migration:show -d src/data-source.ts'",
+      "migration:up": "env -S $(cat .env) sh -c 'npm run typeorm -- migration:run -d src/data-source.ts'",
+      "migration:down": "env -S $(cat .env) sh -c 'npm run typeorm -- migration:revert -d src/data-source.ts'"
+   },
+   "devDependencies": {
+      "ts-node": "10.9.1",
+      "@types/node": "^16.11.10",
+      "typescript": "4.5.2"
+   },
+   "dependencies": {
+      "typeorm": "0.3.20",
+      "reflect-metadata": "^0.1.13",
+      "pg": "^8.4.0"
+   }
+}

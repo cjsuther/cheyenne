@@ -1,0 +1,4 @@
+--1)ABRIR EN persona_fisica
+--2)Actualizar documento en 500 y 501 usando el criterio de 1
+--3)Actualizar direccion en "PersonaFisica" y "PersonaJuridicaDomicilioFiscal" usando el criterio de 1
+--4)Replicar "PersonaJuridicaDomicilioFiscal" como "PersonaJuridicaDomicilioLegal"

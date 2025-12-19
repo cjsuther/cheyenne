@@ -1,0 +1,66 @@
+<div>
+    <div>
+        <div style="padding-bottom: 20px; padding-top: 5px;" class="col-12 algin-left b-b-2">
+            <span class="titleG3">Motivo por el que solicita la Baja como contribuyente:</span>&nbsp;<span class="textG3"><%= motivoBaja %></span>
+        </div>
+    </div>
+    <div class="col-12 algin-left l-h-40">
+        <span class="titleG3">Datos del automotor </span>
+    </div>
+    <div class="algin-left">
+        <span class="title2">Dominio Actual:</span>&nbsp;<span class="textG2"><%= dominioActual %></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <span class="title2">Dominio Anterior:</span>&nbsp;<span class="textG2"><%= dominioAnterior %></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <span class="title2">Fecha de Baja:</span>&nbsp;<span class="textG2"><%= fechaBaja %></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <br />
+        <span class="title2">Marca:</span>&nbsp;<span class="textG2"><%= marca %></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <span class="title2">Modelo:</span>&nbsp;<span class="textG2"><%= modelo %></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <span class="title2">Modelo Año:</span>&nbsp;<span class="textG2"><%= anioModelo %></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <span class="title2">Tipo:</span>&nbsp;<span class="textG2"><%= tipoVehiculo %></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <br />
+        <span class="title2">N° de Motor:</span>&nbsp;<span class="textG2"><%= numeroMotor %></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <span class="title2">Marca de Motor:</span>&nbsp;<span class="textG2"><%= marcaMotor %></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <span class="title2">N° de Chasis:</span>&nbsp;<span class="textG2"><%= numeroChasis %></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <br />
+        <span class="title2">Peso o Tara:</span>&nbsp;<span class="textG2"><%= peso %></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <span class="title2">Carga Máxima:</span>&nbsp;<span class="textG2"><%= carga %></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    </div>
+
+    <br />
+    <br />
+    <div>
+        <div class="col-12 algin-left b-b-2"></div>
+    </div>
+    <div class="col-12 algin-left l-h-40">
+        <span class="titleG3">Identificación de Titulares</span>
+    </div>
+        <div class="col-12 algin-left">
+        <% titulares.forEach(function(titular) { %>
+            <span class="title2">Apellido y Nombre o Razón Social:</span>&nbsp;<span class="textG2"><%= titular.nombre %></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <span class="title2">Tipo y Nro. Documento:</span>&nbsp;<span class="textG2"><%= titular.documento %></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <br />
+            <span class="title2">Domicilio Fiscal:</span>&nbsp;<span>
+            <span class="title2">Calle:</span>&nbsp;<span class="textG2"><%= titular.calle %></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <span class="title2">N°:</span>&nbsp;<span class="textG2"><%= titular.numero %></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <span class="title2">Piso:</span>&nbsp;<span class="textG2"><%= titular.piso %></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <span class="title2">Depto:</span>&nbsp;<span class="textG2"><%= titular.dpto %></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <span class="title2">CP:</span>&nbsp;<span class="textG2"><%= titular.codigoPostal %></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <br />
+            <span class="title2">Localidad:</span>&nbsp;<span class="textG2"><%= titular.localidad %></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <span class="title2">Provincia:</span>&nbsp;<span class="textG2"><%= titular.provincia %></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <div class="col-12 algin-left p-t-12"></div>
+            <% }); %>
+        </div>
+    <br />
+    <div>
+        <div class="col-12 algin-left b-b-2"></div>
+        <div class="col-12 algin-left m-t-10"></div>
+            <span class="text2">Se deja constancia que a la fecha</span>
+            <span class="text2"><%= fechaCertificado %></span>
+            <span class="text2">esta Dirección Municipal efectuó la Baja Impositiva del Impuesto de
+            Patentes del Automotor del Dominio Indicado precedentemente, bajo el motivo denunciado. Se extiende el presente para ser presentado ante las autoridades que así lo requieran.</span>
+        <div class="col-12 algin-left b-b-2 p-t-10"></div>
+    </div> 
+   <br />
+   <br />
+   <br />
+</div>

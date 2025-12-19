@@ -1,0 +1,7 @@
+.input-usuario {
+    cursor: pointer;
+}
+.input-usuario:disabled {
+    cursor: default;
+}
+

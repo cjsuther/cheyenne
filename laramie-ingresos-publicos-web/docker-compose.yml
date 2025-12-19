@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+  major-laramie-ingresos-publicos-web:
+    #container_name: major-laramie-ingresos-publicos-web
+    image: major-laramie-ingresos-publicos-web:v1
+    build:
+      dockerfile: 'Dockerfile'
+
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+    ports:
+      - "3020:80"
+
+networks: 
+  default: 
+    name: major-laramie

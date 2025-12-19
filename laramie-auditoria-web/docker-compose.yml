@@ -1,0 +1,20 @@
+version: "3.9"
+
+services:
+  laramie-auditoria-web:
+    #container_name: laramie-auditoria-web
+    image: laramie-auditoria-web:v1
+    build:
+      dockerfile: 'Dockerfile'
+
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+    ports:
+      - "3050:80"
+
+networks: 
+  default: 
+    name: laramie
+    external: true

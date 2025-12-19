@@ -1,0 +1,9 @@
+
+export const RECIBO_TYPE = {
+
+    RECIBO_EMISION: 170,
+    RECIBO_MOSTRADOR: 171,
+    RECIBO_WEB: 172,
+    RECIBO_CUPON: 173
+
+}

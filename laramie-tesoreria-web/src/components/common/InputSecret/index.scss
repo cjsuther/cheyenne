@@ -1,0 +1,25 @@
+@import '../../../styles/config.scss';
+
+.input-secret-container {
+    position: relative;
+}
+
+.input-secret-sub-container {
+    position: absolute;
+    top: 0px;
+    display: flex;
+    height: 100%;
+    width: 100%;
+}
+
+div.input-secret-sub-container .input-secret-text {
+    border: 0 !important;
+    background-color: rgba(0, 0, 0, 0) !important;
+}
+
+.input-secret-icon-container {
+    display: flex;
+    align-items: center;
+    margin-right: 5px;
+    cursor: pointer;
+}

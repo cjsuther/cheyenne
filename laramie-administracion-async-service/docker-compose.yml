@@ -1,0 +1,20 @@
+version: "3.9"
+
+services:
+  major-laramie-administracion-async-service:
+    #container_name: major-laramie-administracion-async-service
+    image: major-laramie-administracion-async-service:v1
+    build:
+      dockerfile: 'Dockerfile'
+    command: "npm run start-prod"
+
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+    ports:
+      - "3013:3013"
+
+networks: 
+  default: 
+    name: major-laramie

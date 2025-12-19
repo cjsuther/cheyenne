@@ -1,0 +1,135 @@
+import express from 'express';
+
+import FileRouter from './file-router';
+import ReporteRouter from './reporte-router';
+import ProcesoRouter from './proceso-router';
+import ConfiguracionRouter from './configuracion-router';
+import ListaRouter from './lista-router';
+import EntidadRouter from './entidad-router';
+import DireccionRouter from './direccion-router';
+import InformacionAdicionalRouter from './informacion-adicional-router';
+import ArchivoRouter from './archivo-router';
+import ObservacionRouter from './observacion-router';
+import EtiquetaRouter from './etiqueta-router';
+import ContribuyenteRouter from './contribuyente-router';
+import CuentaRouter from './cuenta-router';
+import VinculoCuentaRouter from './vinculo-cuenta-router';
+import VariableRouter from './variable-router';
+import VariableGlobalRouter from './variable-global-router';
+import PersonaRouter from './persona-router';
+import ExpedienteRouter from './expediente-router';
+import MedioPagoRouter from './medio-pago-router';
+import InmuebleRouter from './inmueble-router';
+import CatastroRouter from './catastro-router';
+import ComercioRouter from './comercio-router';
+import VehiculoRouter from './vehiculo-router';
+import CementerioRouter from './cementerio-router';
+import FondeaderoRouter from './fondeadero-router';
+import EspecialRouter from './especial-router';
+import EmisionDefinicionRouter from './emision-definicion-router';
+import EmisionEjecucionRouter from './emision-ejecucion-router';
+import EmisionEjecucionCuentaRouter from './emision-ejecucion-cuenta-router';
+import EmisionAprobacionRouter from './emision-aprobacion-router';
+import ProcedimientoRouter from './procedimiento-router';
+import TasaRouter from './tasa-router';
+import SubTasaRouter from './sub-tasa-router';
+import TasaVencimientoRouter from './tasa-vencimiento-router';
+import CertificadoEscribanoRouter from './certificado-escribano-router';
+import CertificadoApremioRouter from './certificado-apremio-router';
+import CertificadoApremioItemRouter from './certificado-apremio-item-router';
+import ApremioRouter from './apremio-router';
+import PlantillaDocumentoRouter from './plantilla-documento-router';
+import TipoActoProcesalRouter from './tipo-acto-procesal-router';
+import OrganoJudicialRouter from './organo-judicial-router';
+import TipoRelacionCertificadoApremioPersonaRouter from './tipo-relacion-certificado-apremio-persona-router';
+import CuentaCorrienteItemRouter from './cuenta-corriente-item-router';
+import CuotaPorcentajeRouter from './cuota-porcentaje-router';
+import CuentaPagoRouter from './cuenta-pago-router';
+import CuentaPagoItemRouter from './cuenta-pago-item-router';
+import ControladorRouter from './controlador-router';
+
+import CuentaCorrienteCondicionEspecialRouter from './cuenta-corriente-condicion-especial-router';
+import TipoPlanPagoRouter from './tipo-plan-pago-router';
+import PlanPagoDefinicionRouter from './plan-pago-definicion-router';
+import PlanPagoRouter from './plan-pago-router';
+import PlanPagoCuotaRouter from './plan-pago-cuota-router';
+import PagoContadoDefinicionRouter from './pago-contado-definicion-router';
+import PagoContadoRouter from './pago-contado-router';
+import PermisoRouter from './permiso-router';
+import ConvenioParametroRouter from './convenio-parametro-router'
+
+import ColeccionRouter from './coleccion-router';
+import CuentaPruebaRouter from './cuenta-prueba-router';
+import DeclaracionJuradaComercioRouter from './declaracion-jurada-comercio-router';
+
+import ReciboEspecialRouter from './recibo-especial-router';
+
+const router = express.Router();
+
+const getRoutes = () => {
+    router.use('/api', FileRouter);
+    router.use('/api', ReporteRouter);
+    router.use('/api', ProcesoRouter);
+    router.use('/api', ConfiguracionRouter);
+    router.use('/api', ListaRouter);
+    router.use('/api', EntidadRouter);
+    router.use('/api', DireccionRouter);
+    router.use('/api', InformacionAdicionalRouter);
+    router.use('/api', ArchivoRouter);
+    router.use('/api', ObservacionRouter);
+    router.use('/api', EtiquetaRouter);
+    router.use('/api', ContribuyenteRouter);
+    router.use('/api', CuentaRouter);
+    router.use('/api', VinculoCuentaRouter);
+    router.use('/api', VariableRouter);
+    router.use('/api', VariableGlobalRouter);
+    router.use('/api', PersonaRouter);
+    router.use('/api', ExpedienteRouter);
+    router.use('/api', MedioPagoRouter);
+    router.use('/api', InmuebleRouter);
+    router.use('/api', CatastroRouter);
+    router.use('/api', ComercioRouter);
+    router.use('/api', VehiculoRouter);
+    router.use('/api', CementerioRouter);
+    router.use('/api', FondeaderoRouter);
+    router.use('/api', EspecialRouter);
+    router.use('/api', EmisionDefinicionRouter);
+    router.use('/api', EmisionEjecucionRouter);
+    router.use('/api', EmisionEjecucionCuentaRouter);
+    router.use('/api', EmisionAprobacionRouter);
+    router.use('/api', ProcedimientoRouter);
+    router.use('/api', TasaRouter);
+    router.use('/api', SubTasaRouter);
+    router.use('/api', TasaVencimientoRouter);
+    router.use('/api', CertificadoEscribanoRouter);
+    router.use('/api', CertificadoApremioRouter);
+    router.use('/api', CertificadoApremioItemRouter);
+    router.use('/api', ApremioRouter);
+    router.use('/api', PlantillaDocumentoRouter);
+    router.use('/api', TipoActoProcesalRouter);
+    router.use('/api', OrganoJudicialRouter);
+    router.use('/api', TipoRelacionCertificadoApremioPersonaRouter);
+    router.use('/api', CuentaCorrienteItemRouter);
+    router.use('/api', CuotaPorcentajeRouter);
+    router.use('/api', CuentaPagoRouter);
+    router.use('/api', CuentaPagoItemRouter);
+    router.use('/api', ControladorRouter);
+
+    router.use('/api', CuentaCorrienteCondicionEspecialRouter);
+    router.use('/api', TipoPlanPagoRouter);
+    router.use('/api', PlanPagoDefinicionRouter);
+    router.use('/api', PlanPagoRouter);
+    router.use('/api', PlanPagoCuotaRouter);
+    router.use('/api', PagoContadoDefinicionRouter);
+    router.use('/api', PagoContadoRouter);
+    router.use('/api', PermisoRouter);
+    router.use('/api', ConvenioParametroRouter);
+    router.use('/api', ColeccionRouter);
+    router.use('/api', CuentaPruebaRouter);
+    router.use('/api', ReciboEspecialRouter);
+    router.use('/api', DeclaracionJuradaComercioRouter);
+}
+
+getRoutes();
+
+export default router;

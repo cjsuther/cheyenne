@@ -1,0 +1,317 @@
+@import '../../../styles/config.scss';
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans&display=swap');
+
+@font-face {
+    font-family: 'OpenSans';
+    src: local('Open Sans'), url(../../../assets/font/OpenSans/OpenSans-Regular.ttf) format('truetype');
+}
+
+div.TableCustomBase {
+
+    overflow-x: auto;
+    overflow: hidden;
+    font-family:'OpenSans';
+
+    // Filtro inferior
+
+    div.rt-page {
+        display: flow-root;
+        // position: relative;
+    }
+
+    div.rt-pagesize {
+        margin-top: 10px;
+        float: left;
+        border: 0px;
+        margin-left: -8px;
+    }
+
+    select {
+        appearance: none;
+        cursor: pointer;
+    }
+
+    div.rt-pagesize select {
+        color: $color-font-primary;
+        position: relative;
+        width: 200px;
+        margin-bottom: 5px;
+        font-size: 11px;
+    }
+
+    div.rt-pagesize select:hover, div.rt-pagesize select:focus {
+        color: $color-font-text;
+    }
+
+    select option {
+        border: 1px solid $color-font-primary;
+        background-color: #FFFFFF;
+        box-shadow: none; 
+    }
+
+    select option:hover, select option:focus, select option:active {
+        background-color: $color-li-neutro !important; 
+    }
+
+    select option:checked {
+        background-color: $color-li-neutro !important; 
+    }
+
+    div.rt-page .form-control,
+    div.rt-globalFilter .form-control {
+        display: block;
+        padding: 0.375rem 0.75rem;
+        font-size: 11px !important;
+        background-color: #FFFFFF;
+        background-clip: padding-box;
+        appearance: none;
+        border-radius: 0.25rem;
+    }
+
+    div.rt-page .form-control {
+        border-width: 0px;
+    }
+
+    //paginado
+
+    div.rt-pagecount {
+        display: flex;
+        margin-top: 10px;
+        float: right;
+        align-items: center;
+    }
+
+    div > .material-symbols-outlined {
+        font-size: 20px;
+    }
+
+    div.rt-pagecount input {
+        padding: 0px !important;
+        width: 12px !important;
+        height: 22px;
+        margin-top: -3px;
+    }
+    div.rt-pagecount-current {
+        display: flex;
+    }
+
+    // Filtro superior
+
+    div.rt-globalFilter input {
+        width: 200px;
+        margin-bottom: 10px;
+        font-size: 11px;
+    }
+
+    div.rt-globalFilter {
+        float: left;
+    }
+
+    div.rt-download {
+        float: right;
+        margin-top: 10px;
+    }
+
+    div.rt-download > .material-symbols-outlined {
+        font-size: 26px;
+        color: $color-neutro-icons;
+        font-variation-settings:
+        'wght' 200,
+    }
+
+    div.rt-download > .material-symbols-outlined:hover {
+        color: $color-neutro;
+    }
+
+    div.rt-utilities {
+        display: flow-root;
+    }
+
+    div.rt-utilities button {
+        margin-left: auto;
+        margin-bottom: 10px;
+    }
+    
+    .form-control:focus {
+    border-color: $color-font-primary;
+    box-shadow: 0 0px 0px;
+    outline: 0 none;
+    }
+
+    .pagecount-text{
+    font-size: 11px;
+    margin-top: 3px;
+    }
+
+    table {
+        width: 100%;
+    }
+    tr {
+        border-style: solid;
+       border-width: 0px 0px 1px 0px;
+       border-color: $color-background;
+    }
+
+    th {
+        height: 35px;
+        background-color: $color-background;
+        color: $color-font-primary;
+        text-align: left;
+        font-weight: 500;
+        font-size: 16px;
+        border-style: solid;
+        border-width: 1px 1px 0px 0px;
+        border-color: #ffffff;
+        // text-indent: 10px;
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    td {
+        height: 28px;
+        text-align: left;
+        // text-indent: 10px;
+        font-size: 13px;
+        color: $color-font-text;
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .table-custom-header-container {
+        display: flex;
+        align-items: center;
+       // justify-content: space-between;
+    }
+
+    .table-custom-header-container > .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24
+    }
+
+    .min-column {
+        min-width: 50px !important;
+    }
+
+    .cell-ellipsis {
+        max-width: 1px; // necesario para el elipsis
+        white-space: nowrap;
+    }
+
+    .clickable {
+        cursor: pointer;
+    }
+
+//    tr.rt-tr-row:nth-child(even) {
+//        border-bottom: 1px solid $color-li-neutro;}
+//    tr.rt-tr-row:nth-child(odd) {
+//       background-color: #FFFFFF;}
+    
+    tbody{
+        font-family:'Open Sans', sans-serif;
+    }
+    tbody td.empty-row {
+        text-align: center;
+    }
+
+    tbody td, tbody th {
+    border-right: 1px solid $color-background;
+    }
+    tbody tr:first-child th {
+    border-top: 0;
+    }
+    tbody tr:last-child td {
+    border-bottom: 0;
+    }
+
+ //   tbody tr:last-child {
+ //   border-bottom: 1px solid $color-li-neutro;}
+
+    tbody tr td:first-child,
+    tbody tr th:first-child {
+    border-left: 0;
+    }
+    tbody tr td:last-child,
+    tbody tr th:last-child {
+    border-right: 0;
+    }
+
+    
+    tfoot td {
+        height: 28px;
+        background-color: $color-background;
+        color: $color-font-text;
+        font-weight: 600;
+        text-indent: 10px;
+        border-style: solid;
+        border-width: 0px 1px 0px 0px;
+        border-color: #ffffff;
+    }
+
+    tfoot tr:nth-child(2) td {
+        height: 0px;
+        border-width: 0px;
+        border-style: none;
+    }
+
+    .action {
+        display: flex;
+       // justify-content: space-between;
+    }
+    .action div {
+        text-indent: 0px;
+    }
+    .action div i {
+        padding-left: 5px;
+        padding-right: 5px;
+        font-size: 12px;
+    }
+    
+    th .action div > .material-symbols-outlined {
+        font-size: 26px;
+    }
+
+    .action div > .material-symbols-outlined {
+        padding-left: 5px;
+        font-size: 20px;
+        color: $color-font-primary;
+    }
+
+    .action div > .material-symbols-outlined:hover {
+        color: $color-font-text;
+        font-variation-settings:
+        'wght' 300,
+    }
+
+    .action-check {
+        display: flex;
+        justify-content: center;
+        font-size: 14px;
+    }
+    
+    .form-check-input:checked, .form-check-input:focus {
+        background-color: $color-font-primary;
+        border-color: $color-font-primary;
+        box-shadow: 0 0 0;
+    }
+
+    .icon-expanded {
+        color: $color-font-text;
+    }
+
+    &.TableCustomFloatingDownloadCSVButton {
+        overflow: visible;
+        & div {
+            &.rt-utilities {
+                position: relative;
+                overflow: visible;
+            }
+            &.rt-download.link {
+                float: initial;
+                margin-top: 0;
+                position: absolute;
+                right: 0;
+                bottom: 5px;
+            }
+        }
+    }
+
+}

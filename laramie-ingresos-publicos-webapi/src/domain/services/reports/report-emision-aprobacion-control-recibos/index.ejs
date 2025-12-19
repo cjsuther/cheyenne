@@ -1,0 +1,154 @@
+<div class="page">
+
+    <div class="block1">
+        <div class="block-row p-t-8">
+            <div class="text-dynamic1 col-8">TÍTULAR</div>
+            <div class="text-dynamic1 col-3">IDENTIF./PADRÓN</div>
+            <div class="text-dynamic1 col-1">ZONA</div>
+        </div>
+        <div class="block-row p-t-5 underline">
+            <div class="text-dynamic1 col-8"><%= titular %></div>
+            <div class="text-dynamic1 col-3"><%= padron %></div>
+            <div class="text-dynamic1 col-1"><%= numeroControlador %></div>
+        </div>
+
+        <div class="block-row m-t-20 overline">
+            <div class="text-dynamic1 col-12">DOMICILIO DEL BIEN</div>
+        </div>
+        <div class="block-row">
+            <div class="text-dynamic2 col-12"><%= detalleTributo1 %></div>
+        </div>
+        <div class="block-row">
+            <div class="text-dynamic2 col-12"><%= detalleTributo2 %></div>
+        </div>
+        <div class="block-row p-t-5">
+            <div class="text-dynamic3 col-12"><%= detalleTributo3 %></div>
+        </div>
+    </div>
+
+    <div class="block2 m-t-6">
+        <div class="block-row">
+            <div class="text-default1 col-12">BASE IMPONIBLE:</div>
+        </div>
+        <div class="block-row p-t-8">
+            <div class="text-default1" style="width:18%;"></div>
+            <div class="text-default2" style="width:11%;">
+                Rubro I:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <span class="text-dynamic3"><%= grupo %></span>
+            </div>
+            <div class="text-default2" style="width:13%;">
+                Rubro II:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <span class="text-dynamic3">0</span>
+            </div>
+            <div class="text-default2" style="width:17%;">
+                Rubro II:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <span class="text-dynamic3">0</span>
+            </div>
+            <div class="text-default2" style="width:10%;">
+                Zona:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <span class="text-dynamic3"><%= zonaTarifaria %></span>
+            </div>
+            <div class="text-default2" style="width:31%;">
+                Valuación fiscal municipal:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <span class="text-dynamic3"><%= valuacionFiscal %></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="block2 m-t-6">
+        <div class="block-row">
+            <div class="text-default1 col-6">CLAVES FORMAS DE PAGO:</div>
+            <div class="text-default1 col-6"><strong><%= debitoAutomatico %></strong></div>
+        </div>
+        <div class="block-row">
+            <div class="text-default1" style="width:8%;"></div>
+            <div class="text-default2" style="width:43%;">
+                Clave Web:&nbsp;&nbsp;&nbsp;
+                <span class="text-dynamic3"><%= claveWeb %></span>
+            </div>
+            <div class="text-default2" style="width:39%;">
+                Clave Pago Mis Cuentas:&nbsp;&nbsp;&nbsp;
+                <span class="text-dynamic3"><%= clavePagoMisCuentas %></span>
+            </div>
+            <div class="text-default1" style="width:10%;"></div>
+        </div>
+        <div class="block-row">
+            <div class="text-default1" style="width:8%;"></div>
+            <div class="text-default2" style="width:43%;">
+                Clave LINK:&nbsp;&nbsp;&nbsp;
+                <span class="text-dynamic3"><%= claveLINK %></span>
+            </div>
+            <div class="text-default2" style="width:39%;">
+                Clave MASTERCARD:&nbsp;&nbsp;&nbsp;
+                <span class="text-dynamic3"><%= claveMASTERCARD %></span>
+            </div>
+            <div class="text-default1" style="width:10%;"></div>
+        </div>
+    </div>
+
+    <img class="m-t-6" style="width:100%" src="<%= images.banner1 %>" />
+
+    <div class="block3 m-t-4">
+        <div class="block-row p-t-8">
+            <div class="text-default1 col-12">PRÓXIMOS VENCIMIENTOS:</div>
+        </div>
+    </div>
+
+    <div class="block4 m-t-6">
+        <div class="block-row">
+            <div class="text-default1 col-12">INFORMACIÓN DE DEUDA ADMINISTRATIVA DE LOS ÚLTIMOS 5 AÑOS - Hasta la fecha emisión:</div>
+        </div>
+        <div class="block-row">
+            <div class="text-dynamic3 col-12 m-l-20"><%= detalleDeuda %></div>
+        </div>
+    </div>
+
+    <img class="m-t-6" style="width:100%" src="<%= images.banner2 %>" />
+
+    <div class="block5 m-t-4">
+        <div class="block-row">
+            <div class="text-default0 col-12">PARA ABONAR:</div>
+        </div>
+
+        <% cuotas.forEach(function(cuota) { %>
+            <div class="block-row m-t-20 underline">
+                <div class="col-8">
+                    <div class="block-row">
+                        <div class="text-dynamic1 col-8">Padrón: <%= padron %> - Tasa:</div>
+                        <div class="text-dynamic1 col-4 algin-right"><%= cuota.montoTasa %></div>
+                    </div>
+                    <div class="block-row">
+                        <div class="text-dynamic1 col-8">Contr. Para Bomberos Voluntarios:</div>
+                        <div class="text-dynamic1 col-4 algin-right"><%= cuota.montoBomberos %></div>
+                    </div>
+                    <div class="block-row m-t-10">
+                        <div class="text-dynamic1 col-8">1° Vencimiento: <%= cuota.fechaVencimiento1 %></div>
+                        <div class="text-dynamic1 col-4 algin-right"><%= cuota.montoVencimiento1 %></div>
+                    </div>
+                    <div class="block-row">
+                        <div class="text-dynamic1 col-8">Vigente con recargo hasta: <%= cuota.fechaVencimiento2 %></div>
+                        <div class="text-dynamic1 col-4 algin-right"><%= cuota.montoVencimiento2 %></div>
+                    </div>
+                    <div class="block-row m-t-10 m-b-10">
+                        <div class="col-12 algin-center">
+                            <img style="width:100%" src="<%= cuota.pathCodigoBarras %>" />
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="block-row">
+                        <div class="text-dynamic2 col-12">Aviso: <%= cuota.aviso %></div>
+                    </div>
+                    <div class="block-row m-t-4">
+                        <div class="text-dynamic-cuota col-12 algin-center p-t-5 p-b-5"><%= cuota.cuota %></div>
+                    </div>
+                    <div class="block-row m-t-4">
+                        <div class="text-dynamic4 col-12">Del importe total de esta boleta ya se encuentran descontados $<%= cuota.montoEdesur %>. que uested abonrá a través de su factura de Edesur.</div>
+                    </div>
+                </div>
+            </div>   
+        <% }); %>
+
+    </div>
+
+</div>

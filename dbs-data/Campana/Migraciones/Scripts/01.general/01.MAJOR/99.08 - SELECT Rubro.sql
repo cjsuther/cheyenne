@@ -1,0 +1,38 @@
+SELECT
+    -- Rubros del maestro, transformando el código 999999 a 999888
+    CASE
+        WHEN Codigo = 999999 THEN 999888
+        ELSE Codigo
+    END AS COD_RUBRO,
+    Descripcion AS NOMBRE,
+    0 AS ORDEN,
+    0 AS AGRUPAMIENTO,
+    CASE
+        WHEN Activo = 'true' THEN NULL
+        ELSE CAST(GETDATE() AS DATE)
+    END AS FECHA_BAJA,
+    'S' AS FACTURABLE,
+    'N' AS GENERICO,
+    Categoria AS CATEGORIA,
+    0.00 AS IMPORTE_MINIMO,
+    0.00 AS ALICUOTA,
+    NULL AS REGIMEN_GENERAL,
+    0 AS COD_TIPO_MINIMO_APLICABLE
+FROM Rubros
+
+UNION ALL
+
+-- Rubro genérico adicional
+SELECT
+    999999 AS COD_RUBRO,
+    'GENÉRICO' AS NOMBRE,
+    0 AS ORDEN,
+    0 AS AGRUPAMIENTO,
+    NULL AS FECHA_BAJA,
+    'N' AS FACTURABLE,
+    'S' AS GENERICO,
+    0 AS CATEGORIA,
+    0.00 AS IMPORTE_MINIMO,
+    0.00 AS ALICUOTA,
+    NULL AS REGIMEN_GENERAL,
+    0 AS COD_TIPO_MINIMO_APLICABLE;

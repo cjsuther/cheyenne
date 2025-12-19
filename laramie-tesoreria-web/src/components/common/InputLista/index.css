@@ -1,0 +1,9 @@
+.input-lista {
+    cursor: pointer;
+}
+.input-lista:disabled {
+    cursor: default;
+}
+.input-lista:read-only:not(:disabled) {
+    background-color: #fff;
+}

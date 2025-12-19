@@ -1,0 +1,98 @@
+@import '../../../styles/config.scss';
+
+div.input-formula {
+  position: relative;
+  width: 100%;
+  overflow: unset;
+
+  .input-formula-view {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    overflow: auto;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+  }
+
+  .input-formula-view-disabled {
+    background-color: $color-disabled !important;
+  }
+
+  .input-formula-edit {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    background-color: transparent;
+    color: transparent !important;
+    caret-color: #111;
+    resize: none;
+    overflow: auto;
+    word-wrap: break-word;
+  }
+  .input-formula-edit:disabled {
+    background-color: transparent !important;
+  }
+
+
+  .input-formula-view.input-formula-font-xm,
+  .input-formula-view.input-formula-font-xm br,
+  .input-formula-edit.input-formula-font-xm {
+    font-size: 10px !important;
+    line-height: 16px !important;
+  }
+  
+  .input-formula-view.input-formula-font-sm,
+  .input-formula-view.input-formula-font-sm br,
+  .input-formula-edit.input-formula-font-sm {
+    font-size: 12px !important;
+    line-height: 18px !important;
+  }
+  .input-formula-view.input-formula-font-md,
+  .input-formula-view.input-formula-font-md br,
+  .input-formula-edit.input-formula-font-md {
+    font-size: 14px !important;
+    line-height: 22px !important;
+  }
+  .input-formula-view.input-formula-font-lg,
+  .input-formula-view.input-formula-font-lg br,
+  .input-formula-edit.input-formula-font-lg {
+    font-size: 16px !important;
+    line-height: 30px !important;
+  }
+
+  .input-formula-funcion {
+    color:#24C9A7 !important;
+  }
+  .input-formula-parametro {
+    color:#bdac63 !important;
+  }
+  .input-formula-variable {
+    color:#399c41 !important;
+  }
+  .input-formula-calculo {
+    color:#F8C04C !important;
+  }
+  .input-formula-rubro {
+    color:#2bb5ff !important;
+  }
+  .input-formula-elemento {
+    color:#f695ee !important;
+  }
+  .input-formula-field {
+    color:#ca9bc6 !important;
+  }
+
+  .input-formula-constante-numerica {
+    color:#330aa3 !important;
+  }
+  .input-formula-constante-alfabetica {
+    color:#330aa3 !important;
+  }
+  .input-formula-undefined {
+    color:#CD1342 !important;
+  }
+  .input-formula-comment {
+    color:#c1c1c1 !important;
+  }
+
+}

@@ -1,0 +1,12 @@
+"1","CABECERA_IMAGEN","Cabecera - Imagen de fondo",10,"Cabecera - Imagen de fondo","1","313",False
+"3","CABECERA_CUENTA","Cabecera - Cuenta",20,"Cabecera - Cuenta","1","310",False
+"5","CABECERA_TRIBUTO","Cabecera - Tributo",30,"Cabecera - Tributo (texto)","1","310",False
+"6","CUPON_CABECERA_COMPROBANTE","Cupón - Cabecera - Comprobante",50,"Cupón - Cabecera - Comprobante","1","310",True
+"7","CUPON_CABECERA_VENCIMIENTO","Cupón - Cabecera - Vencimiento",51,"Cupón - Cabecera - Vencimiento","1","310",True
+"8","CUPON_PIE_TOTAL","Cupón - Pie - Total",70,"Cupón - Pie - Total","1","310",True
+"9","CUPON_PIE_COD_BAR_MUNI","Cupón - Pie - Código de barras del Municipio",72,"Cupón - Pie - Código de barras del Municipio","1","312",True
+"10","CUPON_PIE_ENTIDAD_PAGO","Cupón - Pie - Detalle de entidades de pago",73,"Cupón - Pie - Detalle de entidades de pago","1","310",True
+"11","CUPON_PIE_COD_BAR_EPAGOS","Cupón - Pie - Código de barras de ePagos",74,"Cupón - Pie - Código de barras de ePagos","1","312",True
+"12","CUPON_PIE_COD_QR_EPAGOS","Cupón - Pie - Código QR de ePagos",75,"Cupón - Pie - Código QR de ePagos","1","312",True
+"13","CUPON_IMAGEN","Cupón - Imagen de fondo",40,"Cupón - Imagen de fondo","1","313",True
+"15","CUPON_PIE_CUOTA","Cupón - Pie - Cuota",60,"Cupón - Pie - Cuota","1","310",True

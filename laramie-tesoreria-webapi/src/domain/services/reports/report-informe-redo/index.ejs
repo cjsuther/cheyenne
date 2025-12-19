@@ -1,0 +1,83 @@
+<div>
+
+    <div>
+        <div class="row">
+            <div class="col-6 border-header"></div>
+            <div class="col-3 m-l-r"><span class="title-header">Municipalidad de <%= municipioNombre %></span></div>
+            <div class="col-3 border-header"></div>
+        </div>
+        <div class="row m-t-10">
+            <div class="col-12 b-b-2 p-b-5 align-center">
+                <span class="title-header1 m-r">Recibo de documentación y valores (REDO)</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="m-l-r m-t-20">
+        <div class="row">
+            <div class="col-2"><span class="title2">Fecha:</span></div>
+            <div class="col-5"><span class="title2"><%= fechaLote %></span></div>
+            <div class="col-2 align-right"><span class="title2">Fecha Informe:</span></div>
+            <div class="col-3 align-right"><span class="title2"><%= fechaInforme %></span></div>
+        </div>
+        <div class="row p-t-5">
+            <div class="col-2"><span class="title2">Lote Nro.:</span></div>
+            <div class="col-10"><span class="title2"><%= numeroLote %></span></div>
+        </div>
+        <div class="row p-t-5">
+            <div class="col-2"><span class="title2">Redo Nro.:</span></div>
+            <div class="col-10"><span class="title2"><%= numeroRedo %></span></div>
+        </div>
+        <!-- <div class="row p-t-5">
+            <div class="col-2"><span class="title2">Recaudadora:</span></div>
+            <div class="col-10"><span class="textG2"><%= recaudadora %></span></div>
+        </div> -->
+    </div>
+
+    <div class="m-l-r m-t-20">
+        <div class="row">
+
+            <div class="col-12">
+            <table style="width: 100%;">
+
+                <tr class="b-b"><td colspan="4"></td></tr>
+                <tr>
+                    <td style="width:10%" class="align-left"><span class="titleG4">Periodo</span></td>
+                    <td style="width:36%" class="align-left"><span class="titleG4">Jurisdicción</span></td>
+                    <td style="width:36%" class="align-left"><span class="titleG4">Recurso por Rubro/Cuenta Contable</span></td>
+                    <td style="width:18%" class="align-right"><span class="titleG4">Importe</span></td>
+                </tr>
+                <tr class="b-b"><td colspan="4"></td></tr>
+                <% rows.forEach(function(row) { %>
+                    <tr class="p-t-10">
+                        <td class="align-left"><span class="text6"><%= row.periodo %></span></td>
+                        <td class="align-left"><span class="text6"><%= row.agrupamientoJurisdiccion %></span></td>
+                        <td class="align-left"><span class="text6"><%= row.agrupamientoCuenta %></span></td>
+                        <td class="align-right"><span class="text6"><%= row.importe %></span></td>
+                    </tr>
+                <% }); %>
+
+            </table>
+            </div>
+
+        </div>
+    </div>
+    
+    <div class="m-l-r m-t-20">
+        <div class="row">
+            <div class="col-5"><span class="title2">SUBTOTAL:</span></div>
+            <div class="col-7 align-right"><span class="textG2 align-right"><%= totalRecibosProcesdos %></span></div>
+        </div>
+        <div class="row">
+            <div class="col-5"><span class="title2">TOTAL:</span></div>
+            <div class="col-7 align-right"><span class="textG2 align-right"><%= totalRecibosProcesdos %></span></div>
+        </div>
+    </div>
+    
+    <div class="m-t-20">
+        <div class="row">
+            <div class="col-12 b-b-2">
+        </div>
+    </div>
+
+</div>

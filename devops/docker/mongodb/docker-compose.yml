@@ -1,0 +1,17 @@
+services:
+  mongo:
+    image: mongo:7.0.9
+    container_name: laramie-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=laramie_auditoria
+      - MONGO_INITDB_ROOT_USERNAME=user_laramie_auditoria
+      - MONGO_INITDB_ROOT_PASSWORD=123456
+    volumes:
+      - ./data:/data/db
+      - ./config:/data/configdb
+
+networks:
+  default:
+    driver: bridge

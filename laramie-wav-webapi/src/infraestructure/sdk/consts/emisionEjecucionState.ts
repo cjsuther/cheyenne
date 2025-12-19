@@ -1,0 +1,10 @@
+
+export const EMISION_EJECUCION_STATE = {
+
+    PENDIENTE: 250,
+    PROCESO: 251,
+    FINALIZADA: 252,
+    CANCELADA: 253,
+    PAUSADA: 254
+
+}

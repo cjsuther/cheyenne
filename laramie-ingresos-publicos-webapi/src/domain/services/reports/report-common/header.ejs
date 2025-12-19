@@ -1,0 +1,52 @@
+<style>
+
+    .title1 {
+        font-family: Arial, sans-serif;
+        font-size: 10px;
+        font-weight: bold;
+    }
+
+    .text1 {
+        font-family: Arial, sans-serif;
+        font-size: 10px;
+    }
+
+    .row {
+        width: 100%;
+        display: inline-flex;
+    }
+
+    .algin-left {
+        text-align: left;;
+    }
+    .algin-right {
+        text-align: right;;
+    }
+
+    .col-6 {
+        width: 50%;
+    }
+
+    .m-l-25 {
+        margin-left: 25px;
+    }
+    .m-r-25 {
+        margin-right: 25px;
+    }
+
+    .seccion {
+        height: 30px;
+        width: 100%;
+    }
+
+</style>
+
+<div class="seccion row">
+    <div class="col-6 algin-left m-l-25">
+        <span class="title1"><%= municipioNombre %></span>
+    </div>
+    <div class="col-6 algin-right m-r-25">
+        <span class="text1">Fecha: <%= fechaSolicitud %></span>
+    </div>
+</div>
+

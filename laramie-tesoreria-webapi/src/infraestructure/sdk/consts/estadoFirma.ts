@@ -1,0 +1,5 @@
+export const ESTADOS_FIRMA = {
+	PENDIENTE: 650,
+	FIRMADO: 651,
+	RECHAZADO: 652,
+}

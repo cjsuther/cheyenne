@@ -1,0 +1,28 @@
+.input-token-container {
+    position: relative;
+}
+
+.input-token-sub-container {
+    display: flex;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+}
+
+div.input-token-sub-container .input-token-input {
+    border: 0 !important;
+    background-color: rgba(0, 0, 0, 0) !important;
+    text-overflow: ellipsis;
+    pointer-events: none;
+}
+
+.input-token-icon-container {
+    display: flex;
+    align-items: center;
+    user-select: none;
+}
+
+.input-token-icon-container span {
+    cursor: pointer;
+}

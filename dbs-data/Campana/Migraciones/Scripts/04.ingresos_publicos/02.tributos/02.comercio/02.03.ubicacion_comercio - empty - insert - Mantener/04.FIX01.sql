@@ -1,0 +1,1 @@
+INSERT INTO public.ubicacion_comercio(id, codigo, nombre, orden, coeficiente) VALUES (1, '1', 'General', 1, 0);

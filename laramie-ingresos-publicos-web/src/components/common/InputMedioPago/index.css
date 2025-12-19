@@ -1,0 +1,9 @@
+.input-medio-pago {
+    cursor: pointer;
+}
+.input-medio-pago:disabled {
+    cursor: default;
+}
+.input-medio-pago:read-only:not(:disabled) {
+    background-color: #fff;
+}

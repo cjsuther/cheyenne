@@ -1,0 +1,417 @@
+/* --- Texto --*/
+
+.title-header{
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 18px;
+    font-weight: normal;
+    white-space: nowrap;
+    margin-top: 40px;
+    padding-left: 5px; 
+    padding-right: 5px;
+    color: #B2B2B2;
+}
+
+.title-header1{
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 15px;
+    font-weight: bold;
+    white-space: nowrap;
+    color: #878787;
+}
+.underlineTitle0 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 30px;
+    font-weight: bold;
+    text-decoration: underline;
+}
+.underlineTitle05 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 25px;
+    font-weight: bold;
+    text-decoration: underline;
+}
+.underlineTitle1 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 20px;
+    font-weight: bold;
+    text-decoration: underline;
+}
+.underlineTitle2 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 18px;
+    font-weight: bold;
+    text-decoration: underline;
+}
+.title1 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+}
+.title2 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 14px;
+}
+.title3 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 13px;
+}
+.title4 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12px;
+}
+.title5 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11px;
+}
+.title6 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10px;
+}
+
+.text0 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 32px;
+}
+.text1 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+}
+.text2 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 14px;
+}
+.text3 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 13px;
+}
+.text4 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12px;
+}
+.text5 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11px;
+}
+.text6 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10px;
+}
+
+.titleG1 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    font-weight: bold;
+}
+.titleG2 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+}
+.titleG3 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+}
+.titleG4 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12px;
+    font-weight: bold;
+}
+.titleG5 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+}
+.titleG6 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+.textG1 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    font-weight: bold;
+}
+.textG2 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+}
+.textG3 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 13px;
+    font-weight: bold;
+}
+.textG4 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12px;
+    font-weight: bold;
+}
+.textG5 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+}
+.textG6 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+
+.justify-text {
+    text-align: justify;
+
+}
+
+.align-center {
+    text-align: center;
+}
+.align-left {
+    text-align: left;
+}
+.align-right {
+    text-align: right;
+}
+
+/* --- Estilo --*/
+
+.border-header{
+    border-style: solid;
+    border-bottom-width: 2px;
+    border-color: #878787;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+}
+
+.b-b-2 {
+    border-bottom: 1px solid;
+    border-color: #878787;
+}
+
+.b-b > td {
+    border-bottom: 1px solid;
+    border-color: #878787;
+}
+.borders{
+    border-bottom: 1px solid #878787;
+    border-top: 1px solid #878787;
+}
+.borders-table-all td {
+    border-top: 1px solid #878787 !important;
+    border-bottom: 1px solid #878787 !important;
+    border-right: 1px solid #878787 !important;
+    border-left: 1px solid #878787 !important;
+}
+
+.borders-tr {
+    border-bottom: 1px solid #878787;
+    border-top: 1px solid #878787;
+}
+
+/* --- Estructura --*/
+
+.block-row {
+    width: 100%;
+    display: inline-flex;
+}
+
+.block-row-m {
+    width: 60%;
+    display: inline-flex;
+    margin-left: 40%;
+}
+
+.block-row-s {
+    display: inline-flex;
+    width: 50%;
+    margin-left: 45%;
+}
+
+.row {
+    width: 100%;
+    display: inline-flex;
+}
+
+.col-1 {
+    width: 8.33%;
+}
+.col-2 {
+    width: 16.66%;
+}
+.col-3 {
+    width: 25%;
+}
+.col-4 {
+    width: 33.33%;
+}
+.col-5 {
+    width: 41.66%;
+}
+.col-6 {
+    width: 50%;
+}
+.col-7 {
+    width: 58.33%;
+}
+.col-8 {
+    width: 66.66%;
+}
+.col-9 {
+    width: 75%;
+}
+.col-10 {
+    width: 83.33%;
+}
+.col-11 {
+    width: 91.66%;
+}
+.col-12 {
+    width: 100%;
+}
+
+.m-b-8 {
+    margin-bottom: 8px;
+}
+.m-b-10 {
+    margin-bottom: 10px;
+}
+.m-b-20 {
+    margin-bottom: 20px;
+}
+.m-t-50 {
+    margin-top: 50px;
+}
+.m-t-30{
+    margin-top: 30px;
+}
+.m-t-20 {
+    margin-top: 20px;
+}
+.m-t-15 {
+    margin-top: 15px;
+}
+.m-t-10 {
+    margin-top: 10px;
+}
+.m-t-8 {
+    margin-top: 8px;
+}
+.m-t-4 {
+    margin-top: 4px;
+}
+.m-t-6 {
+    margin-top: 6px;
+}
+.m-t-0 {
+    margin-top: 0px;
+}
+
+.margin-t-120 {
+    margin: 120px 40px 40px 40px;
+}
+
+.m-l-10 {
+    margin-left: 10px;
+}
+.m-l-20 {
+    margin-left: 20px;
+}
+.m-r-5 {
+    margin-right: 5px;
+}
+.m-r-10 {
+    margin-right: 10px;
+}
+
+.m-r-15 {
+    margin-right: 15px;
+}
+
+
+.m-r-18 {
+    margin-right: 18px;
+}
+
+.margin {
+    margin: 40px 40px 40px 40px;
+}
+
+.m-l-r {
+    margin-left: 3%;
+    margin-right: 3%;
+}
+
+.m-l {
+    margin-left: 3%;
+}
+
+.m-r {
+    margin-right: 3%;
+}
+
+.p-t-3 {
+    padding-top: 3px;
+}
+.p-t-5 {
+    padding-top: 5px;
+}
+.p-t-8 {
+    padding-top: 8px;
+}
+.p-t-10 {
+    padding-top: 10px;
+}
+.p-t-12 {
+    padding-top: 12px;
+}
+.p-t-15 {
+    padding-top: 15px;
+}
+.p-t-20 {
+    padding-top: 20px;
+}
+.p-t-30 {
+    padding-top: 30px;
+}
+.p-b-5 {
+    padding-bottom: 5px;
+}
+.p-b-20{
+    padding-bottom: 20px;
+}
+.p-l-5 {
+    padding-left: 5px;
+}
+.p-l-15 {
+    padding-left: 15px;
+}
+
+.p-r-20 {
+    padding-right: 20px;
+}
+
+.paddin{
+    padding-right: 15px;
+    padding-top: 5px;
+}
+
+.l-h-20 { 
+    line-height: 20px;
+}
+
+.l-h-30 { 
+    line-height: 30px;
+}
+
+.w-100 {
+    width: 100%;
+}
+
+tr.row-table, tr.row-table td {
+    margin-top: 0px;
+    margin-bottom: 0px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+}

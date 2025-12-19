@@ -1,0 +1,47 @@
+@import '../../../styles/config.scss';
+
+.busqueda-avanzada{
+    background-color: $color-disabled;
+    font-size: 14px;
+}
+
+.btn-busqueda {
+    //font-size: 12px;
+    color: #FFFFFF;
+    background-color: $color-success;
+    border-color: $color-success;
+    padding: 0.375rem 1rem;
+}
+
+.btn-busqueda:hover, .btn-busqueda:focus{
+    color: $color-success;
+    border-color: $color-success;
+    background-color: $color-disabled;
+}
+
+.busqueda-avanzada button.nav-link.active {
+    background-color: initial;
+    border-color: #dee2e6 #dee2e6 #F3F3F4;
+}
+
+
+.marcador-body{
+    color: #FFFFFF;
+    font-size: 11px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    margin-left: 30px;
+    margin-right: 30px;
+}
+
+.marcador{
+    background-color: $color-action;
+    margin-right: 10px;
+    margin-bottom: 5px;
+    margin-top: 5px;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    width: auto;
+}

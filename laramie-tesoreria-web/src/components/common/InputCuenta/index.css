@@ -1,0 +1,9 @@
+.input-cuenta {
+    cursor: pointer;
+}
+.input-cuenta:disabled {
+    cursor: default;
+}
+.input-cuenta:read-only:not(:disabled) {
+    background-color: #fff;
+}

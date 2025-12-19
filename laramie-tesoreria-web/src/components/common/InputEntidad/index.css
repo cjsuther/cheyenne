@@ -1,0 +1,9 @@
+.input-entidad {
+    cursor: pointer;
+}
+.input-entidad:disabled {
+    cursor: default;
+}
+.input-entidad:read-only:not(:disabled) {
+    background-color: #fff;
+}

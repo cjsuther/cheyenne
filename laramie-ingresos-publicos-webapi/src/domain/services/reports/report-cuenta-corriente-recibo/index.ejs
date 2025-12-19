@@ -1,0 +1,107 @@
+<div class="page">
+
+    <div class="block1">
+        <div class="block-row p-t-10">
+            <div class="title1 col-12 algin-center"><%= titulo %></div>
+        </div>
+        <div class="block-row p-t-30">
+            <div class="text-default0 col-2">Cuenta:</div>    
+            <div class="text-dynamic1 col-10"><%= cuenta %></div>
+        </div>
+        <div class="block-row p-t-12">
+            <div class="text-default0 col-2">Títular:</div>    
+            <div class="text-dynamic1 col-10"><%= titular %></div>
+        </div>
+        <div class="block-row p-t-12">
+            <div class="text-default0 col-2">Domicilio:</div>    
+            <div class="text-dynamic1 col-10"><%= domicilio %></div>
+        </div>
+        <div class="block-row p-t-12">
+            <div class="text-default0 col-2">Localidad:</div>    
+            <div class="text-dynamic1 col-10"><%= localidad %></div>
+        </div>
+        <div class="block-row p-t-12">
+            <div class="text-default0 col-2">Recibo N°:</div>    
+            <div class="text-dynamic1 col-4"><%= numeroRecibo %></div>
+            <div class="text-default0 col-3">Valuación Municipal:</div>    
+            <div class="text-dynamic1 col-3"><%= valuacionFiscal %></div>
+        </div>
+    </div>
+
+    <div class="block2">
+        <div class="block-row m-t-10">
+            <div class="col-1"></div>
+            <div class="col-11">
+                <div class="block-row">
+                    <div class="text-dynamic1 col-2 algin-right">Periodo</div>
+                    <div class="text-dynamic1 col-2 algin-right">Cuota</div>
+                    <div class="text-dynamic1 col-2 algin-right">Importe</div>
+                    <div class="text-dynamic1 col-2 algin-right">Accesorios</div>
+                    <div class="text-dynamic1 col-2 algin-right">Acc.</div>
+                    <div class="text-dynamic1 col-2 algin-right">Total</div>
+                </div>
+            </div>
+        </div>
+        <% subTasas.forEach(function(subTasa) { %>
+            <div class="block-row m-t-4">
+                <div class="col-12">
+                    <div class="text-dynamic1 col-12 algin-left"><%= subTasa.codTasa %>/<%= subTasa.codSubTasa %> <%= subTasa.descSubTasa %></div>
+                </div>
+            </div>   
+            <% subTasa.cuotas.forEach(function(cuota) { %>
+                <div class="block-row">
+                    <div class="col-1"></div>
+                    <div class="col-11">
+                        <div class="block-row">
+                            <div class="text-dynamic1 col-2 algin-right"><%= cuota.periodo %></div>
+                            <div class="text-dynamic1 col-2 algin-right"><%= cuota.cuota %></div>
+                            <div class="text-dynamic1 col-2 algin-right"><%= cuota.importeOriginal %></div>
+                            <div class="text-dynamic1 col-2 algin-right"><%= cuota.importeAccesorios %></div>
+                            <div class="text-dynamic1 col-2 algin-right">0,00</div>
+                            <div class="text-dynamic1 col-2 algin-right"><%= cuota.importeTotal %></div>
+                        </div>
+                    </div>
+                </div>
+            <% }); %>
+        <% }); %>
+    </div>
+
+    <div class="block3 m-t-50">
+        <% if (importeDescuentos !== "0,00") { %>
+        <div class="block-row">
+            <div class="text-default0 col-3"></div>
+            <div class="text-dynamic0 col-4"></div>
+            <div class="text-default0 col-2">Descuentos:</div>    
+            <div class="text-dynamic0 col-3 algin-right"><%= importeDescuentos %></div>
+        </div>
+        <% } %>
+        <div class="block-row">
+            <div class="text-default0 col-3"></div>
+            <div class="text-dynamic0 col-4"></div>
+            <div class="text-default0 col-2">Recargos:</div>    
+            <div class="text-dynamic0 col-3 algin-right"><%= importeAccesorios %></div>
+        </div>
+        <div class="block-row">
+            <div class="text-default0 col-3">Vencimiento:</div>
+            <div class="text-dynamic0 col-4"><%= fechaVencimiento %></div>
+            <div class="text-default0 col-2">Importe:</div>    
+            <div class="text-dynamic0 col-3 algin-right"><%= importeTotal %></div>
+        </div>
+        <div class="block-row p-t-10">
+            <div class="text-default1 col-12">Descuento por pagos a través de factura de EDESUR: <%= importeEdesur %></div>
+        </div>
+        <div class="block-row p-t-5">
+            <div class="text-default1 col-12">Descuento por otros créditos: <%= importeOtrosCreditos %></div>
+        </div>
+        <div class="block-row p-t-10">
+            <div class="text-default1 col-12">Lugares de Pago: En efectivo en Sucursales del Banco Provincia, Bapro Pagos, Pago Fácil, Cobro Express y Rapipago, Pago mis Cuentas. En efectivo, cheque, Tarjeta de Crédito y Débito Visa o Mastercard, en la Tesorería Municipal de Lunes a Viernes de 7:30 a 13hs.</div>
+        </div>
+        <div class="block-row p-t-20">
+            <div class="col-8 algin-left">
+                <img style="width:100%" src="<%= pathCodigoBarras %>" />
+            </div>
+            <div class="col-4"></div>
+        </div>
+    </div>
+
+</div>

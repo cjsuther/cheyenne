@@ -1,0 +1,30 @@
+@import '../../../styles/config.scss';
+
+div.direccion-form {
+
+    border-color: #E2E2E2;
+    border-style: solid;
+    border-left-width: 0px;
+    border-right-width: 0px;
+    border-top-width: 0px;
+
+    .form-label {
+        margin-top: 5px;
+        margin-bottom: 5px;
+    }
+
+    .btn-map {
+        width: 50px;
+        padding-left: 0px !important; 
+        padding-right: 0px !important;
+    }
+
+    .btn-map > .material-symbols-outlined{
+        font-variation-settings:
+        'FILL' 1,
+        'wght' 400,
+        'GRAD' -25,
+        'opsz' 24
+    }
+
+}

@@ -1,0 +1,16 @@
+USE LARAMIE_CAMPANA
+GO
+
+TRUNCATE TABLE rubro_provincia
+GO
+
+INSERT INTO rubro_provincia
+SELECT
+	cast(CODIGO as bigint) id,
+	CODIGO,
+	VALOR nombre,
+	(ROW_NUMBER() OVER (ORDER BY CODIGO)) orden
+FROM MAJOR_CAMPANA.dbo.LISTA_ESTATICA
+WHERE NOMBRE='RubroProvincia' AND CODIGO<>'0'
+ORDER BY id
+GO

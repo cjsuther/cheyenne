@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+  major-laramie-seguridad-web:
+    #container_name: major-laramie-seguridad-web
+    image: major-laramie-seguridad-web:v1
+    build:
+      dockerfile: 'Dockerfile'
+
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+    ports:
+      - "3000:80"
+
+networks: 
+  default: 
+    name: major-laramie

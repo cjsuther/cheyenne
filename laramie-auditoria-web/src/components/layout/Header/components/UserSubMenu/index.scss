@@ -1,0 +1,63 @@
+@import '../../../../../styles/config.scss';
+@import 'material-symbols/outlined.css';
+
+.user-sub-menu {
+    position: relative;
+    margin-left: auto;
+}
+
+.user-sub-menu-dropdown {
+    top: 0%;
+    right: 100%;
+    transition: opacity 0.1s, visibility 0.1s;
+}
+
+.user-sub-menu-dropdown.open {
+    opacity: 100%;
+    visibility: visible;
+}
+
+.user-sub-menu-dropdown.closed {
+    opacity: 0%;
+    visibility: hidden;
+}
+
+.no-click {
+    cursor: default !important;
+    font-size: 12px !important;
+    padding-top: 0px;
+    margin-top: 5px;
+    .nav-link:hover {
+        color: $color-font-primary;
+    }
+}
+
+.dropdown-menu li{
+    border-bottom-width: 0px !important;
+    border-bottom-style: none;
+    color: $color-font-primary;
+}
+
+.menu-pass{
+    font-size: 12px !important;
+}
+
+li span:hover, .nav-link:hover {
+    color: $color-font-primary !important;
+    font-weight: 100;
+}
+
+li a.nav-link:hover, .menu-pass:hover {
+    color: $color-font-text !important;
+    font-weight: 600;
+}
+
+
+.nav-item > .material-symbols-outlined {
+    font-variation-settings:
+    'wght' 200
+}
+
+.power {
+    font-size: 25px !important;
+}

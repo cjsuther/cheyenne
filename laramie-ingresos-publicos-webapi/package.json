@@ -1,0 +1,65 @@
+{
+  "name": "major-laramie-ingresos-publicos-webapi",
+  "version": "1.0.0",
+  "description": "Webapi de ingresos públicos (proyecto Major Laramie)",
+  "main": "index.js",
+  "scripts": {
+    "start": "tsc && env-cmd -f .env.develope node dist/app.js",
+    "start-prod": "tsc && env-cmd -f .env.production node dist/app.js",
+    "dev": "env-cmd -f .env.develope nodemon --config nodemon.json src/app.ts",
+    "dev:debug": "env-cmd -f .env.develope nodemon --config nodemon.json --inspect src/app.ts",
+    "test": "env-cmd -f .env.develope jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cheyenne-team/major-laramie-ingresos-publicos-webapi.git"
+  },
+  "keywords": [],
+  "author": "Gonzalo Cajaraville",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/cheyenne-team/major-laramie-ingresos-publicos-webapi/issues"
+  },
+  "homepage": "https://github.com/cheyenne-team/major-laramie-ingresos-publicos-webapi#readme",
+  "devDependencies": {
+    "@babel/core": "^7.20.12",
+    "@babel/preset-env": "^7.20.2",
+    "@babel/preset-typescript": "^7.18.6",
+    "@types/cls-hooked": "^4.3.3",
+    "@types/cors": "^2.8.12",
+    "@types/express": "^4.17.13",
+    "@types/node": "^17.0.23",
+    "@types/pg": "^8.6.6",
+    "babel-jest": "^29.3.1",
+    "jest": "^29.3.1",
+    "nodemon": "^2.0.15",
+    "ts-node": "^10.7.0",
+    "tslint": "^6.1.3",
+    "typescript": "^4.6.3"
+  },
+  "dependencies": {
+    "@barcode-bakery/barcode-1d": "^2.0.0",
+    "@types/amqplib": "^0.10.1",
+    "amqplib": "^0.10.3",
+    "async-mutex": "^0.3.2",
+    "awilix": "^7.0.1",
+    "awilix-express": "^7.0.0",
+    "cls-hooked": "^4.2.2",
+    "cors": "^2.8.5",
+    "debug": "^4.3.4",
+    "dotenv": "^16.0.0",
+    "ejs": "^3.1.9",
+    "env-cmd": "^10.1.0",
+    "express": "^4.18.0",
+    "jsonwebtoken": "^9.0.0",
+    "nodejs-pdf-report": "^1.1.4",
+    "object.assign": "^4.1.4",
+    "pg": "^8.7.3",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.19.0",
+    "uuid": "^8.3.2",
+    "validator": "^13.7.0",
+    "written-number": "^0.11.1",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.19.1/xlsx-0.19.1.tgz"
+  }
+}

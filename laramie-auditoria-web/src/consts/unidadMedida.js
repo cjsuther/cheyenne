@@ -1,0 +1,7 @@
+
+export const UNIDAD_MEDIDA = {
+    UNIDADES_ENTERAS: 480,
+    UNIDADES_DECIMALES: 481,
+    IMPORTE: 481,
+    OTROS: 481,
+}

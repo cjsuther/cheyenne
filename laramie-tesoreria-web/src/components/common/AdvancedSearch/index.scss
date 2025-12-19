@@ -1,0 +1,76 @@
+@import '../../../styles/config.scss';
+
+.busqueda-avanzada{
+    background-color: $color-disabled;
+    font-size: 14px;
+}
+
+.btn-busqueda {
+    color: $color-success;
+    border-color: $color-success;
+    background-color: $color-disabled;
+    padding: 0.375rem 1rem;
+}
+
+.btn-busqueda:hover, .btn-busqueda:focus,
+.btn-busqueda:active,
+.btn-busqueda:first-child:active {
+    color: #FFFFFF;
+    border-color: $color-success;
+    background-color: $color-success;
+}
+
+.busqueda-avanzada button.nav-link.active {
+    background-color: $color-disabled;
+    border-color: $color-li-neutro;
+}
+
+
+.marcador-body{
+    color: $color-font-text;
+    font-size: 11px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    margin-left: 30px;
+    margin-right: 30px;
+}
+
+.marcador{
+    background-color: $color-filter;
+    margin-right: 10px;
+    margin-bottom: 5px;
+    margin-top: 5px;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    width: auto;
+
+    .span-close{
+        font-size: 15px;
+    }
+
+    .link-no-color{
+        color: unset;
+    }
+}
+
+.search-i{
+    color: $color-font-primary;
+    padding-left: 15px;
+    padding-right: 5px;
+    font-variation-settings:
+    'wght' 200 !important;
+}
+/*
+.form-basic > div > input {
+    background-color: transparent;
+}
+
+.form-basic > div > input:active:hover:not([disabled]), .input:focus {
+    background-color: $color-disabled;
+}
+*/
+
+
+

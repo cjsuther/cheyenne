@@ -1,0 +1,75 @@
+.page {
+    margin: 0px 0px 0px 0px;
+    padding: 0px 0px 0px 0px;
+}
+
+.block-row {
+    margin-left: 2%;
+    width: 96%;
+    display: inline-flex;
+}
+
+.block1 {
+    width: 100%;
+    height: 200px;
+}
+
+.block2 {
+    width: 100%;
+}
+
+.block3 {
+    width: 100%;
+    height: 30px;
+}
+
+.text-default0, .text-default1, .text-default2, .text-default3, .text-default4 {
+    font-family: Arial, sans-serif;
+    color: #5d5d5d;
+}
+.text-dynamic0, .text-dynamic1, .text-dynamic2, .text-dynamic3, .text-dynamic4 {
+    font-family: Arial, sans-serif;
+    color: #292929;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+}
+.text-default0, .text-dynamic0 {
+    font-size: 14px;
+}
+.text-default1, .text-dynamic1 {
+    font-size: 12px;
+}
+.text-default2, .text-dynamic2 {
+    font-size: 11px;
+}
+.text-default3, .text-dynamic3 {
+    font-size: 10px;
+}
+.text-default4, .text-dynamic4 {
+    font-size: 8px;
+}
+
+.text-dynamic-cuota {
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+    color: #292929;
+    font-weight: 800;
+    border-style: solid;
+    border-color: #292929;
+    border-width: 1px;
+    border-radius: 6px;
+}
+
+.underline {
+    border-style: dashed;
+    border-color: #292929;
+    border-width: 0px;
+    border-bottom-width: 1px;
+}
+
+.overline {
+    border-style: dashed;
+    border-color: #292929;
+    border-width: 0px;
+    border-top-width: 1px;
+}

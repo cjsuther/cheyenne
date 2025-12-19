@@ -1,0 +1,14 @@
+@import '../../../styles/config.scss';
+
+.input-number:read-only:not(:disabled) {
+  background-color: inherit;
+}
+
+.input-number.form-control.disabled {
+  color: $color-font-primary;
+  background-color: $color-disabled !important;
+  box-shadow: 0 0px 0px;
+}
+.input-number {
+  text-align: right;
+}

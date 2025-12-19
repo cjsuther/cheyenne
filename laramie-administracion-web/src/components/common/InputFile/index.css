@@ -1,0 +1,9 @@
+.input-file {
+  cursor: pointer;
+}
+.input-file:disabled {
+  cursor: default;
+}
+.input-file:read-only:not(:disabled) {
+  background-color: inherit;
+}

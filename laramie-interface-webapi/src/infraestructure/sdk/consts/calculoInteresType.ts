@@ -1,0 +1,7 @@
+
+export const CALCULO_INTERES_TYPE = {
+
+    METODO_SIMPLE: 430,
+    METODO_FRANCES: 431
+
+}

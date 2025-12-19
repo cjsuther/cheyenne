@@ -1,0 +1,20 @@
+@import '../../styles/config.scss';
+
+.convenio-definicion-form-separated {
+    margin-top: 10px;
+    padding-top: 5px;
+    border-top: 1.5px solid $color-li-neutro;
+    display: flex;
+    height: 350px;
+}
+
+.convenio-definicion-condiciones {
+    display: flex;
+    flex-direction: column;
+    margin-right: 5px;
+}
+
+.convenio-definicion-condiciones textarea {
+    flex: 1;
+    margin-bottom: 5px;
+}

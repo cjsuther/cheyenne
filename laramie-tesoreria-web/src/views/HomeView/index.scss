@@ -1,0 +1,93 @@
+@import '../../styles/config.scss';
+
+.ingreso-icon{
+    height: 145px;
+    width: 145px;
+    margin-top: 20px;
+    margin-bottom: 5px;
+    margin-left: 20px;
+    margin-right: 20px;
+    background-size: cover;
+    transition: background-image 0.3s ease-in-out;
+}
+
+.ingreso-text {
+    color: $color-font-text;
+    font-size: 12px;
+    font-weight: 800;
+    text-align: center;
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+.ingreso-container {
+    background-color: #ffffff;
+    padding: 5px;
+    min-width: 500px;
+    height: 100vh;
+}
+
+.ingreso {
+    display: flex;
+    justify-content: center;
+    width: auto;
+}
+
+.ingreso > div {
+    display: inline-flex;
+    flex-direction: column;
+}
+
+.ingreso-menu > div {
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.ingreso-menu {
+    background-color: #ffffff;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    margin-bottom: 20%;
+    margin-top: 10%;
+}
+
+// Icon definitions
+
+.lotes-no-balanceados-icon{
+    background-image: url('../../assets/images/LotesNoBalanceados.png');
+}
+.lotes-no-balanceados-icon:hover{
+    background-image: url('../../assets/images/LotesNoBalanceadosHover.png');
+}
+
+.lotes-no-conciliados-icon{
+    background-image: url('../../assets/images/LotesNoConciliados.png');
+}
+.lotes-no-conciliados-icon:hover{
+    background-image: url('../../assets/images/LotesNoConciliadosHover.png');
+}
+
+.rendicion-iipp-icon{
+    background-image: url('../../assets/images/RecaudacionIngPublicos.png');
+}
+.rendicion-iipp-icon:hover {
+    background-image: url('../../assets/images/RecaudacionIngPublicosHover.png');
+}
+
+.rendicion-contabilidad-icon{
+    background-image: url('../../assets/images/RecaudacionContabilidad.png');
+}
+.rendicion-contabilidad-icon:hover {
+    background-image: url('../../assets/images/RecaudacionContabilidadHover.png');
+}
+
+.cajas-icon{
+    background-image: url('../../assets/images/AccesoCajas.png');
+}
+.cajas-icon:hover{
+    background-image: url('../../assets/images/AccesoCajasHover.png');
+}
+

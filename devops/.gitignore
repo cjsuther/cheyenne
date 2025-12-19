@@ -1,0 +1,4 @@
+/docker/mongodb/config/
+/docker/mongodb/data/
+/docker/rabbitmq/data/
+/docker/rabbitmq/config/

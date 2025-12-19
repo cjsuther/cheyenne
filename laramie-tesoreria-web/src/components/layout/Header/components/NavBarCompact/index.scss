@@ -1,0 +1,37 @@
+.navbar-compact {
+    flex: 1;
+    overflow: hidden;
+}
+
+.navbar-row {
+    display: flex;
+    align-items: center;
+    flex: 1;
+}
+
+.navbar-compact-menu {
+    padding-top: 15px;
+    transition: max-height 1s;
+}
+
+.navbar-compact-menu .dropdown ul li {
+    min-height: 30px;
+    margin-top: 8px;
+    margin-left: 8px;
+    margin-right: 8px;
+    white-space: nowrap;
+    min-width: 180px;
+}
+
+.navbar-compact-menu div a {
+    margin-top: 5px;
+    min-height: 25px;
+}
+
+.nav-link > .display-row{
+    align-items:center;
+}
+
+.display-row > .material-symbols-outlined{
+    font-variation-settings: "wght" 300;
+}

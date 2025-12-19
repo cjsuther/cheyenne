@@ -1,0 +1,16 @@
+USE LARAMIE_CAMPANA
+GO
+
+TRUNCATE TABLE grupo_superficie
+GO
+
+INSERT INTO grupo_superficie
+SELECT
+	cast(CODIGO as bigint) id,
+	CODIGO,
+	VALOR nombre,
+	(ROW_NUMBER() OVER (ORDER BY CODIGO)) orden
+FROM MAJOR_CAMPANA.DBO.LISTA_ESTATICA
+WHERE NOMBRE='GrupoSuperficie' AND CODIGO<>'0'
+ORDER BY id
+GO

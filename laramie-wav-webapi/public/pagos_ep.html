@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.jsdelivr.net/npm/pluspagos-aes-encryption@1.0.0/dist/AESEncrypter.js"></script>
+  </head>
+
+  <body>
+    <form
+      id="miFormulario"
+      name="pago"
+      method="post"
+      action="{{FormAction}}"
+      style="display: none"
+    >
+      <input type="hidden" name="version" value="2.0" />
+      <input type="hidden" name="operacion" value="op_pago" />
+      <input type="hidden" name="id_organismo" value="{{IdOrganismo}}" />
+      <input type="hidden" name="convenio" value="{{NroConvenio}}" />
+      <input type="hidden" name="token" value="{{TokenGenerado}}" />
+      <input
+        type="hidden"
+        name="numero_operacion"
+        value="{{TransaccionComercioId}}"
+      />
+      <input type="hidden" name="id_moneda_operacion" value="1" />
+      <input type="hidden" name="monto_operacion" value="{{Monto}}" />
+      <input type='hidden' name='detalle_operacion' value='{{Detalle}}' />
+      <input type='hidden' name='detalle_operacion_visible' value='1' />
+      <input type="hidden" name="ok_url" value="{{CallbackSuccess}}" />
+      <input type="hidden" name="error_url" value="{{CallbackCancel}}" />
+      <br /><input type="submit" value="Enviar pago" />
+    </form>
+
+    <script type="text/javascript">
+      // Esperar a que la página termine de cargar
+      window.addEventListener("load", () => {
+        // Seleccionar el formulario
+        const formulario = document.getElementById("miFormulario");
+
+        // Verificar si el formulario existe
+        if (formulario) {
+          // Enviar el formulario automáticamente
+          formulario.submit();
+
+          // Opcional: Mostrar un mensaje en la consola
+          console.log("El formulario se envió automáticamente.");
+        } else {
+          console.error("El formulario no fue encontrado.");
+        }
+      });
+    </script>
+  </body>
+</html>

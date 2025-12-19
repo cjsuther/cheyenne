@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+  major-laramie-administracion-web:
+    #container_name: major-laramie-administracion-web
+    image: major-laramie-administracion-web:v1
+    build:
+      dockerfile: 'Dockerfile'
+
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+    ports:
+      - "3010:80"
+
+networks: 
+  default: 
+    name: major-laramie

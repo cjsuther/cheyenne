@@ -1,0 +1,36 @@
+{
+  "name": "major-laramie-administracion-async-service",
+  "version": "1.0.0",
+  "description": "Servicio administrador de procesos asincronicos (proyecto Major Laramie)",
+  "main": "index.js",
+  "scripts": {
+    "start": "tsc && env-cmd -f .env.develope node dist/app.js",
+    "start-prod": "tsc && env-cmd -f .env.production node dist/app.js",
+    "dev": "env-cmd -f .env.develope nodemon --config nodemon.json src/app.ts",
+    "dev:debug": "env-cmd -f .env.develope nodemon --config nodemon.json --inspect src/app.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cheyenne-team/major-laramie-administracion-async-service.git"
+  },
+  "keywords": [],
+  "author": "Gonzalo Cajaraville",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/cheyenne-team/major-laramie-administracion-async-service/issues"
+  },
+  "homepage": "https://github.com/cheyenne-team/major-laramie-administracion-async-service#readme",
+  "devDependencies": {
+    "@types/node": "^18.11.9",
+    "nodemon": "^2.0.20",
+    "ts-node": "^10.9.1",
+    "tslint": "^6.1.3",
+    "typescript": "^4.9.3"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "env-cmd": "^10.1.0",
+    "express": "^4.18.2",
+    "node-cron": "^3.0.2"
+  }
+}

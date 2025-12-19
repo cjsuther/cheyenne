@@ -1,0 +1,29 @@
+@import '../../../styles/config.scss';
+
+.navbar-title-container {
+    display: contents;
+}
+.navbar-title {
+    color: $color-font-primary;
+    font-size: 12px;
+    text-decoration: none;
+    text-wrap: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.navbar-title:hover {
+    color: $color-font-primary;
+    cursor: default;
+}
+.navbar-title-link:hover {
+    color: $color-font-text;
+    cursor: pointer;
+}
+.navbar-separator {
+    text-wrap: nowrap;
+    color: $color-font-primary;
+    font-size: 12px;
+    margin-left: 5px;
+    margin-right: 5px;
+    cursor: default;
+}

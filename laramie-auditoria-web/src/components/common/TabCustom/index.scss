@@ -1,0 +1,74 @@
+@import '../../../styles/config.scss';
+
+.tab-custom-container {
+    position: relative;
+}
+
+.tab-custom-backward,
+.tab-custom-forward {
+    position: absolute;
+    top: 10px;
+    user-select: none;
+}
+.tab-custom-backward {
+    left: -5px;
+}
+.tab-custom-forward {
+    left: 10px;
+}
+.tab-custom-backward > span:hover,
+.tab-custom-forward > span:hover {
+    color: #000000;
+}
+.tab-custom-backward > span,
+.tab-custom-forward > span {
+    padding-left: 0px;
+    padding-right: 0px;  
+}
+.tab-custom-disabled {
+    opacity: 0.2;
+}
+
+
+.nav-tabs > .nav-item {
+    text-wrap: nowrap;
+}
+.nav-tabs > .nav-item button,
+.nav-tabs > .nav-item button:hover {
+    font-size: 16px;
+    color: $color-font-primary;
+    padding-top: 10px;
+    font-weight: 100;
+}
+.nav-tabs > .nav-item button.active {
+    font-size: 16px;
+    font-weight: 600;
+    color: $color-font-primary !important;
+}
+
+.nav-tabs {
+    flex-wrap: nowrap;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    border-bottom-width: 0px;
+    margin-bottom: -1px;
+}
+.nav-tabs-with-overflow {
+    padding-left: 30px;
+}
+.nav-tabs::-webkit-scrollbar {
+    display: none;
+}
+.nav-tabs .nav-link {
+    border-bottom: 1px solid $color-li-neutro;
+}
+.nav-tabs .nav-link.active {
+    border-bottom-width: 0px;
+}
+
+.tab-content
+.tab-panel {
+    padding: 5px 10px 15px 10px;
+    border: 1px solid $color-li-neutro;
+    width: 100%;
+}

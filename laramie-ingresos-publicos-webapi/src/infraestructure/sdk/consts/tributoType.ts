@@ -1,0 +1,11 @@
+
+export const TRIBUTO_TYPE = {
+
+    INMUEBLES: 10,
+    COMERCIOS: 11,
+    VEHICULOS: 12,
+    CEMENTERIOS: 13,
+    FONDEADEROS: 14,
+    CUENTAS_ESPECIALES: 15
+
+}

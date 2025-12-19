@@ -1,0 +1,169 @@
+<div>
+
+    <div>
+        <div class="row">
+            <div class="col-6 border-header"></div>
+            <div class="col-4 m-l-r"><span class="title-header">Municipalidad de <%= municipioNombre %></span></div>
+            <div class="col-2 border-header"></div>
+        </div>
+        <div class="row m-t-10">
+            <div class="col-12 b-b-2 p-b-5 align-center">
+                <span class="title-header1 m-r">Informe de Lote de recaudación</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="m-l-r m-t-20">
+        <div class="row">
+            <div class="col-2"><span class="title2">Fecha Lote:</span></div>
+            <div class="col-5"><span class="title2"><%= fechaLote %></span></div>
+            <div class="col-2 align-right"><span class="title2">Fecha Informe:</span></div>
+            <div class="col-3 align-right"><span class="title2"><%= fechaInforme %></span></div>
+        </div>
+        <div class="row p-t-5">
+            <div class="col-2"><span class="title2">Lote Nro.:</span></div>
+            <div class="col-10"><span class="title2"><%= numeroLote %></span></div>
+        </div>
+        <div class="row p-t-5">
+            <div class="col-2"><span class="title2">Recaudadora:</span></div>
+            <div class="col-10"><span class="title2"><%= recaudadora %></span></div>
+        </div>
+    </div>
+
+    <div class="m-l-r m-t-20">
+        <div class="row">
+
+            <div class="col-12">
+            <table style="width: 100%;">
+
+                <tr class="b-b"><td colspan="4"></td></tr>
+                <tr>
+                    <td style="width:25%" class="align-left"><span class="titleG4">Totales por tributo</span></td>
+                    <td style="width:75%" class="align-right"><span class="titleG4">Importe</span></td>
+                </tr>
+                <tr class="b-b"><td colspan="4"></td></tr>
+                <% if (totalTributo1 != '0,00') { %>
+                <tr>
+                    <td class="align-left"><span class="text6">Inmuebles</span></td>
+                    <td class="align-right"><span class="text6">$ <%= totalTributo1 %></span></td>
+                </tr>
+                <% } %>
+                <% if (totalTributo2 != '0,00') { %>
+                <tr>
+                    <td class="align-left"><span class="text6">Comercios</span></td>
+                    <td class="align-right"><span class="text6">$ <%= totalTributo2 %></span></td>
+                </tr>
+                <% } %>
+                <% if (totalTributo3 != '0,00') { %>
+                <tr>
+                    <td class="align-left"><span class="text6">Cementerios</span></td>
+                    <td class="align-right"><span class="text6">$ <%= totalTributo3 %></span></td>
+                </tr>
+                <% } %>
+                <% if (totalTributo4 != '0,00') { %>
+                <tr>
+                    <td class="align-left"><span class="text6">Fondeaderos</span></td>
+                    <td class="align-right"><span class="text6">$ <%= totalTributo4 %></span></td>
+                </tr>
+                <% } %>
+                <% if (totalTributo5 != '0,00') { %>
+                <tr>
+                    <td class="align-left"><span class="text6">Vehículos</span></td>
+                    <td class="align-right"><span class="text6">$ <%= totalTributo5 %></span></td>
+                </tr>
+                <% } %>
+                <% if (totalTributo7 != '0,00') { %>
+                <tr>
+                    <td class="align-left"><span class="text6">Cuentas especiales</span></td>
+                    <td class="align-right"><span class="text6">$ <%= totalTributo7 %></span></td>
+                </tr>
+                <% } %>   
+
+            </table>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="m-l-r m-t-20">
+        <div class="row">
+
+            <div class="col-12">
+            <table style="width: 100%;">
+
+                <tr class="b-b"><td colspan="4"></td></tr>
+                <tr>
+                    <td style="width:10%" class="align-left"><span class="titleG4">Periodo</span></td>
+                    <td style="width:15%" class="align-left"><span class="titleG4">Jurisdicción</span></td>
+                    <td style="width:57%" class="align-left"><span class="titleG4">Recurso por Rubro/Cuenta Contable</span></td>
+                    <td style="width:18%" class="align-right"><span class="titleG4">Importe</span></td>
+                </tr>
+                <tr class="b-b"><td colspan="4"></td></tr>
+                <% rows.forEach(function(row) { %>
+                    <tr>
+                        <td class="align-left"><span class="text6"><%= row.periodo %></span></td>
+                        <td class="align-left"><span class="text6"><%= row.agrupamientoJurisdiccion %></span></td>
+                        <td class="align-left"><span class="text6"><%= row.agrupamientoCuenta %> - <%= row.descripcionCuenta %></span></td>
+                        <td class="align-right"><span class="text6">$ <%= row.importe %></span></td>
+                    </tr>
+                <% }); %>
+
+            </table>
+            </div>
+
+        </div>
+    </div>
+    
+    <div class="m-l-r m-t-20">
+        <div class="row">
+
+            <div class="col-12">
+            <table style="width: 100%;">
+
+                <tr class="b-b"><td colspan="4"></td></tr>
+                <tr>
+                    <td style="width:50%" class="align-left"><span class="titleG4">Totales por estado</span></td>
+                    <td style="width:50%" class="align-right"><span class="titleG4">Importe</span></td>
+                </tr>
+                <tr class="b-b"><td colspan="4"></td></tr>
+                <tr class="row-table">
+                    <td class="align-left"><span class="text6">Total de recibos conciliados</span></td>
+                    <td class="align-right"><span class="text6">$ <%= totalRecibosConciliados %></span></td>
+                </tr>
+                <tr class="row-table">
+                    <td class="align-left"><span class="text6">Total de recibos no conciliados (identificados)</span></td>
+                    <td class="align-right"><span class="text6">$ <%= totalRecibosNoConciliadosIdentificados %></span></td>
+                </tr>
+                <tr class="row-table">
+                    <td class="align-left"><span class="text6">Total de recibos no conciliados (no identificados)</span></td>
+                    <td class="align-right"><span class="text6">$ <%= totalRecibosNoConciliadosNoIdentificados %></span></td>
+                </tr>
+
+            </table>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="m-l-r m-t-20">
+        <div class="row">
+            <div class="col-5"><span class="title2">Total de recibos identificados:</span></div>
+            <div class="col-7 align-right"><span class="text2">$ <%= totalRecibosIdentificados %></span></div>
+        </div>
+        <div class="row">
+            <div class="col-5"><span class="title2">Total de recibos no identificados:</span></div>
+            <div class="col-7 align-right"><span class="text2">$ <%= totalRecibosNoConciliadosNoIdentificados %></span></div>
+        </div>
+        <div class="row">
+            <div class="col-5"><span class="titleG2">Total de recaudación:</span></div>
+            <div class="col-7 align-right"><span class="textG2 align-right">$ <%= totalRecibosProcesdos %></span></div>
+        </div>
+    </div>
+    
+    <div class="m-t-20">
+        <div class="row">
+            <div class="col-12 b-b-2">
+        </div>
+    </div>
+
+</div>

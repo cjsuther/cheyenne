@@ -1,0 +1,26 @@
+version: "3.9"
+
+services:
+  laramie-auditoria-apigateway:
+    #container_name: laramie-auditoria-apigateway
+    image: laramie-auditoria-apigateway:v1
+    build:
+      dockerfile: 'Dockerfile'
+    command: "npm run start-prod"
+
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - laramie-data_files:/var/lib/laramie-repository
+
+    ports:
+      - "3051:3051"
+
+volumes:
+  laramie-data_files:
+    external: true
+
+networks: 
+  default: 
+    name: laramie
+    external: true

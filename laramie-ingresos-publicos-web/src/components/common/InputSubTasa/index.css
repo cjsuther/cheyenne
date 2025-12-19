@@ -1,0 +1,9 @@
+.input-sub-tasa {
+    cursor: pointer;
+}
+.input-sub-tasa:disabled {
+    cursor: default;
+}
+.input-sub-tasa:read-only:not(:disabled) {
+    background-color: #fff;
+}

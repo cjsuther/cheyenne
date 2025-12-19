@@ -1,0 +1,9 @@
+.input-persona {
+    cursor: pointer;
+}
+.input-persona:disabled {
+    cursor: default;
+}
+.input-persona:read-only:not(:disabled) {
+    background-color: #fff;
+}

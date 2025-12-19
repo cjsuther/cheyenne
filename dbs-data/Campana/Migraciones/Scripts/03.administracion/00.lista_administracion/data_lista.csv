@@ -1,0 +1,74 @@
+500	1	TipoPersona	Física	1
+501	2	TipoPersona	Jurídica	2
+510	1	TipoDocumento	D.N.I.	36
+511	2	TipoDocumento	D.N.I.C.V.	37
+512	3	TipoDocumento	L.E.	39
+513	4	TipoDocumento	L.C.	40
+514	5	TipoDocumento	PASAPORTE	41
+515	6	TipoDocumento	C.U.I.T.	42
+516	7	TipoDocumento	EXTRANJEROS	43
+517	9	TipoDocumento	SIN DOCUMENTO	44
+518	20	TipoDocumento	ORGANISMOS OFICIALES	38
+520	1	TipoContacto	TELEFONO FIJO	27
+523	2	TipoContacto	TELEFONO LABORAL	30
+524	3	TipoContacto	CELULAR	31
+525	4	TipoContacto	EMAIL	32
+526	5	TipoContacto	TELEFONO COMERCIAL	33
+527	11	TipoContacto	E-MAIL INSTITUCIONAL	28
+528	12	TipoContacto	EMAIL E-LEGAJO	29
+530	1	TipoGeoreferencia	Open Street Map	1
+531	2	TipoGeoreferencia	Google Street View	2
+532	3	TipoGeoreferencia	API Local	5
+533	4	TipoGeoreferencia	Carga por Zona	3
+534	5	TipoGeoreferencia	Carga Manual	4
+535	6	TipoGeoreferencia	Carga directa	6
+540	CF	CondicionFiscal	Cosumidor Final	1
+541	EX	CondicionFiscal	Responsable Exento	3
+542	MO	CondicionFiscal	Monotributista	4
+543	RI	CondicionFiscal	Responsable Inscripto	5
+544	RN	CondicionFiscal	Responsable No Inscripto	6
+550	1	IngresosBrutos	INSCRIPTO	17
+551	2	IngresosBrutos	EXENTO	18
+560	M	Genero	Maculino	16
+561	F	Genero	Femenino	14
+562	I	Genero	Indefinido	15
+570	1	EstadoCivil	Casado/a	7
+571	2	EstadoCivil	Soltero/a	8
+572	3	EstadoCivil	Separado/a	9
+573	4	EstadoCivil	Viudo/a	10
+574	5	EstadoCivil	Divorciado/a	11
+575	6	EstadoCivil	Concubinato	12
+580	1	NivelEstudio	Primaria	21
+581	2	NivelEstudio	Secundaria	22
+582	3	NivelEstudio	Terciaria	23
+583	4	NivelEstudio	Universitaria	24
+610	1	TipoMedioPago	Tarjeta Crédito/Débito	1
+611	2	TipoMedioPago	CBU/CVU	2
+620	1	TipoTarjeta	Tarjeta Crédito	1
+621	2	TipoTarjeta	Tarjeta Débito	2
+630	1	MarcaTarjeta	Visa	1
+631	2	MarcaTarjeta	MasterCard	2
+632	3	MarcaTarjeta	American Express	3
+650	1	EstadoFirma	Pendiente	1
+651	2	EstadoFirma	Firmado	2
+652	3	EstadoFirma	Rechazado	3
+660	1	TipoFirma	Título Ejecutivo	1
+661	2	TipoFirma	Certificado Libre Deuda Automotor	2
+662	3	TipoFirma	Certificado Baja Automotor	3
+663	4	TipoFirma	Certificado de Deuda Inmueble	4
+664	5	TipoFirma	Certificado Catastral	5
+2000	1	TipoExpediente	Externo	1
+2001	2	TipoExpediente	Interno	2
+2002	3	TipoExpediente	Con característica	3
+2003	4	TipoExpediente	Expediente civil	4
+2004	5	TipoExpediente	Alcance	5
+2005	6	TipoExpediente	Expediente D.O.P	6
+2006	7	TipoExpediente	Carpeta de obra	7
+3009	DE	CondicionFiscal	DESCONOCIDO	2
+3026	9999	EstadoCivil	Desconocido	13
+3042	3	IngresosBrutos	CONVENIO MULTILATERAL	19
+3043	9999	IngresosBrutos		20
+3071	6	NivelEstudio	Postgrado	25
+3072	9999	NivelEstudio	Desconocido	26
+3283	6	TipoContacto	SITIO WEB	34
+3284	7	TipoContacto	DOMICILIO FISCAL ELECTRÓNICO	35
