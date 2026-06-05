@@ -1,0 +1,13 @@
+from .contribuyentes import router as contribuyentes_router
+from .cuentas import router as cuentas_router
+from .inmuebles import router as inmuebles_router
+from .vehiculos import router as vehiculos_router
+from .comercios import router as comercios_router
+from .emisiones import router as emisiones_router
+from .planes_pago import router as planes_pago_router
+from .listas import router as listas_router
+from .certificados import router as certificados_router
+from .multas import router as multas_router
+from .tasas import router as tasas_router
+from .sub_tasas import router as sub_tasas_router
+from .personas import router as personas_router

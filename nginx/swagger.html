@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cheyenne API - Swagger</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
+  <style>
+    body { margin: 0; background: #fafafa; }
+    .swagger-ui .info .title { font-size: 1.8em !important; }
+  </style>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
+  <script>
+    SwaggerUIBundle({
+      urls: [
+        { url: "/api/seguridad/openapi.json", name: "Seguridad" },
+        { url: "/api/administracion/openapi.json", name: "Administracion" },
+        { url: "/api/auditoria/openapi.json", name: "Auditoria" },
+        { url: "/api/comunicacion/openapi.json", name: "Comunicacion" },
+        { url: "/api/contaduria/openapi.json", name: "Contaduria" },
+        { url: "/api/ingresos-publicos/openapi.json", name: "Ingresos Publicos" },
+        { url: "/api/tesoreria/openapi.json", name: "Tesoreria" },
+        { url: "/api/importacion/openapi.json", name: "Importacion" },
+        { url: "/api/interface/openapi.json", name: "Interface" },
+        { url: "/api/emisiones/openapi.json", name: "Emisiones" },
+        { url: "/api/wav/openapi.json", name: "WAV" },
+      ],
+      "urls.primaryName": "Seguridad",
+      dom_id: '#swagger-ui',
+      deepLinking: true,
+      presets: [
+        SwaggerUIBundle.presets.apis,
+        SwaggerUIStandalonePreset,
+      ],
+      plugins: [
+        SwaggerUIBundle.plugins.DownloadUrl,
+      ],
+      layout: "StandaloneLayout",
+      defaultModelsExpandDepth: 1,
+      docExpansion: "list",
+      filter: true,
+      requestInterceptor: (req) => {
+        const token = localStorage.getItem('cheyenne-auth');
+        if (token) {
+          try {
+            const parsed = JSON.parse(token);
+            if (parsed?.state?.accessToken) {
+              req.headers['Authorization'] = 'Bearer ' + parsed.state.accessToken;
+            }
+          } catch {}
+        }
+        return req;
+      },
+    });
+  </script>
+</body>
+</html>

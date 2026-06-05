@@ -1,0 +1,261 @@
+version: '3.9'
+
+services:
+  # ─── BASE DE DATOS ────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: cheyenne-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cheyenne}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cheyenne123}
+      POSTGRES_DB: ${POSTGRES_DB:-cheyenne}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./dbs/init:/docker-entrypoint-initdb.d
+    networks:
+      - cheyenne-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cheyenne}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── REDIS (para workers async y caché) ───────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: cheyenne-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - cheyenne-net
+
+  # ─── MÓDULO SEGURIDAD ─────────────────────────────────────────────
+  seguridad:
+    build:
+      context: ./modules
+      dockerfile: seguridad/Dockerfile
+    container_name: cheyenne-seguridad
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cheyenne}:${POSTGRES_PASSWORD:-cheyenne123}@postgres:5432/${POSTGRES_DB:-cheyenne}
+      SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - cheyenne-net
+
+  # ─── MÓDULO ADMINISTRACIÓN ────────────────────────────────────────
+  administracion:
+    build:
+      context: ./modules
+      dockerfile: administracion/Dockerfile
+    container_name: cheyenne-administracion
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cheyenne}:${POSTGRES_PASSWORD:-cheyenne123}@postgres:5432/${POSTGRES_DB:-cheyenne}
+      SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+      REDIS_URL: redis://redis:6379
+      SEGURIDAD_URL: http://seguridad:8000
+    depends_on:
+      - seguridad
+    networks:
+      - cheyenne-net
+
+  # ─── MÓDULO AUDITORÍA ─────────────────────────────────────────────
+  auditoria:
+    build:
+      context: ./modules
+      dockerfile: auditoria/Dockerfile
+    container_name: cheyenne-auditoria
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cheyenne}:${POSTGRES_PASSWORD:-cheyenne123}@postgres:5432/${POSTGRES_DB:-cheyenne}
+      SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+      SEGURIDAD_URL: http://seguridad:8000
+    depends_on:
+      - seguridad
+    networks:
+      - cheyenne-net
+
+  # ─── MÓDULO COMUNICACIÓN ──────────────────────────────────────────
+  comunicacion:
+    build:
+      context: ./modules
+      dockerfile: comunicacion/Dockerfile
+    container_name: cheyenne-comunicacion
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cheyenne}:${POSTGRES_PASSWORD:-cheyenne123}@postgres:5432/${POSTGRES_DB:-cheyenne}
+      SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+      REDIS_URL: redis://redis:6379
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SEGURIDAD_URL: http://seguridad:8000
+    depends_on:
+      - seguridad
+    networks:
+      - cheyenne-net
+
+  # ─── MÓDULO CONTADURÍA ────────────────────────────────────────────
+  contaduria:
+    build:
+      context: ./modules
+      dockerfile: contaduria/Dockerfile
+    container_name: cheyenne-contaduria
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cheyenne}:${POSTGRES_PASSWORD:-cheyenne123}@postgres:5432/${POSTGRES_DB:-cheyenne}
+      SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+      SEGURIDAD_URL: http://seguridad:8000
+    depends_on:
+      - seguridad
+    networks:
+      - cheyenne-net
+
+  # ─── MÓDULO IMPORTACIÓN ───────────────────────────────────────────
+  importacion:
+    build:
+      context: ./modules
+      dockerfile: importacion/Dockerfile
+    container_name: cheyenne-importacion
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cheyenne}:${POSTGRES_PASSWORD:-cheyenne123}@postgres:5432/${POSTGRES_DB:-cheyenne}
+      SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+      SEGURIDAD_URL: http://seguridad:8000
+    depends_on:
+      - seguridad
+    networks:
+      - cheyenne-net
+
+  # ─── MÓDULO INGRESOS PÚBLICOS ─────────────────────────────────────
+  ingresos_publicos:
+    build:
+      context: ./modules
+      dockerfile: ingresos_publicos/Dockerfile
+    container_name: cheyenne-ingresos-publicos
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cheyenne}:${POSTGRES_PASSWORD:-cheyenne123}@postgres:5432/${POSTGRES_DB:-cheyenne}
+      SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+      SEGURIDAD_URL: http://seguridad:8000
+    depends_on:
+      - seguridad
+    networks:
+      - cheyenne-net
+
+  # ─── MÓDULO INTERFACE ─────────────────────────────────────────────
+  interface:
+    build:
+      context: ./modules
+      dockerfile: interface/Dockerfile
+    container_name: cheyenne-interface
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cheyenne}:${POSTGRES_PASSWORD:-cheyenne123}@postgres:5432/${POSTGRES_DB:-cheyenne}
+      SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+      SEGURIDAD_URL: http://seguridad:8000
+    depends_on:
+      - seguridad
+    networks:
+      - cheyenne-net
+
+  # ─── MÓDULO TESORERÍA ─────────────────────────────────────────────
+  tesoreria:
+    build:
+      context: ./modules
+      dockerfile: tesoreria/Dockerfile
+    container_name: cheyenne-tesoreria
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cheyenne}:${POSTGRES_PASSWORD:-cheyenne123}@postgres:5432/${POSTGRES_DB:-cheyenne}
+      SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+      SEGURIDAD_URL: http://seguridad:8000
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - seguridad
+    networks:
+      - cheyenne-net
+
+  # ─── MÓDULO EMISIONES ────────────────────────────────────────────
+  emisiones:
+    build:
+      context: ./modules
+      dockerfile: emisiones/Dockerfile
+    container_name: cheyenne-emisiones
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cheyenne}:${POSTGRES_PASSWORD:-cheyenne123}@postgres:5432/${POSTGRES_DB:-cheyenne}
+      SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+      SEGURIDAD_URL: http://seguridad:8000
+      REDIS_URL: redis://redis:6379
+      PDF_OUTPUT_DIR: /app/pdfs
+    depends_on:
+      - seguridad
+    volumes:
+      - emisiones_pdfs:/app/pdfs
+    networks:
+      - cheyenne-net
+
+  # ─── MÓDULO WAV (Workflow/Aprobaciones) ───────────────────────────
+  wav:
+    build:
+      context: ./modules
+      dockerfile: wav/Dockerfile
+    container_name: cheyenne-wav
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cheyenne}:${POSTGRES_PASSWORD:-cheyenne123}@postgres:5432/${POSTGRES_DB:-cheyenne}
+      SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+      SEGURIDAD_URL: http://seguridad:8000
+    depends_on:
+      - seguridad
+    networks:
+      - cheyenne-net
+
+  # ─── FRONTEND ─────────────────────────────────────────────────────
+  frontend:
+    build: ./frontend
+    container_name: cheyenne-frontend
+    restart: always
+    networks:
+      - cheyenne-net
+
+  # ─── NGINX (reverse proxy) ────────────────────────────────────────
+  nginx:
+    build: ./nginx
+    container_name: cheyenne-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - frontend
+      - seguridad
+      - administracion
+      - auditoria
+      - comunicacion
+      - contaduria
+      - importacion
+      - ingresos_publicos
+      - tesoreria
+      - emisiones
+      - wav
+    networks:
+      - cheyenne-net
+
+volumes:
+  postgres_data:
+  emisiones_pdfs:
+
+networks:
+  cheyenne-net:
+    driver: bridge

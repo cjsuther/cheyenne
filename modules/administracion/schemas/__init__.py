@@ -1,0 +1,19 @@
+from .persona_fisica import PersonaFisicaCreate, PersonaFisicaUpdate, PersonaFisicaResponse
+from .persona_juridica import PersonaJuridicaCreate, PersonaJuridicaUpdate, PersonaJuridicaResponse
+from .expediente import ExpedienteCreate, ExpedienteUpdate, ExpedienteResponse
+from .direccion import DireccionCreate, DireccionUpdate, DireccionResponse
+from .contacto import ContactoCreate, ContactoUpdate, ContactoResponse
+from .lista import ListaCreate, ListaUpdate, ListaResponse
+from .entidad import EntidadCreate, EntidadUpdate, EntidadResponse
+from .documento import DocumentoCreate, DocumentoUpdate, DocumentoResponse
+from .medio_pago import MedioPagoCreate, MedioPagoUpdate, MedioPagoResponse
+from .etiqueta import EtiquetaCreate, EtiquetaResponse
+from .entidad_definicion import EntidadDefinicionCreate, EntidadDefinicionUpdate, EntidadDefinicionResponse
+from .pais import PaisCreate, PaisUpdate, PaisResponse
+from .provincia import ProvinciaCreate, ProvinciaUpdate, ProvinciaResponse
+from .localidad import LocalidadCreate, LocalidadUpdate, LocalidadResponse
+from .cuenta_contable import CuentaContableCreate, CuentaContableUpdate, CuentaContableResponse
+from .jurisdiccion import JurisdiccionCreate, JurisdiccionUpdate, JurisdiccionResponse
+from .recurso_por_rubro import RecursoPorRubroCreate, RecursoPorRubroUpdate, RecursoPorRubroResponse
+from .archivo import ArchivoCreate, ArchivoUpdate, ArchivoResponse
+from .observacion import ObservacionCreate, ObservacionUpdate, ObservacionResponse

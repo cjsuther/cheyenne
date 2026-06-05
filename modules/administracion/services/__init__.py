@@ -1,0 +1,13 @@
+from .persona_service import PersonaFisicaService, PersonaJuridicaService
+from .expediente_service import ExpedienteService
+from .lista_service import ListaService
+from .documento_service import DocumentoService
+from .medio_pago_service import MedioPagoService
+from .etiqueta_service import EtiquetaService
+from .entidad_definicion_service import EntidadDefinicionService
+from .pais_service import PaisService
+from .provincia_service import ProvinciaService
+from .localidad_service import LocalidadService
+from .cuenta_contable_service import CuentaContableService
+from .jurisdiccion_service import JurisdiccionService
+from .recurso_por_rubro_service import RecursoPorRubroService
