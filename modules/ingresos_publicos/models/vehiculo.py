@@ -13,6 +13,7 @@ class Vehiculo(Base):
     id_cuenta = Column(BigInteger, ForeignKey("ingresos_publicos_cuentas.id"), nullable=False)
     dominio = Column(String(20), nullable=False)
     modelo = Column(String(250), nullable=True)
+    codigo_modelo = Column(String(50), nullable=True, index=True)  # cruce con el catálogo de valuación
     anio = Column(Integer, nullable=True)
     numero_motor = Column(String(100), nullable=True)
     numero_chasis = Column(String(100), nullable=True)

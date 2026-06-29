@@ -1,8 +1,15 @@
 from .contribuyentes import router as contribuyentes_router
 from .cuentas import router as cuentas_router
 from .inmuebles import router as inmuebles_router
+from .inmueble_valuaciones import router as inmueble_valuaciones_router
+from .inmueble_superficies import router as inmueble_superficies_router
+from .inmueble_frentes import router as inmueble_frentes_router
+from .padron import router as padron_router
 from .vehiculos import router as vehiculos_router
+from .vehiculo_valuaciones import router as vehiculo_valuaciones_router
 from .comercios import router as comercios_router
+from .comercio_rubros import router as comercio_rubros_router
+from .comercio_ddjj import router as comercio_ddjj_router
 from .emisiones import router as emisiones_router
 from .planes_pago import router as planes_pago_router
 from .listas import router as listas_router

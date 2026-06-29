@@ -2,8 +2,14 @@ from .lista import Lista
 from .contribuyente import Contribuyente
 from .cuenta import Cuenta
 from .inmueble import Inmueble
+from .inmueble_valuacion import InmuebleValuacion
+from .inmueble_superficie import InmuebleSuperficie
+from .inmueble_frente import InmuebleFrente
 from .comercio import Comercio
+from .comercio_rubro import ComercioRubro
+from .comercio_ddjj import ComercioDDJJ
 from .vehiculo import Vehiculo
+from .vehiculo_valuacion import VehiculoValuacion
 from .tasa import Tasa
 from .sub_tasa import SubTasa
 from .emision_definicion import EmisionDefinicion

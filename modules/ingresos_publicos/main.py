@@ -14,7 +14,14 @@ from routers import (
     contribuyentes_router,
     cuentas_router,
     inmuebles_router,
+    inmueble_valuaciones_router,
+    inmueble_superficies_router,
+    inmueble_frentes_router,
+    padron_router,
     vehiculos_router,
+    vehiculo_valuaciones_router,
+    comercio_rubros_router,
+    comercio_ddjj_router,
     comercios_router,
     emisiones_router,
     planes_pago_router,
@@ -49,7 +56,14 @@ app.add_middleware(
 app.include_router(contribuyentes_router)
 app.include_router(cuentas_router)
 app.include_router(inmuebles_router)
+app.include_router(inmueble_valuaciones_router)
+app.include_router(inmueble_superficies_router)
+app.include_router(inmueble_frentes_router)
+app.include_router(padron_router)
 app.include_router(vehiculos_router)
+app.include_router(vehiculo_valuaciones_router)
+app.include_router(comercio_rubros_router)
+app.include_router(comercio_ddjj_router)
 app.include_router(comercios_router)
 app.include_router(emisiones_router)
 app.include_router(planes_pago_router)
