@@ -19,11 +19,40 @@ from schemas.plan_pago import (
     PlanPagoCreate, PlanPagoUpdate, PlanPagoResponse,
     PlanPagoDefinicionCreate, PlanPagoDefinicionUpdate, PlanPagoDefinicionResponse,
 )
+from schemas.plan_pago_cuota import (
+    SimularPlanRequest, SimularPlanResponse, PlanPagoCuotaResponse,
+)
 
 settings = get_settings()
 get_current_user = create_auth_dependency(settings.seguridad_url)
 
 router = APIRouter(prefix="/planes-pago", tags=["Planes de Pago"])
+
+
+# ── Cálculo de plan (ANTES de /{id}) ─────────────────────────────────
+
+@router.post("/simular", response_model=SimularPlanResponse)
+def simular_plan(
+    data: SimularPlanRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Simula un plan (amortización francesa) sin persistirlo — preview para el contribuyente."""
+    return PlanPagoService(db).simular(
+        monto_total=data.monto_total, cantidad_cuotas=data.cantidad_cuotas,
+        tasa_interes_pct=data.tasa_interes_pct, anticipo=data.anticipo,
+    )
+
+
+@router.post("/{id}/generar-cuotas")
+def generar_cuotas(id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    """Calcula y persiste las cuotas de un plan (sistema francés, según su definición)."""
+    return PlanPagoService(db).generar_cuotas(id)
+
+
+@router.get("/{id}/cuotas", response_model=List[PlanPagoCuotaResponse])
+def list_cuotas(id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    return PlanPagoService(db).list_cuotas(id)
 
 
 # ── Definiciones (ANTES de /{id}) ────────────────────────────────────

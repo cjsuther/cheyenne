@@ -5,6 +5,8 @@ from fastapi import HTTPException, status
 
 from models.plan_pago import PlanPago
 from models.plan_pago_definicion import PlanPagoDefinicion
+from models.plan_pago_cuota import PlanPagoCuota
+from services.plan_calculo import calcular_plan, resultado_a_cuotas
 
 
 class PlanPagoService:
@@ -25,6 +27,58 @@ class PlanPagoService:
                 detail=f"Plan de pago {id} no encontrado",
             )
         return plan
+
+    # ---------------------------------------------- cálculo de plan (sistema francés)
+    def simular(self, monto_total, cantidad_cuotas: int, tasa_interes_pct=0, anticipo=0) -> dict:
+        """Calcula un plan sin persistir (preview de la amortización)."""
+        r = calcular_plan(monto_total=monto_total, cantidad_cuotas=cantidad_cuotas,
+                           tasa_interes_pct=tasa_interes_pct, anticipo=anticipo)
+        return {
+            "monto_total": r.monto_total,
+            "anticipo": r.anticipo,
+            "monto_financiado": r.monto_financiado,
+            "cantidad_cuotas": r.cantidad_cuotas,
+            "total_intereses": r.total_intereses,
+            "total_a_pagar": r.total_a_pagar,
+            "cuotas": [
+                {"numero": c.numero, "capital": c.capital, "interes": c.interes,
+                 "importe": c.importe, "saldo": c.saldo}
+                for c in r.cuotas
+            ],
+        }
+
+    def generar_cuotas(self, id_plan: int, primer_vencimiento=None, periodicidad_meses: int = 1) -> dict:
+        """Calcula y persiste las cuotas de un plan existente (usa su definición para la tasa)."""
+        plan = self.find_by_id(id_plan)
+        defi = (
+            self.db.query(PlanPagoDefinicion)
+            .filter(PlanPagoDefinicion.id == plan.id_plan_pago_definicion)
+            .first()
+        )
+        tasa = (defi.tasa_interes if defi and defi.tasa_interes is not None else 0)
+
+        r = calcular_plan(
+            monto_total=plan.importe_total,
+            cantidad_cuotas=plan.cantidad_cuotas,
+            tasa_interes_pct=tasa,
+            anticipo=plan.importe_anticipo or 0,
+        )
+        # reemplazar cuotas previas (idempotente)
+        self.db.query(PlanPagoCuota).filter(PlanPagoCuota.id_plan_pago == id_plan).delete()
+        for kw in resultado_a_cuotas(id_plan, r, primer_vencimiento, periodicidad_meses):
+            self.db.add(PlanPagoCuota(**kw))
+        plan.importe_cuota = r.cuotas[0].importe if r.cuotas else 0
+        self.db.commit()
+        return {"id_plan": id_plan, "cuotas_generadas": len(r.cuotas),
+                "total_a_pagar": float(r.total_a_pagar)}
+
+    def list_cuotas(self, id_plan: int) -> List[PlanPagoCuota]:
+        return (
+            self.db.query(PlanPagoCuota)
+            .filter(PlanPagoCuota.id_plan_pago == id_plan, PlanPagoCuota.activo == True)
+            .order_by(PlanPagoCuota.numero_cuota)
+            .all()
+        )
 
     def list_by_cuenta(self, id_cuenta: int) -> List[PlanPago]:
         return (

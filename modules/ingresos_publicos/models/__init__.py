@@ -16,6 +16,7 @@ from .emision_definicion import EmisionDefinicion
 from .emision import Emision
 from .plan_pago_definicion import PlanPagoDefinicion
 from .plan_pago import PlanPago
+from .plan_pago_cuota import PlanPagoCuota
 from .persona import Persona
 from .certificado import Certificado
 from .multa import Multa
