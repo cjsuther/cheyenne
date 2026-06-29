@@ -1,140 +1,157 @@
+"""Servicio de cálculo de emisión (capa de BD).
+
+Reemplaza el cálculo placeholder por el motor real: carga las `FormulaTasa` del tributo y los
+contribuyentes del padrón (con su base imponible en `datos_calculo`), corre el liquidador y
+persiste las `Liquidacion` con sus 4 vencimientos `a_cancelar`/`a_pagar`.
+
+La lógica de cálculo es pura y está en `services.calculo.*` (testeada aparte); acá sólo se lee
+y escribe la base.
+"""
 from decimal import Decimal
-from typing import Dict, Any
+from typing import Any, Dict, List
 
 from sqlalchemy.orm import Session
 
 from models.emision import Emision
 from models.padron import Padron, ContribuyentePadron
 from models.liquidacion import Liquidacion
+from models.formula_tasa import FormulaTasa, FormulaTasaAcumulador
+
+from services.calculo.orquestador import liquidar_padron
+from services.calculo.repo import formula_a_dict
 
 
 class CalculoService:
     def __init__(self, db: Session):
         self.db = db
 
+    # ------------------------------------------------------------------ helpers
     def _get_emision(self, id_emision: int) -> Emision:
         emision = self.db.query(Emision).filter(Emision.id == id_emision).first()
         if not emision:
             raise ValueError(f"Emision {id_emision} no encontrada")
         return emision
 
-    def _get_contribuyentes(self, id_emision: int):
+    def _get_contribuyentes(self, id_emision: int) -> List[ContribuyentePadron]:
         padrones = self.db.query(Padron).filter(
             Padron.id_emision == id_emision, Padron.activo == True
         ).all()
-        contribuyentes = []
-        for padron in padrones:
-            contribs = self.db.query(ContribuyentePadron).filter(
-                ContribuyentePadron.id_padron == padron.id,
-                ContribuyentePadron.activo == True,
-            ).all()
-            contribuyentes.extend(contribs)
-        return contribuyentes
+        ids = [p.id for p in padrones]
+        if not ids:
+            return []
+        return (
+            self.db.query(ContribuyentePadron)
+            .filter(ContribuyentePadron.id_padron.in_(ids), ContribuyentePadron.activo == True)
+            .all()
+        )
 
+    def _load_formulas(self, tipo_tributo: str) -> List[Dict[str, Any]]:
+        rows = (
+            self.db.query(FormulaTasa)
+            .filter(FormulaTasa.tipo_tributo == tipo_tributo, FormulaTasa.activo == True)
+            .all()
+        )
+        out = []
+        for f in rows:
+            acums = (
+                self.db.query(FormulaTasaAcumulador)
+                .filter(
+                    FormulaTasaAcumulador.ttas_tasa == f.ttas_tasa,
+                    FormulaTasaAcumulador.ttas_subtasa == f.ttas_subtasa,
+                    FormulaTasaAcumulador.fort_numero == f.fort_numero,
+                    FormulaTasaAcumulador.activo == True,
+                )
+                .all()
+            )
+            out.append(formula_a_dict(f, acums))
+        return out
+
+    @staticmethod
+    def _periodo_mes(emision: Emision) -> tuple[int, int]:
+        p = str(emision.periodo or "0").strip()
+        if len(p) >= 6 and p.isdigit():
+            return int(p[:4]), int(p[4:6])
+        try:
+            return int(p), 12   # sólo año -> tomo fin de año (todas las vigencias vigentes)
+        except ValueError:
+            return 0, 12
+
+    # ------------------------------------------------ pasos 4-7 (validación/progreso)
     def calcular_base_imponible(self, id_emision: int) -> Dict[str, Any]:
-        emision = self._get_emision(id_emision)
-        contribuyentes = self._get_contribuyentes(id_emision)
-        parametros = emision.parametros or {}
-        base_minima = Decimal(str(parametros.get("base_imponible_minima", "0")))
-
-        procesados = 0
-        for contrib in contribuyentes:
-            # Base imponible calculation placeholder
-            # In production, this would query the objeto_imponible valuations
-            contrib.estado = "base_calculada"
-            procesados += 1
+        contribs = self._get_contribuyentes(id_emision)
+        sin_datos = sum(1 for c in contribs if not c.datos_calculo)
+        for c in contribs:
+            c.estado = "base_calculada"
         self.db.commit()
-
-        return {"procesados": procesados, "base_minima": float(base_minima)}
+        return {"contribuyentes": len(contribs), "sin_base_imponible": sin_datos}
 
     def aplicar_alicuotas(self, id_emision: int) -> Dict[str, Any]:
-        emision = self._get_emision(id_emision)
-        parametros = emision.parametros or {}
-        alicuota = Decimal(str(parametros.get("alicuota", "0.01")))
-
-        contribuyentes = self._get_contribuyentes(id_emision)
-        procesados = 0
-        for contrib in contribuyentes:
-            contrib.estado = "alicuota_aplicada"
-            procesados += 1
-        self.db.commit()
-
-        return {"procesados": procesados, "alicuota": float(alicuota)}
+        return {"info": "las alícuotas se aplican vía FormulaTasa en el paso 8"}
 
     def calcular_bonificaciones(self, id_emision: int) -> Dict[str, Any]:
-        emision = self._get_emision(id_emision)
-        parametros = emision.parametros or {}
-        bonificacion_pct = Decimal(str(parametros.get("bonificacion_porcentaje", "0")))
-
-        contribuyentes = self._get_contribuyentes(id_emision)
-        procesados = 0
-        for contrib in contribuyentes:
-            contrib.estado = "bonificacion_calculada"
-            procesados += 1
-        self.db.commit()
-
-        return {"procesados": procesados, "bonificacion_porcentaje": float(bonificacion_pct)}
+        return {"info": "las bonificaciones se aplican vía FormulaTasa (aPagar) en el paso 8"}
 
     def calcular_recargos(self, id_emision: int) -> Dict[str, Any]:
-        emision = self._get_emision(id_emision)
-        parametros = emision.parametros or {}
-        recargo_pct = Decimal(str(parametros.get("recargo_porcentaje", "0")))
+        return {"info": "los recargos de mora se aplican en la recaudación, no en la emisión"}
 
-        contribuyentes = self._get_contribuyentes(id_emision)
-        procesados = 0
-        for contrib in contribuyentes:
-            contrib.estado = "recargo_calculado"
-            procesados += 1
-        self.db.commit()
-
-        return {"procesados": procesados, "recargo_porcentaje": float(recargo_pct)}
-
+    # --------------------------------------------------- paso 8: liquidación real
     def generar_liquidaciones(self, id_emision: int) -> Dict[str, Any]:
         emision = self._get_emision(id_emision)
-        parametros = emision.parametros or {}
-        alicuota = Decimal(str(parametros.get("alicuota", "0.01")))
-        bonificacion_pct = Decimal(str(parametros.get("bonificacion_porcentaje", "0")))
-        recargo_pct = Decimal(str(parametros.get("recargo_porcentaje", "0")))
-        base_minima = Decimal(str(parametros.get("base_imponible_minima", "1000")))
+        contribs = self._get_contribuyentes(id_emision)
+        if not contribs:
+            raise ValueError("El padrón está vacío: no hay contribuyentes para liquidar")
 
-        contribuyentes = self._get_contribuyentes(id_emision)
-        liquidaciones_creadas = 0
-
-        for contrib in contribuyentes:
-            base_imponible = base_minima  # placeholder
-            monto_calculado = base_imponible * alicuota
-            monto_bonificacion = monto_calculado * bonificacion_pct / Decimal("100")
-            monto_recargo = monto_calculado * recargo_pct / Decimal("100")
-            monto_final = monto_calculado - monto_bonificacion + monto_recargo
-
-            liquidacion = Liquidacion(
-                id_emision=id_emision,
-                id_contribuyente=contrib.id_contribuyente,
-                id_objeto_imponible=contrib.id_objeto_imponible,
-                tipo=emision.tipo_tributo,
-                periodo=emision.periodo,
-                cuota=1,
-                base_imponible=base_imponible,
-                alicuota=alicuota,
-                monto_calculado=monto_calculado,
-                monto_bonificacion=monto_bonificacion,
-                monto_recargo=monto_recargo,
-                monto_final=monto_final,
-                fecha_vencimiento_1=emision.fecha_vencimiento_1,
-                fecha_vencimiento_2=emision.fecha_vencimiento_2,
-                estado="calculada",
-                detalle_calculo={
-                    "base_imponible": float(base_imponible),
-                    "alicuota": float(alicuota),
-                    "monto_calculado": float(monto_calculado),
-                    "bonificacion": float(monto_bonificacion),
-                    "recargo": float(monto_recargo),
-                    "monto_final": float(monto_final),
-                },
+        formulas = self._load_formulas(emision.tipo_tributo)
+        if not formulas:
+            raise ValueError(
+                f"No hay FormulaTasa activas para el tributo '{emision.tipo_tributo}'"
             )
-            self.db.add(liquidacion)
-            contrib.estado = "liquidado"
-            liquidaciones_creadas += 1
 
+        periodo, mes = self._periodo_mes(emision)
+        entrada = [
+            {
+                "id_contribuyente": c.id_contribuyente,
+                "id_objeto_imponible": c.id_objeto_imponible,
+                "datos": c.datos_calculo or {},
+            }
+            for c in contribs
+        ]
+
+        resultado = liquidar_padron(formulas, entrada, periodo, mes)
+
+        creadas = 0
+        monto_total = Decimal("0.00")
+        for r in resultado:
+            for linea in r["lineas"]:
+                self.db.add(Liquidacion(
+                    id_emision=id_emision,
+                    id_contribuyente=r["id_contribuyente"],
+                    id_objeto_imponible=r["id_objeto_imponible"],
+                    tipo=emision.tipo_tributo,
+                    periodo=emision.periodo,
+                    cuota=linea["vencimiento"],
+                    id_tasa=linea["tasa"],
+                    id_sub_tasa=linea["subtasa"],
+                    fort_numero=linea["formula"],
+                    numero_vencimiento=linea["vencimiento"],
+                    a_cancelar=linea["a_cancelar"],
+                    a_pagar=linea["a_pagar"],
+                    monto_final=linea["a_pagar"],
+                    estado="calculada",
+                    detalle_calculo=linea,
+                ))
+                creadas += 1
+            monto_total += r["monto_a_pagar"]
+
+        # marcar contribuyentes liquidados
+        for c in contribs:
+            c.estado = "liquidado"
+        emision.cantidad_contribuyentes = len(contribs)
+        emision.monto_total = monto_total
         self.db.commit()
-        return {"liquidaciones_creadas": liquidaciones_creadas}
+
+        return {
+            "liquidaciones_creadas": creadas,
+            "contribuyentes": len(contribs),
+            "monto_total": float(monto_total),
+        }

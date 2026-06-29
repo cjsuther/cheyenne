@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Integer
+from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Integer, JSON
 from datetime import datetime, timezone
 
 import sys, os
@@ -32,6 +32,9 @@ class ContribuyentePadron(Base):
     partida = Column(String(50), nullable=True)
     categoria = Column(String(50), nullable=True)
     zona = Column(String(50), nullable=True)
+    # base imponible y variables de cálculo de la cuenta (valuaciones/superficies/variables);
+    # lo completa el paso 2 (cargar padrón) desde ingresos_publicos. Lo consume el liquidador.
+    datos_calculo = Column(JSON, nullable=True)
     estado = Column(String(50), nullable=False, default="pendiente")
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     activo = Column(Boolean, nullable=False, default=True)

@@ -16,6 +16,14 @@ class Liquidacion(Base):
     tipo = Column(String(50), nullable=False)
     periodo = Column(String(20), nullable=True)
     cuota = Column(Integer, nullable=True)
+    # liquidación por fórmula/vencimiento (port de CalcPagos): a_cancelar = deuda imputada a la
+    # cuenta corriente ; a_pagar = importe efectivo del recibo en ese vencimiento.
+    id_tasa = Column(Integer, nullable=True, index=True)
+    id_sub_tasa = Column(Integer, nullable=True)
+    fort_numero = Column(Integer, nullable=True)
+    numero_vencimiento = Column(Integer, nullable=True)
+    a_cancelar = Column(Numeric(18, 2), nullable=True, default=0)
+    a_pagar = Column(Numeric(18, 2), nullable=True, default=0)
     base_imponible = Column(Numeric(18, 2), nullable=True, default=0)
     alicuota = Column(Numeric(10, 4), nullable=True, default=0)
     monto_calculado = Column(Numeric(18, 2), nullable=True, default=0)

@@ -21,6 +21,7 @@ from models.cuenta_corriente import CuentaCorriente
 from models.paso_workflow import PasoWorkflow
 from services.emision_service import EmisionService
 from services.calculo_service import CalculoService
+from services.padron_loader import fetch_padron, items_a_contribuyentes
 from services.ordenamiento_service import OrdenamientoService
 from services.cuenta_corriente_service import CuentaCorrienteService
 from schemas.emision import (
@@ -246,6 +247,7 @@ def paso_1_validar_parametros(
 @router.post("/{id}/pasos/2-cargar-padron")
 def paso_2_cargar_padron(
     id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -261,11 +263,32 @@ def paso_2_cargar_padron(
         db.commit()
         db.refresh(padron)
 
+        # traer el padrón real desde ingresos_publicos (con la base imponible de cada cuenta)
+        token = request.headers.get("authorization")
+        items = fetch_padron(settings.ingresos_publicos_url, emision.tipo_tributo, token)
+        for kw in items_a_contribuyentes(padron.id, items):
+            db.add(ContribuyentePadron(**kw))
+        padron.cantidad_registros = len(items)
+
         emision.paso_actual = 2
+        emision.cantidad_contribuyentes = len(items)
         db.commit()
-        _registrar_paso(db, id, 2, "completado", resultado=f"Padron {padron.id} creado",
+
+        if not items:
+            # padrón vacío: NO es un éxito silencioso (evita el "falso verde")
+            _registrar_paso(db, id, 2, "error",
+                            error="El padrón vino vacío de ingresos_publicos",
+                            id_usuario=current_user.get("id"))
+            raise HTTPException(status_code=400,
+                                detail="El padrón de cálculo vino vacío; no hay cuentas para liquidar")
+
+        _registrar_paso(db, id, 2, "completado",
+                        resultado=f"Padron {padron.id}: {len(items)} contribuyentes cargados",
                         id_usuario=current_user.get("id"))
-        return {"paso": 2, "estado": "completado", "id_padron": padron.id}
+        return {"paso": 2, "estado": "completado", "id_padron": padron.id,
+                "contribuyentes": len(items)}
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
         _registrar_paso(db, id, 2, "error", error=str(e), id_usuario=current_user.get("id"))

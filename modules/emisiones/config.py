@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://cheyenne:cheyenne123@localhost:5432/cheyenne"
     secret_key: str = "supersecretkey"
     seguridad_url: str = "http://seguridad:8000"
+    ingresos_publicos_url: str = "http://ingresos_publicos:8000"
     redis_url: str = "redis://localhost:6379"
     environment: str = "development"
     debug: bool = True
