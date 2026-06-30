@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ingresosPublicosAPI, emisionesAPI } from '../../services/api';
 import PageHeader from '../../components/common/PageHeader';
 import DataTable from '../../components/common/DataTable';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { Modal, Field, inputClass, btnPrimary, btnSecondary } from '../../components/common/CrudComponents';
 
 const fmtMoney = (v) =>
   `$${Number(v || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -41,14 +42,41 @@ export default function Contribuyente360() {
     enabled: !!selected,
   });
 
+  const queryClient = useQueryClient();
+  const [pagando, setPagando] = useState(null); // concepto a pagar
+  const [importe, setImporte] = useState('');
+  const [pagoError, setPagoError] = useState('');
+  const [guardando, setGuardando] = useState(false);
+
   const filas = deuda ?? [];
   const totalDeuda = filas.reduce((s, d) => s + Number(d.saldo || 0), 0);
   const conDeuda = filas.filter((d) => Number(d.saldo || 0) > 0);
+  const totalAPagar = conDeuda.reduce((s, d) => s + Number(d.total_a_pagar || d.saldo || 0), 0);
   const porTributo = filas.reduce((acc, d) => {
     const k = d.tipo_tributo || 'otros';
     acc[k] = (acc[k] || 0) + Number(d.saldo || 0);
     return acc;
   }, {});
+
+  const abrirPago = (cc) => {
+    setPagando(cc);
+    setImporte(String(cc.total_a_pagar ?? cc.saldo ?? ''));
+    setPagoError('');
+  };
+
+  const confirmarPago = async () => {
+    setGuardando(true);
+    setPagoError('');
+    try {
+      await emisionesAPI.pagarConcepto(pagando.id, { importe: Number(importe) });
+      await queryClient.invalidateQueries({ queryKey: ['c360-deuda', selected.id] });
+      setPagando(null);
+    } catch (e) {
+      setPagoError(e?.response?.data?.detail || 'No se pudo registrar el pago');
+    } finally {
+      setGuardando(false);
+    }
+  };
 
   const cols = [
     { key: 'tipo_tributo', label: 'Tributo', render: (v) => <span className="capitalize">{v || '-'}</span> },
@@ -57,6 +85,19 @@ export default function Contribuyente360() {
     { key: 'fecha_vencimiento', label: 'Vencimiento', render: fmtDate },
     { key: 'estado', label: 'Estado' },
     { key: 'saldo', label: 'Saldo', render: fmtMoney },
+    { key: 'recargo', label: 'Recargo', render: (v) => (Number(v) > 0 ? <span className="text-amber-600">{fmtMoney(v)}</span> : '—') },
+    { key: 'total_a_pagar', label: 'Total a pagar', render: (v, row) => <b>{fmtMoney(v ?? row.saldo)}</b> },
+    {
+      key: '_pagar', label: '',
+      render: (_, row) =>
+        Number(row.saldo) > 0 ? (
+          <button onClick={() => abrirPago(row)} className="text-xs bg-primary-600 hover:bg-primary-700 text-white px-3 py-1 rounded-md font-medium">
+            Pagar
+          </button>
+        ) : (
+          <span className="text-xs text-green-600 font-medium">Pagado</span>
+        ),
+    },
   ];
 
   return (
@@ -118,10 +159,10 @@ export default function Contribuyente360() {
           ) : (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <Stat label="Deuda total" value={fmtMoney(totalDeuda)} highlight />
+                <Stat label="Deuda (capital)" value={fmtMoney(totalDeuda)} highlight />
+                <Stat label="Total a pagar (c/ recargo)" value={fmtMoney(totalAPagar)} highlight />
                 <Stat label="Conceptos con deuda" value={conDeuda.length} />
                 <Stat label="Registros en cta. cte." value={filas.length} />
-                <Stat label="Tributos" value={Object.keys(porTributo).length} />
               </div>
 
               {Object.keys(porTributo).length > 0 && (
@@ -147,6 +188,38 @@ export default function Contribuyente360() {
             </>
           )}
         </div>
+      )}
+
+      {pagando && (
+        <Modal title={`Registrar pago — ${pagando.concepto || 'concepto #' + pagando.id}`} onClose={() => setPagando(null)}>
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <p className="text-xs text-gray-500">Saldo (capital)</p>
+                <p className="text-sm font-semibold">{fmtMoney(pagando.saldo)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Recargo mora ({pagando.dias_mora || 0} d)</p>
+                <p className="text-sm font-semibold text-amber-600">{fmtMoney(pagando.recargo)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Total a pagar</p>
+                <p className="text-sm font-semibold text-primary-700">{fmtMoney(pagando.total_a_pagar ?? pagando.saldo)}</p>
+              </div>
+            </div>
+            <Field label="Importe a pagar">
+              <input className={inputClass} type="number" step="0.01" value={importe} onChange={(e) => setImporte(e.target.value)} autoFocus />
+            </Field>
+            <p className="text-xs text-gray-400">Un importe menor al total deja el concepto en estado “parcial”.</p>
+            {pagoError && <div className="bg-red-50 text-red-700 text-sm rounded-lg px-3 py-2">{pagoError}</div>}
+            <div className="flex justify-end gap-2 pt-1">
+              <button className={btnSecondary} onClick={() => setPagando(null)} disabled={guardando}>Cancelar</button>
+              <button className={btnPrimary} onClick={confirmarPago} disabled={guardando}>
+                {guardando ? 'Registrando…' : 'Registrar pago'}
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );

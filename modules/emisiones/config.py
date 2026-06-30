@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     environment: str = "development"
     debug: bool = True
     pdf_output_dir: str = "/app/output/pdf"
+    # Recargo por mora aplicado al pagar deuda vencida (cálculo simple, configurable).
+    mora_tasa_mensual_pct: float = 3.0
 
     class Config:
         env_file = ".env"

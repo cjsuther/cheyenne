@@ -31,7 +31,7 @@ from schemas.emision import (
     ParametrosCalculo, AprobacionRequest, EmisionListResponse,
 )
 from schemas.liquidacion import LiquidacionResponse
-from schemas.cuenta_corriente import CuentaCorrienteResponse
+from schemas.cuenta_corriente import CuentaCorrienteResponse, DeudaItem, PagoRequest, PagoResponse
 from schemas.comprobante import ComprobanteResponse
 from schemas.padron import PadronResponse, ContribuyentePadronResponse
 
@@ -194,21 +194,26 @@ def get_comprobantes(
     )
 
 
-@router.get("/cuenta-corriente/by-contribuyente/{id_contribuyente}", response_model=List[CuentaCorrienteResponse])
+@router.get("/cuenta-corriente/by-contribuyente/{id_contribuyente}", response_model=List[DeudaItem])
 def get_deuda_por_contribuyente(
     id_contribuyente: int,
     solo_deuda: bool = Query(True, description="Si es True, solo filas con saldo > 0"),
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """Vista 360: toda la cuenta corriente (deuda) de un contribuyente, en todas las emisiones."""
-    q = db.query(CuentaCorriente).filter(
-        CuentaCorriente.id_contribuyente == id_contribuyente,
-        CuentaCorriente.activo == True,
-    )
-    if solo_deuda:
-        q = q.filter(CuentaCorriente.saldo > 0)
-    return q.order_by(CuentaCorriente.fecha_vencimiento).all()
+    """Vista 360: cuenta corriente del contribuyente con el recargo por mora calculado a hoy."""
+    return CuentaCorrienteService(db).deuda_de_contribuyente(id_contribuyente, solo_deuda)
+
+
+@router.post("/cuenta-corriente/{id_cc}/pagar", response_model=PagoResponse)
+def pagar_concepto(
+    id_cc: int,
+    data: PagoRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Registra un pago contra un concepto de deuda: baja el saldo de la cuenta corriente."""
+    return CuentaCorrienteService(db).registrar_pago(id_cc, data.importe, data.fecha_pago)
 
 
 # --- 16 Workflow Steps ---

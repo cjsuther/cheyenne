@@ -221,6 +221,8 @@ export const emisionesAPI = {
     comprobantes: (id, params) => api.get(`/emisiones/emisiones/${id}/comprobantes`, { params }),
     deudaPorContribuyente: (idContribuyente, params) =>
       api.get(`/emisiones/emisiones/cuenta-corriente/by-contribuyente/${idContribuyente}`, { params }),
+    pagarConcepto: (idCc, data) =>
+      api.post(`/emisiones/emisiones/cuenta-corriente/${idCc}/pagar`, data),
     // Workflow: 16 pasos
     paso1: (id) => api.post(`/emisiones/emisiones/${id}/pasos/1-validar-parametros`),
     paso2: (id, data) => api.post(`/emisiones/emisiones/${id}/pasos/2-cargar-padron`, data),
