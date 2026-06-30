@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTabParam } from '../../hooks/useTabParam';
 import { comunicacionAPI } from '../../services/api';
 import PageHeader from '../../components/common/PageHeader';
 import { CrudTab } from '../../components/common/CrudComponents';
@@ -11,7 +12,7 @@ const TABS = [
 ];
 
 export default function Comunicacion() {
-  const [tab, setTab] = useState('mensajes');
+  const [tab, setTab] = useTabParam('mensajes');
   return (
     <div>
       <PageHeader title="Comunicación" subtitle="Mensajes y notificaciones del sistema" />

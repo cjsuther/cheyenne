@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTabParam } from '../../hooks/useTabParam';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { seguridadAPI } from '../../services/api';
 import PageHeader from '../../components/common/PageHeader';
@@ -6,7 +7,7 @@ import DataTable from '../../components/common/DataTable';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 export default function Seguridad() {
-  const [tab, setTab] = useState('usuarios');
+  const [tab, setTab] = useTabParam('usuarios');
 
   return (
     <div>

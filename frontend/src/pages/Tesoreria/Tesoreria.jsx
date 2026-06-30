@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTabParam } from '../../hooks/useTabParam';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tesoreriaAPI } from '../../services/api';
 import PageHeader from '../../components/common/PageHeader';
@@ -206,7 +207,7 @@ const TABS = [
 ];
 
 export default function Tesoreria() {
-  const [tab, setTab] = useState('cajas');
+  const [tab, setTab] = useTabParam('cajas');
   return (
     <div>
       <PageHeader title="Tesoreria" subtitle="Cajas, recaudacion, recibos, pagos y registros contables" />

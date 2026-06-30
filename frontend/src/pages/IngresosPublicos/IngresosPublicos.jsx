@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTabParam } from '../../hooks/useTabParam';
 import { ingresosPublicosAPI } from '../../services/api';
 import PageHeader from '../../components/common/PageHeader';
 import DataTable from '../../components/common/DataTable';
@@ -83,7 +84,7 @@ const TABS = [
 ];
 
 export default function IngresosPublicos() {
-  const [tab, setTab] = useState('contribuyentes');
+  const [tab, setTab] = useTabParam('contribuyentes');
   return (
     <div>
       <PageHeader title="Ingresos Publicos" subtitle="Contribuyentes, cuentas, emisiones, planes de pago y tributos" />

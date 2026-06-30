@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth';
+import MenuSearch from './MenuSearch';
 import {
   IconDashboard, IconAdministracion, IconSeguridad, IconAuditoria,
   IconIngresos, IconTesoreria, IconEmisiones, IconComunicacion,
@@ -46,6 +47,9 @@ export default function Sidebar({ onNavigate }) {
           </svg>
         </button>
       </div>
+
+      {/* Buscador de secciones */}
+      <MenuSearch onNavigate={onNavigate} />
 
       {/* Navegación */}
       <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">

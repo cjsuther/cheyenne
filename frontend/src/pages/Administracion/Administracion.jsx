@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTabParam } from '../../hooks/useTabParam';
 import { administracionAPI } from '../../services/api';
 import PageHeader from '../../components/common/PageHeader';
 import { CrudTab } from '../../components/common/CrudComponents';
@@ -30,7 +31,7 @@ const TABS = [
 ];
 
 export default function Administracion() {
-  const [tab, setTab] = useState('personasFisicas');
+  const [tab, setTab] = useTabParam('personasFisicas');
   return (
     <div>
       <PageHeader title="Administracion" subtitle="Gestion de personas, expedientes, entidades y datos administrativos" />
