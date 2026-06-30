@@ -8,7 +8,6 @@ import Administracion from './pages/Administracion/Administracion';
 import Auditoria from './pages/Auditoria/Auditoria';
 import IngresosPublicos from './pages/IngresosPublicos/IngresosPublicos';
 import Tesoreria from './pages/Tesoreria/Tesoreria';
-import Contaduria from './pages/Contaduria/Contaduria';
 import Comunicacion from './pages/Comunicacion/Comunicacion';
 import Seguridad from './pages/Seguridad/Seguridad';
 import Wav from './pages/Wav/Wav';
@@ -48,7 +47,6 @@ export default function App() {
             <Route path="auditoria/*" element={<Auditoria />} />
             <Route path="ingresos-publicos/*" element={<IngresosPublicos />} />
             <Route path="tesoreria/*" element={<Tesoreria />} />
-            <Route path="contaduria/*" element={<Contaduria />} />
             <Route path="comunicacion/*" element={<Comunicacion />} />
             <Route path="seguridad/*" element={<Seguridad />} />
             <Route path="wav/*" element={<Wav />} />

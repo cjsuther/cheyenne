@@ -49,6 +49,13 @@ function WorkflowModal({ emision, onClose }) {
   const pasoActual = estadoData?.paso_actual ?? emision.paso_actual ?? 0;
   const pasos = estadoData?.pasos ?? [];
 
+  const { data: liquidaciones } = useQuery({
+    queryKey: ['emisiones-liquidaciones', emision.id, pasoActual],
+    queryFn: () => emisionesAPI.emisiones.liquidaciones(emision.id, { limit: 200 }).then((r) => r.data),
+    enabled: pasoActual >= 8,
+  });
+  const totalAPagar = (liquidaciones ?? []).reduce((s, l) => s + Number(l.a_pagar || 0), 0);
+
   const actionMutation = useMutation({
     mutationFn: ({ apiKey, data }) => {
       const fn = emisionesAPI.emisiones[apiKey];
@@ -57,6 +64,7 @@ function WorkflowModal({ emision, onClose }) {
     onSuccess: () => {
       setActionError(''); setApprovalNote('');
       queryClient.invalidateQueries({ queryKey: ['emisiones-estado', emision.id] });
+      queryClient.invalidateQueries({ queryKey: ['emisiones-liquidaciones', emision.id] });
       queryClient.invalidateQueries({ queryKey: ['emi-emisiones'] });
     },
     onError: (e) => setActionError(e.response?.data?.detail || 'Error al ejecutar accion'),
@@ -104,6 +112,40 @@ function WorkflowModal({ emision, onClose }) {
           )}
 
           {actionError && <p className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded">{actionError}</p>}
+
+          {pasoActual >= 8 && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-sm font-semibold text-gray-700">Liquidaciones ({liquidaciones?.length || 0})</h4>
+                {liquidaciones?.length > 0 && (
+                  <span className="text-sm font-semibold text-primary-700">Total a pagar: ${totalAPagar.toFixed(2)}</span>
+                )}
+              </div>
+              {liquidaciones?.length > 0 ? (
+                <div className="overflow-x-auto max-h-72 overflow-y-auto border border-gray-100 rounded-lg">
+                  <table className="w-full text-xs">
+                    <thead className="bg-gray-50 sticky top-0"><tr className="text-left text-gray-500">
+                      <th className="px-3 py-2">Contrib.</th><th className="px-3 py-2">Objeto</th>
+                      <th className="px-3 py-2">Tasa</th><th className="px-3 py-2">Vto</th>
+                      <th className="px-3 py-2 text-right">a Cancelar</th><th className="px-3 py-2 text-right">a Pagar</th>
+                    </tr></thead>
+                    <tbody>{liquidaciones.map((l) => (
+                      <tr key={l.id} className="border-t border-gray-50">
+                        <td className="px-3 py-1.5">{l.id_contribuyente}</td>
+                        <td className="px-3 py-1.5">{l.id_objeto_imponible}</td>
+                        <td className="px-3 py-1.5">{l.id_tasa}</td>
+                        <td className="px-3 py-1.5">{l.numero_vencimiento}</td>
+                        <td className="px-3 py-1.5 text-right">${Number(l.a_cancelar || 0).toFixed(2)}</td>
+                        <td className="px-3 py-1.5 text-right font-medium">${Number(l.a_pagar || 0).toFixed(2)}</td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-3">Aún no hay liquidaciones. Ejecutá el paso 8 (Generar Liquidaciones).</p>
+              )}
+            </div>
+          )}
 
           {pasos.length > 0 && (
             <div>

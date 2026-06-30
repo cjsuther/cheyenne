@@ -1,17 +1,19 @@
 import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth';
+import {
+  IconDashboard, IconAdministracion, IconSeguridad, IconAuditoria,
+  IconIngresos, IconTesoreria, IconEmisiones, IconComunicacion,
+} from '../common/icons';
 
 const menuItems = [
-  { path: '/', label: 'Dashboard', icon: 'D' },
-  { path: '/administracion', label: 'Administracion', module: 'administracion', icon: 'A' },
-  { path: '/seguridad', label: 'Seguridad', module: 'seguridad', icon: 'S' },
-  { path: '/auditoria', label: 'Auditoria', module: 'auditoria', icon: 'Au' },
-  { path: '/ingresos-publicos', label: 'Ingresos Publicos', module: 'ingresos_publicos', icon: 'IP' },
-  { path: '/tesoreria', label: 'Tesoreria', module: 'tesoreria', icon: 'T' },
-  { path: '/emisiones', label: 'Emisiones', module: 'emisiones', icon: 'E' },
-  { path: '/contaduria', label: 'Contaduria', module: 'contaduria', icon: 'C' },
-  { path: '/comunicacion', label: 'Comunicacion', module: 'comunicacion', icon: 'Co' },
-  { path: '/wav', label: 'WAV', module: 'wav', icon: 'W' },
+  { path: '/', label: 'Dashboard', Icon: IconDashboard },
+  { path: '/administracion', label: 'Administración', module: 'administracion', Icon: IconAdministracion },
+  { path: '/ingresos-publicos', label: 'Ingresos Públicos', module: 'ingresos_publicos', Icon: IconIngresos },
+  { path: '/emisiones', label: 'Emisiones', module: 'emisiones', Icon: IconEmisiones },
+  { path: '/tesoreria', label: 'Tesorería', module: 'tesoreria', Icon: IconTesoreria },
+  { path: '/comunicacion', label: 'Comunicación', module: 'comunicacion', Icon: IconComunicacion },
+  { path: '/auditoria', label: 'Auditoría', module: 'auditoria', Icon: IconAuditoria },
+  { path: '/seguridad', label: 'Seguridad', module: 'seguridad', Icon: IconSeguridad },
 ];
 
 export default function Sidebar({ onNavigate }) {
@@ -25,41 +27,57 @@ export default function Sidebar({ onNavigate }) {
   });
 
   return (
-    <aside className="w-64 h-full bg-gray-900 text-white flex flex-col">
-      <div className="px-4 sm:px-6 py-4 border-b border-gray-700 flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold tracking-wide">Cheyenne</h2>
-          <p className="text-xs text-gray-400 mt-1">Sistema de Administracion</p>
+    <aside className="w-64 h-full bg-gradient-to-b from-slate-900 to-slate-800 text-slate-100 flex flex-col">
+      {/* Marca */}
+      <div className="px-5 py-5 border-b border-white/10 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-lg shadow-primary-900/40">
+            <IconIngresos className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold tracking-tight leading-none">Cheyenne</h2>
+            <p className="text-[11px] text-slate-400 mt-1">Ingresos Públicos</p>
+          </div>
         </div>
-        {/* Close button - mobile only */}
-        <button onClick={onNavigate} className="lg:hidden p-1 text-gray-400 hover:text-white">
+        {/* Cerrar - solo mobile */}
+        <button onClick={onNavigate} className="lg:hidden p-1 text-slate-400 hover:text-white">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
-      <nav className="flex-1 py-4 overflow-y-auto">
-        {visibleItems.map((item) => (
+
+      {/* Navegación */}
+      <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
+        {visibleItems.map(({ path, label, Icon }) => (
           <NavLink
-            key={item.path}
-            to={item.path}
-            end={item.path === '/'}
+            key={path}
+            to={path}
+            end={path === '/'}
             onClick={onNavigate}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 sm:px-6 py-3 text-sm transition-colors ${
+              `group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 isActive
-                  ? 'bg-primary-700 text-white border-r-4 border-primary-400'
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  ? 'bg-primary-600 text-white shadow-md shadow-primary-900/30'
+                  : 'text-slate-300 hover:bg-white/5 hover:text-white'
               }`
             }
           >
-            <span className="w-8 h-8 rounded-lg bg-gray-700 flex items-center justify-center text-xs font-bold shrink-0">
-              {item.icon}
-            </span>
-            <span className="truncate">{item.label}</span>
+            {({ isActive }) => (
+              <>
+                <Icon
+                  className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-primary-300'}`}
+                />
+                <span className="truncate">{label}</span>
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
+
+      <div className="px-5 py-3 border-t border-white/10 text-[11px] text-slate-500">
+        v1.0 · {user?.codigo || 'usuario'}
+      </div>
     </aside>
   );
 }

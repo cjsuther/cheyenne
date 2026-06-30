@@ -1,12 +1,33 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ingresosPublicosAPI } from '../../services/api';
 import PageHeader from '../../components/common/PageHeader';
-import { CrudTab } from '../../components/common/CrudComponents';
+import DataTable from '../../components/common/DataTable';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { CrudTab, inputClass, btnPrimary, btnSecondary, Field } from '../../components/common/CrudComponents';
 
 // ── Helpers ─────────────────────────────────────────────────────────
 const listaQuery = (tipo) => () => ingresosPublicosAPI.listas.list({ tipo }).then((r) => r.data);
 const allQuery = (apiFn) => () => apiFn.list({ skip: 0, limit: 100 }).then((r) => r.data);
 const fmtMoney = (v) => `$${Number(v || 0).toFixed(2)}`;
+
+// Inmuebles como opciones de combo (con label compuesto de nomenclatura)
+const inmuebleOptions = () => ingresosPublicosAPI.inmuebles.list({ skip: 0, limit: 200 }).then((r) =>
+  r.data.map((i) => ({ ...i, _label: `#${i.id} · ${[i.circuito, i.sector, i.fraccion, i.parcela].filter(Boolean).join('-') || 's/nomenclatura'}` }))
+);
+const inmuebleSelectField = (extra = {}) => ({
+  key: 'id_inmueble', label: 'Inmueble', type: 'remote_select', required: true,
+  queryKey: 'sel-ip-inmuebles', queryFn: inmuebleOptions, optionValue: 'id', optionLabel: '_label', ...extra,
+});
+
+// Comercios como opciones de combo
+const comercioOptions = () => ingresosPublicosAPI.comercios.list({ skip: 0, limit: 200 }).then((r) =>
+  r.data.map((c) => ({ ...c, _label: `#${c.id} · ${c.nombre_fantasia || c.cuit || 's/nombre'}` }))
+);
+const comercioSelectField = (extra = {}) => ({
+  key: 'id_comercio', label: 'Comercio', type: 'remote_select', required: true,
+  queryKey: 'sel-ip-comercios', queryFn: comercioOptions, optionValue: 'id', optionLabel: '_label', ...extra,
+});
 
 // Contribuyentes con label compuesto (para combos simples)
 const contribuyenteQuery = () => ingresosPublicosAPI.contribuyentes.list({ skip: 0, limit: 100 }).then((r) =>
@@ -40,11 +61,19 @@ const TABS = [
   { key: 'contribuyentes', label: 'Contribuyentes' },
   { key: 'cuentas', label: 'Cuentas' },
   { key: 'comercios', label: 'Comercios' },
+  { key: 'comercioRubros', label: 'Com. Rubros' },
+  { key: 'comercioDdjj', label: 'Com. DD.JJ.' },
   { key: 'inmuebles', label: 'Inmuebles' },
+  { key: 'valuaciones', label: 'Valuaciones' },
+  { key: 'superficies', label: 'Superficies' },
+  { key: 'frentes', label: 'Frentes' },
   { key: 'vehiculos', label: 'Vehiculos' },
+  { key: 'vehiculoVal', label: 'Val. Vehic.' },
   { key: 'emisiones', label: 'Emisiones' },
   { key: 'emisionDef', label: 'Def. Emisiones' },
   { key: 'planesPago', label: 'Planes Pago' },
+  { key: 'simularPlan', label: 'Simular Plan' },
+  { key: 'cuotasPlan', label: 'Cuotas Plan' },
   { key: 'planPagoDef', label: 'Def. Planes' },
   { key: 'certificados', label: 'Certificados' },
   { key: 'multas', label: 'Multas' },
@@ -68,11 +97,19 @@ export default function IngresosPublicos() {
       {tab === 'contribuyentes' && <ContribuyentesTab />}
       {tab === 'cuentas' && <CuentasTab />}
       {tab === 'comercios' && <ComerciosTab />}
+      {tab === 'comercioRubros' && <ComercioRubrosTab />}
+      {tab === 'comercioDdjj' && <ComercioDdjjTab />}
       {tab === 'inmuebles' && <InmueblesTab />}
+      {tab === 'valuaciones' && <ValuacionesTab />}
+      {tab === 'superficies' && <SuperficiesTab />}
+      {tab === 'frentes' && <FrentesTab />}
       {tab === 'vehiculos' && <VehiculosTab />}
+      {tab === 'vehiculoVal' && <VehiculoValuacionesTab />}
       {tab === 'emisiones' && <EmisionesTab />}
       {tab === 'emisionDef' && <EmisionDefinicionesTab />}
       {tab === 'planesPago' && <PlanesPagoTab />}
+      {tab === 'simularPlan' && <SimularPlanTab />}
+      {tab === 'cuotasPlan' && <CuotasPlanTab />}
       {tab === 'planPagoDef' && <PlanPagoDefinicionesTab />}
       {tab === 'certificados' && <CertificadosTab />}
       {tab === 'multas' && <MultasTab />}
@@ -345,4 +382,240 @@ function ListasTab() {
     columns={[ { key: 'id', label: 'ID' }, { key: 'codigo', label: 'Codigo' }, { key: 'tipo', label: 'Tipo' }, { key: 'nombre', label: 'Nombre' }, { key: 'orden', label: 'Orden' } ]}
     formFields={[ { key: 'codigo', label: 'Codigo', required: true }, { key: 'tipo', label: 'Tipo', required: true }, { key: 'nombre', label: 'Nombre', required: true }, { key: 'orden', label: 'Orden', type: 'int', defaultValue: 0 } ]}
   />;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Base imponible de inmuebles (alimenta el motor de cálculo)
+function ValuacionesTab() {
+  return <CrudTab queryKey="ip-inm-valuaciones" apiFns={ingresosPublicosAPI.inmuebleValuaciones} entityName="Valuacion" wide
+    columns={[
+      { key: 'id', label: 'ID' }, { key: 'id_inmueble', label: 'Inmueble' },
+      { key: 'id_tipo_valuacion', label: 'Tipo' }, { key: 'ejercicio', label: 'Ejercicio' },
+      { key: 'valor', label: 'Valor', render: fmtMoney }, { key: 'fecha_vigencia', label: 'Vigencia' },
+      { key: 'activo', label: 'Estado', render: (v) => v ? 'Activo' : 'Inactivo' },
+    ]}
+    formFields={[
+      inmuebleSelectField(),
+      { key: 'id_tipo_valuacion', label: 'Tipo de Valuación', type: 'int' },
+      { key: 'ejercicio', label: 'Ejercicio', type: 'int' },
+      { key: 'valor', label: 'Valor', type: 'decimal', required: true },
+      { key: 'fecha_vigencia', label: 'Fecha Vigencia', type: 'date' },
+    ]}
+  />;
+}
+
+function SuperficiesTab() {
+  return <CrudTab queryKey="ip-inm-superficies" apiFns={ingresosPublicosAPI.inmuebleSuperficies} entityName="Superficie" wide
+    columns={[
+      { key: 'id', label: 'ID' }, { key: 'id_inmueble', label: 'Inmueble' },
+      { key: 'id_tipo_superficie', label: 'Tipo' }, { key: 'clase', label: 'Clase' },
+      { key: 'superficie', label: 'Superficie (m²)' }, { key: 'fecha_vigencia', label: 'Vigencia' },
+    ]}
+    formFields={[
+      inmuebleSelectField(),
+      { key: 'id_tipo_superficie', label: 'Tipo de Superficie', type: 'int' },
+      { key: 'clase', label: 'Clase', type: 'int' },
+      { key: 'superficie', label: 'Superficie (m²)', type: 'decimal', required: true },
+      { key: 'fecha_vigencia', label: 'Fecha Vigencia', type: 'date' },
+    ]}
+  />;
+}
+
+function FrentesTab() {
+  return <CrudTab queryKey="ip-inm-frentes" apiFns={ingresosPublicosAPI.inmuebleFrentes} entityName="Frente" wide
+    columns={[
+      { key: 'id', label: 'ID' }, { key: 'id_inmueble', label: 'Inmueble' },
+      { key: 'id_calle', label: 'Calle' }, { key: 'numero', label: 'Número' },
+      { key: 'metros', label: 'Metros' }, { key: 'ochava', label: 'Ochava', render: (v) => v ? 'Sí' : 'No' },
+    ]}
+    formFields={[
+      inmuebleSelectField(),
+      { key: 'id_calle', label: 'ID Calle', type: 'int' },
+      { key: 'numero', label: 'Número' },
+      { key: 'metros', label: 'Metros de frente', type: 'decimal', required: true },
+      { key: 'ochava', label: 'Ochava (esquina)', type: 'boolean' },
+    ]}
+  />;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Simulador de planes de pago (sistema francés)
+function Stat({ label, value, highlight }) {
+  return (
+    <div className={`rounded-xl border p-4 ${highlight ? 'bg-primary-50 border-primary-100' : 'bg-white border-gray-100'}`}>
+      <p className="text-xs text-gray-500">{label}</p>
+      <p className={`text-lg font-bold mt-1 ${highlight ? 'text-primary-700' : 'text-gray-800'}`}>{value}</p>
+    </div>
+  );
+}
+
+function SimularPlanTab() {
+  const [form, setForm] = useState({ monto_total: '', cantidad_cuotas: 12, tasa_interes_pct: 0, anticipo: 0 });
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setLoading(true); setError(null);
+    try {
+      const { data } = await ingresosPublicosAPI.planesPago.simular({
+        monto_total: Number(form.monto_total || 0),
+        cantidad_cuotas: Number(form.cantidad_cuotas || 1),
+        tasa_interes_pct: Number(form.tasa_interes_pct || 0),
+        anticipo: Number(form.anticipo || 0),
+      });
+      setResult(data);
+    } catch (err) {
+      setError(err?.response?.data?.detail || 'No se pudo simular el plan');
+      setResult(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cuotaCols = [
+    { key: 'numero', label: 'Cuota' },
+    { key: 'capital', label: 'Capital', render: fmtMoney },
+    { key: 'interes', label: 'Interés', render: fmtMoney },
+    { key: 'importe', label: 'Importe', render: fmtMoney },
+    { key: 'saldo', label: 'Saldo', render: fmtMoney },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <form onSubmit={submit} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+        <Field label="Monto total"><input className={inputClass} type="number" step="0.01" value={form.monto_total} onChange={set('monto_total')} required /></Field>
+        <Field label="Cantidad de cuotas"><input className={inputClass} type="number" min="1" value={form.cantidad_cuotas} onChange={set('cantidad_cuotas')} required /></Field>
+        <Field label="Interés mensual (%)"><input className={inputClass} type="number" step="0.0001" value={form.tasa_interes_pct} onChange={set('tasa_interes_pct')} /></Field>
+        <Field label="Anticipo"><input className={inputClass} type="number" step="0.01" value={form.anticipo} onChange={set('anticipo')} /></Field>
+        <button className={btnPrimary} type="submit" disabled={loading}>{loading ? 'Calculando...' : 'Simular'}</button>
+      </form>
+
+      {error && <div className="bg-red-50 text-red-700 text-sm rounded-lg px-4 py-3">{error}</div>}
+
+      {result && (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Stat label="Anticipo" value={fmtMoney(result.anticipo)} />
+            <Stat label="Financiado" value={fmtMoney(result.monto_financiado)} />
+            <Stat label="Total intereses" value={fmtMoney(result.total_intereses)} />
+            <Stat label="Total a pagar" value={fmtMoney(result.total_a_pagar)} highlight />
+          </div>
+          <DataTable columns={cuotaCols} data={result.cuotas} />
+        </>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Base imponible de comercio
+function ComercioRubrosTab() {
+  return <CrudTab queryKey="ip-com-rubros" apiFns={ingresosPublicosAPI.comercioRubros} entityName="Rubro" wide
+    columns={[
+      { key: 'id', label: 'ID' }, { key: 'id_comercio', label: 'Comercio' },
+      { key: 'id_rubro', label: 'Rubro' }, { key: 'principal', label: 'Principal', render: (v) => v ? 'Sí' : 'No' },
+      { key: 'activo', label: 'Estado', render: (v) => v ? 'Activo' : 'Inactivo' },
+    ]}
+    formFields={[
+      comercioSelectField(),
+      { key: 'id_rubro', label: 'Rubro', type: 'int', required: true },
+      { key: 'principal', label: 'Principal', type: 'boolean' },
+    ]}
+  />;
+}
+
+function ComercioDdjjTab() {
+  return <CrudTab queryKey="ip-com-ddjj" apiFns={ingresosPublicosAPI.comercioDdjj} entityName="DD.JJ." wide
+    columns={[
+      { key: 'id', label: 'ID' }, { key: 'id_comercio', label: 'Comercio' },
+      { key: 'periodo', label: 'Período' }, { key: 'mes', label: 'Mes' },
+      { key: 'ingresos_declarados', label: 'Ingresos', render: fmtMoney },
+      { key: 'fecha_presentacion', label: 'Presentación' },
+    ]}
+    formFields={[
+      comercioSelectField(),
+      { key: 'id_rubro', label: 'Rubro', type: 'int' },
+      { key: 'periodo', label: 'Período', type: 'int', required: true },
+      { key: 'mes', label: 'Mes', type: 'int' },
+      { key: 'ingresos_declarados', label: 'Ingresos declarados', type: 'decimal', required: true },
+      { key: 'fecha_presentacion', label: 'Fecha Presentación', type: 'date' },
+    ]}
+  />;
+}
+
+// Catálogo de valuación vehicular (DNRPA)
+function VehiculoValuacionesTab() {
+  return <CrudTab queryKey="ip-veh-val" apiFns={ingresosPublicosAPI.vehiculoValuaciones} entityName="Valuacion Vehic."
+    columns={[
+      { key: 'id', label: 'ID' }, { key: 'codigo_modelo', label: 'Cód. Modelo' },
+      { key: 'anio', label: 'Año' }, { key: 'ejercicio', label: 'Ejercicio' },
+      { key: 'valor', label: 'Valor', render: fmtMoney },
+      { key: 'activo', label: 'Estado', render: (v) => v ? 'Activo' : 'Inactivo' },
+    ]}
+    formFields={[
+      { key: 'codigo_modelo', label: 'Código de Modelo', required: true },
+      { key: 'anio', label: 'Año', type: 'int', required: true },
+      { key: 'ejercicio', label: 'Ejercicio', type: 'int' },
+      { key: 'valor', label: 'Valor', type: 'decimal', required: true },
+    ]}
+  />;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Cuotas de un plan existente (generar + ver)
+function CuotasPlanTab() {
+  const [planId, setPlanId] = useState('');
+  const [msg, setMsg] = useState(null);
+  const { data: planes } = useQuery({
+    queryKey: ['ip-planes-sel'],
+    queryFn: () => ingresosPublicosAPI.planesPago.list({ skip: 0, limit: 200 }).then((r) => r.data),
+  });
+  const { data: cuotas, isFetching, refetch } = useQuery({
+    queryKey: ['ip-plan-cuotas', planId],
+    queryFn: () => ingresosPublicosAPI.planesPago.cuotas(planId).then((r) => r.data),
+    enabled: !!planId,
+  });
+
+  const generar = async () => {
+    setMsg(null);
+    try {
+      const { data } = await ingresosPublicosAPI.planesPago.generarCuotas(planId);
+      setMsg(`✓ ${data.cuotas_generadas} cuotas generadas · total a pagar ${fmtMoney(data.total_a_pagar)}`);
+      refetch();
+    } catch (e) {
+      setMsg(e?.response?.data?.detail || 'No se pudieron generar las cuotas');
+    }
+  };
+
+  const cols = [
+    { key: 'numero_cuota', label: 'Cuota' },
+    { key: 'capital', label: 'Capital', render: fmtMoney },
+    { key: 'interes', label: 'Interés', render: fmtMoney },
+    { key: 'importe', label: 'Importe', render: fmtMoney },
+    { key: 'fecha_vencimiento', label: 'Vencimiento' },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col sm:flex-row sm:items-end gap-4">
+        <div className="flex-1">
+          <Field label="Plan de pago">
+            <select className={inputClass} value={planId} onChange={(e) => { setPlanId(e.target.value); setMsg(null); }}>
+              <option value="">Seleccionar plan...</option>
+              {planes?.map((p) => (
+                <option key={p.id} value={p.id}>#{p.id} · {p.cantidad_cuotas} cuotas · {fmtMoney(p.importe_total)}</option>
+              ))}
+            </select>
+          </Field>
+        </div>
+        <button className={btnPrimary} disabled={!planId} onClick={generar}>Generar cuotas</button>
+      </div>
+      {msg && <div className="bg-primary-50 text-primary-700 text-sm rounded-lg px-4 py-3">{msg}</div>}
+      {planId && (isFetching ? <LoadingSpinner /> : <DataTable columns={cols} data={cuotas} />)}
+    </div>
+  );
 }

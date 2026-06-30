@@ -111,6 +111,7 @@ export const auditoriaAPI = {
 
 export const comunicacionAPI = {
   mensajes: crud('/comunicacion/mensajes'),
+  listas: crud('/comunicacion/listas'),
 };
 
 export const ingresosPublicosAPI = {
@@ -125,8 +126,23 @@ export const ingresosPublicosAPI = {
       api.get(`/ingresos-publicos/cuentas/by-contribuyente/${id}`),
   },
   inmuebles: crud('/ingresos-publicos/inmuebles'),
+  inmuebleValuaciones: {
+    ...crud('/ingresos-publicos/inmueble-valuaciones'),
+    byInmueble: (id) => api.get(`/ingresos-publicos/inmueble-valuaciones/by-inmueble/${id}`),
+  },
+  inmuebleSuperficies: {
+    ...crud('/ingresos-publicos/inmueble-superficies'),
+    byInmueble: (id) => api.get(`/ingresos-publicos/inmueble-superficies/by-inmueble/${id}`),
+  },
+  inmuebleFrentes: {
+    ...crud('/ingresos-publicos/inmueble-frentes'),
+    byInmueble: (id) => api.get(`/ingresos-publicos/inmueble-frentes/by-inmueble/${id}`),
+  },
   vehiculos: crud('/ingresos-publicos/vehiculos'),
+  vehiculoValuaciones: crud('/ingresos-publicos/vehiculo-valuaciones'),
   comercios: crud('/ingresos-publicos/comercios'),
+  comercioRubros: crud('/ingresos-publicos/comercio-rubros'),
+  comercioDdjj: crud('/ingresos-publicos/comercio-ddjj'),
   emisiones: {
     ...crud('/ingresos-publicos/emisiones'),
     byCuenta: (id) => api.get(`/ingresos-publicos/emisiones/by-cuenta/${id}`),
@@ -136,6 +152,9 @@ export const ingresosPublicosAPI = {
     ...crud('/ingresos-publicos/planes-pago'),
     byCuenta: (id) => api.get(`/ingresos-publicos/planes-pago/by-cuenta/${id}`),
     byContribuyente: (id) => api.get(`/ingresos-publicos/planes-pago/by-contribuyente/${id}`),
+    simular: (data) => api.post('/ingresos-publicos/planes-pago/simular', data),
+    generarCuotas: (id) => api.post(`/ingresos-publicos/planes-pago/${id}/generar-cuotas`),
+    cuotas: (id) => api.get(`/ingresos-publicos/planes-pago/${id}/cuotas`),
   },
   planPagoDefiniciones: crud('/ingresos-publicos/planes-pago/definiciones'),
   listas: crud('/ingresos-publicos/listas'),
@@ -212,11 +231,5 @@ export const emisionesAPI = {
     paso14: (id) => api.post(`/emisiones/emisiones/${id}/pasos/14-publicar-deuda`),
     paso15: (id) => api.post(`/emisiones/emisiones/${id}/pasos/15-solicitar-aprobacion`),
     paso16: (id, data) => api.post(`/emisiones/emisiones/${id}/pasos/16-aprobar-emision`, data),
-  },
-};
-
-export const contaduriaAPI = {
-  listas: {
-    list: (params) => api.get('/contaduria/listas', { params }),
   },
 };
