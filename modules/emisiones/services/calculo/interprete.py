@@ -51,6 +51,8 @@ class Contexto:
     recargos_desc: List[Dict[str, Any]] = field(default_factory=list)
     # para #SUMA_FORMU: clave "tasa-subtasa-fort" -> {1..8: valor}
     formulas_calculadas: Dict[str, Dict[int, Decimal]] = field(default_factory=dict)
+    # para #SUMA_ACUMU: clave "tasa-subtasa-fort-acum" -> valor
+    acumuladores_calculados: Dict[str, Decimal] = field(default_factory=dict)
 
     def var(self, nombre: str) -> Any:
         key = nombre.upper()
@@ -423,12 +425,27 @@ def _f_i_recargdescu(args, ctx):
     return tot
 
 
+def _claves(lista: str) -> List[str]:
+    # la lista puede traer una o varias claves separadas por coma/;
+    return [c.strip() for c in str(lista).replace(";", ",").split(",") if c.strip()]
+
+
 def _f_suma_formu(args, ctx):
-    idx = int(_num(_eval(args[0], ctx))); lista = str(_eval(args[1], ctx))
+    idx = int(_num(_eval(args[0], ctx)))
     tot = Decimal(0)
-    for clave, vals in ctx.formulas_calculadas.items():
-        if clave in lista:
+    for clave in _claves(_eval(args[1], ctx)):
+        vals = ctx.formulas_calculadas.get(clave)
+        if vals:
             tot += _num(vals.get(idx, 0))
+    return tot
+
+
+def _f_suma_acumu(args, ctx):
+    """Suma el valor de los acumuladores indicados (clave "tasa-sub-fort-acum"),
+    ya calculados durante la liquidación de la cuenta."""
+    tot = Decimal(0)
+    for clave in _claves(_eval(args[0], ctx)):
+        tot += _num(ctx.acumuladores_calculados.get(clave, 0))
     return tot
 
 
@@ -439,6 +456,7 @@ FUNCIONES = {
     "#ENTREFECHAS": _f_entrefechas, "#SUMA_AAMM": _f_suma_aamm, "#SUMA_DIAS": _f_suma_dias,
     "#I_VALUACION": _f_i_valuacion, "#I_SUPERFICIE": _f_i_superficie,
     "#I_RECARGDESCU": _f_i_recargdescu, "#SUMA_FORMU": _f_suma_formu,
+    "#SUMA_ACUMU": _f_suma_acumu,
 }
 
 

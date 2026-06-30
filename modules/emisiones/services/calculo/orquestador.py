@@ -11,7 +11,7 @@ La usa el `calculo_service` (capa de BD), que sólo se ocupa de leer/escribir fi
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from .interprete import Contexto
 from .liquidador import Liquidador
@@ -48,6 +48,7 @@ def liquidar_padron(
     contribuyentes: List[Dict[str, Any]],
     periodo: int,
     mes: int,
+    tasas_emitir: Optional[set] = None,
 ) -> List[Dict[str, Any]]:
     """Liquida cada contribuyente del padrón.
 
@@ -64,6 +65,9 @@ def liquidar_padron(
         resultados = liq.liquidar(formulas, ctx)
         lineas: List[Dict[str, Any]] = []
         for r in resultados:
+            # las tasas referenciadas (#SUMA_*) se calculan pero no se emiten como liquidación
+            if tasas_emitir is not None and r.tasa not in tasas_emitir:
+                continue
             for cuota in r.cuotas:
                 lineas.append({
                     "tasa": r.tasa,

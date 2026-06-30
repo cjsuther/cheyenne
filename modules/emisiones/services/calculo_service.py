@@ -7,6 +7,7 @@ persiste las `Liquidacion` con sus 4 vencimientos `a_cancelar`/`a_pagar`.
 La lógica de cálculo es pura y está en `services.calculo.*` (testeada aparte); acá sólo se lee
 y escribe la base.
 """
+import re
 from decimal import Decimal
 from typing import Any, Dict, List
 
@@ -45,29 +46,62 @@ class CalculoService:
             .all()
         )
 
+    def _formula_a_dict(self, f) -> Dict[str, Any]:
+        acums = (
+            self.db.query(FormulaTasaAcumulador)
+            .filter(
+                FormulaTasaAcumulador.ttas_tasa == f.ttas_tasa,
+                FormulaTasaAcumulador.ttas_subtasa == f.ttas_subtasa,
+                FormulaTasaAcumulador.fort_numero == f.fort_numero,
+                FormulaTasaAcumulador.activo == True,
+            )
+            .all()
+        )
+        return formula_a_dict(f, acums)
+
+    @staticmethod
+    def _tasas_referenciadas(formulas: List[Dict[str, Any]]) -> set:
+        """Tasas/sub-tasas referenciadas por #SUMA_ACUMU / #SUMA_FORMU (clave "tasa-sub-...")."""
+        pares = set()
+        campos = ("fort_Condicion", "fort_aCancelar1", "fort_aPagar1", "fort_aCancelar2",
+                  "fort_aPagar2", "fort_aCancelar3", "fort_aPagar3", "fort_aCancelar4", "fort_aPagar4")
+        for f in formulas:
+            txt = " ".join(str(f.get(k) or "") for k in campos)
+            txt += " " + " ".join(str(a.get("ftac_Importe") or "") for a in f.get("acumuladores", []))
+            for t, s in re.findall(r'"(\d+)-(\d+)-', txt):
+                pares.add((int(t), int(s)))
+        return pares
+
     def _load_formulas(self, tipo_tributo: str, ttas_tasa=None, ttas_subtasa: int = 0) -> List[Dict[str, Any]]:
-        q = self.db.query(FormulaTasa).filter(FormulaTasa.activo == True)
-        if ttas_tasa is not None:
-            # catálogo real: se selecciona por tasa/sub-tasa
-            q = q.filter(FormulaTasa.ttas_tasa == ttas_tasa, FormulaTasa.ttas_subtasa == ttas_subtasa)
-        else:
+        if ttas_tasa is None:
             # compat: fórmulas demo cargadas por tipo de tributo
-            q = q.filter(FormulaTasa.tipo_tributo == tipo_tributo)
-        rows = q.all()
-        out = []
-        for f in rows:
-            acums = (
-                self.db.query(FormulaTasaAcumulador)
-                .filter(
-                    FormulaTasaAcumulador.ttas_tasa == f.ttas_tasa,
-                    FormulaTasaAcumulador.ttas_subtasa == f.ttas_subtasa,
-                    FormulaTasaAcumulador.fort_numero == f.fort_numero,
-                    FormulaTasaAcumulador.activo == True,
-                )
+            rows = (
+                self.db.query(FormulaTasa)
+                .filter(FormulaTasa.tipo_tributo == tipo_tributo, FormulaTasa.activo == True)
                 .all()
             )
-            out.append(formula_a_dict(f, acums))
-        return out
+            return [self._formula_a_dict(f) for f in rows]
+
+        # catálogo real: cierre transitivo de las tasas referenciadas por #SUMA_ACUMU/#SUMA_FORMU
+        # (se calculan para resolver las referencias, pero solo se emite la tasa objetivo)
+        cargadas: set = set()
+        pendientes = {(int(ttas_tasa), int(ttas_subtasa))}
+        todas: List[Dict[str, Any]] = []
+        for _ in range(15):  # límite de seguridad ante ciclos
+            nuevas = pendientes - cargadas
+            if not nuevas:
+                break
+            for (t, s) in nuevas:
+                rows = (
+                    self.db.query(FormulaTasa)
+                    .filter(FormulaTasa.ttas_tasa == t, FormulaTasa.ttas_subtasa == s, FormulaTasa.activo == True)
+                    .all()
+                )
+                fs = [self._formula_a_dict(f) for f in rows]
+                todas.extend(fs)
+                cargadas.add((t, s))
+                pendientes |= self._tasas_referenciadas(fs)
+        return todas
 
     @staticmethod
     def _periodo_mes(emision: Emision) -> tuple[int, int]:
@@ -119,7 +153,9 @@ class CalculoService:
             for c in contribs
         ]
 
-        resultado = liquidar_padron(formulas, entrada, periodo, mes)
+        # con catálogo real: solo se emite la tasa de la emisión (las referenciadas se calculan)
+        tasas_emitir = {int(emision.ttas_tasa)} if emision.ttas_tasa is not None else None
+        resultado = liquidar_padron(formulas, entrada, periodo, mes, tasas_emitir)
 
         creadas = 0
         monto_total = Decimal("0.00")

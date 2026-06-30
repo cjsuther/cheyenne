@@ -54,26 +54,40 @@ class Liquidador:
     """Calcula las líneas de liquidación de una cuenta para un conjunto de fórmulas."""
 
     def liquidar(self, formulas: List[Dict[str, Any]], ctx: Contexto) -> List[LiquidacionFormula]:
+        # contexto compartido por cuenta: los stores cross-fórmula arrancan vacíos
+        ctx.acumuladores_calculados.clear()
+        ctx.formulas_calculadas.clear()
         resultado: List[LiquidacionFormula] = []
-        for f in sorted(formulas, key=lambda x: x.get("fort_orden", 0)):
+        # orden de cálculo: tasa, sub-tasa, fort_orden (las dependencias #SUMA_* apuntan
+        # a fórmulas/acumuladores ya calculados antes en este orden)
+        for f in sorted(formulas, key=lambda x: (
+            int(x.get("ttas_Tasa", 0)), int(x.get("ttas_SubTasa", 0)), x.get("fort_orden", 0)
+        )):
             resultado.append(self._liquidar_formula(f, ctx))
         return resultado
 
     def _liquidar_formula(self, f: Dict[str, Any], ctx: Contexto) -> LiquidacionFormula:
-        # 1. resetear acumuladores
+        tasa = int(f.get("ttas_Tasa", 0)); sub = int(f.get("ttas_SubTasa", 0)); fort = int(f.get("fort_Numero", 0))
+
+        # 1. resetear acumuladores y resultados locales (@K_ACUMULA, @K_ACANCELAR, @K_APAGAR)
         for v in _ACUM_VARS:
             ctx.variables[v] = Decimal("0")
+        for n in range(1, 5):
+            ctx.variables[f"K_ACANCELAR{n}"] = Decimal("0")
+            ctx.variables[f"K_APAGAR{n}"] = Decimal("0")
 
-        # 2. evaluar acumuladores y guardarlos como @K_ACUMULA{nn}
+        # 2. evaluar acumuladores -> @K_ACUMULA{nn} (local) + store global por clave
         for ac in f.get("acumuladores", []):
             numero = int(ac["ftac_Numero"])
             valor = evaluar(ac["ftac_Importe"], ctx)
             ctx.variables[f"K_ACUMULA{numero:02d}"] = valor
+            ctx.acumuladores_calculados[f"{tasa}-{sub}-{fort}-{numero}"] = valor
 
         # 3. condición (vacía => aplica)
         aplica = evaluar_logica(f.get("fort_Condicion", "") or "", ctx)
 
         cuotas: List[CuotaVencimiento] = []
+        vals: Dict[int, Decimal] = {}
         if aplica:
             for n in range(1, 5):
                 ac_txt = (f.get(f"fort_aCancelar{n}") or "").strip()
@@ -81,13 +95,15 @@ class Liquidador:
                 if not ac_txt and not ap_txt:
                     continue
                 a_cancelar = _fmt2(evaluar(ac_txt, ctx)) if ac_txt else Decimal("0.00")
+                # el aPagar del vencimiento puede referenciar el aCancelar recién calculado
+                ctx.variables[f"K_ACANCELAR{n}"] = a_cancelar
                 a_pagar = _fmt2(evaluar(ap_txt, ctx)) if ap_txt else Decimal("0.00")
+                ctx.variables[f"K_APAGAR{n}"] = a_pagar
                 cuotas.append(CuotaVencimiento(numero=n, a_cancelar=a_cancelar, a_pagar=a_pagar))
+                vals[n] = a_cancelar          # idx 1..4 = aCancelar
+                vals[n + 4] = a_pagar         # idx 5..8 = aPagar
 
-        return LiquidacionFormula(
-            tasa=int(f.get("ttas_Tasa", 0)),
-            subtasa=int(f.get("ttas_SubTasa", 0)),
-            formula=int(f.get("fort_Numero", 0)),
-            aplica=aplica,
-            cuotas=cuotas,
-        )
+        # store de resultados de la fórmula para #SUMA_FORMU
+        ctx.formulas_calculadas[f"{tasa}-{sub}-{fort}"] = vals
+
+        return LiquidacionFormula(tasa=tasa, subtasa=sub, formula=fort, aplica=aplica, cuotas=cuotas)
