@@ -14,6 +14,7 @@ from services.formula_tasa_service import FormulaTasaService
 from schemas.formula_tasa import (
     FormulaTasaCreate, FormulaTasaUpdate, FormulaTasaResponse,
     ProbarFormulaRequest, ProbarFormulaResponse,
+    ProbarCatalogoRequest, ProbarCatalogoResponse,
 )
 
 settings = get_settings()
@@ -48,6 +49,17 @@ def probar_formula(
 @router.get("/{id}", response_model=FormulaTasaResponse)
 def get_formula(id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     return FormulaTasaService(db).find_by_id(id)
+
+
+@router.post("/{id}/probar-catalogo", response_model=ProbarCatalogoResponse)
+def probar_formula_catalogo(
+    id: int,
+    data: ProbarCatalogoRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Evalúa una fórmula del catálogo (con sus acumuladores) contra datos de ejemplo."""
+    return FormulaTasaService(db).probar_catalogo(id, data.periodo, data.mes, data.datos_calculo)
 
 
 @router.post("", response_model=FormulaTasaResponse, status_code=201)

@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import date
 
 from pydantic import BaseModel
@@ -70,4 +70,29 @@ class ProbarFormulaRequest(BaseModel):
 class ProbarFormulaResponse(BaseModel):
     aplica: bool
     resultado: Optional[float] = None
+    error: Optional[str] = None
+
+
+class ProbarCatalogoRequest(BaseModel):
+    periodo: int = 2026
+    mes: int = 12
+    datos_calculo: Dict[str, Any] = {}
+
+
+class AcumuladorValor(BaseModel):
+    numero: int
+    descripcion: Optional[str] = None
+    valor: float
+
+
+class VencimientoValor(BaseModel):
+    vencimiento: int
+    a_cancelar: float
+    a_pagar: float
+
+
+class ProbarCatalogoResponse(BaseModel):
+    aplica: bool
+    acumuladores: List[AcumuladorValor] = []
+    vencimientos: List[VencimientoValor] = []
     error: Optional[str] = None

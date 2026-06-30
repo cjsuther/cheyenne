@@ -241,6 +241,7 @@ export const emisionesAPI = {
   formulas: {
     ...crud('/emisiones/formulas'),
     probar: (data) => api.post('/emisiones/formulas/probar', data),
+    probarCatalogo: (id, data) => api.post(`/emisiones/formulas/${id}/probar-catalogo`, data),
   },
   // Vista 360 — operaciones a nivel contribuyente
   deudaPorContribuyente: (idContribuyente, params) =>

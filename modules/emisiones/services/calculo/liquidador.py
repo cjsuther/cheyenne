@@ -22,7 +22,7 @@ from typing import Any, Dict, List
 
 from .interprete import Contexto, evaluar, evaluar_logica
 
-_ACUM_VARS = [f"K_ACUMULA{n:02d}" for n in range(1, 21)]
+_ACUM_VARS = [f"K_ACUMULA{n:02d}" for n in range(1, 51)]
 _Q2 = Decimal("0.01")
 
 
