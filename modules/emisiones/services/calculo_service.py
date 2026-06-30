@@ -45,12 +45,15 @@ class CalculoService:
             .all()
         )
 
-    def _load_formulas(self, tipo_tributo: str) -> List[Dict[str, Any]]:
-        rows = (
-            self.db.query(FormulaTasa)
-            .filter(FormulaTasa.tipo_tributo == tipo_tributo, FormulaTasa.activo == True)
-            .all()
-        )
+    def _load_formulas(self, tipo_tributo: str, ttas_tasa=None, ttas_subtasa: int = 0) -> List[Dict[str, Any]]:
+        q = self.db.query(FormulaTasa).filter(FormulaTasa.activo == True)
+        if ttas_tasa is not None:
+            # catálogo real: se selecciona por tasa/sub-tasa
+            q = q.filter(FormulaTasa.ttas_tasa == ttas_tasa, FormulaTasa.ttas_subtasa == ttas_subtasa)
+        else:
+            # compat: fórmulas demo cargadas por tipo de tributo
+            q = q.filter(FormulaTasa.tipo_tributo == tipo_tributo)
+        rows = q.all()
         out = []
         for f in rows:
             acums = (
@@ -101,11 +104,10 @@ class CalculoService:
         if not contribs:
             raise ValueError("El padrón está vacío: no hay contribuyentes para liquidar")
 
-        formulas = self._load_formulas(emision.tipo_tributo)
+        formulas = self._load_formulas(emision.tipo_tributo, emision.ttas_tasa, emision.ttas_subtasa or 0)
         if not formulas:
-            raise ValueError(
-                f"No hay FormulaTasa activas para el tributo '{emision.tipo_tributo}'"
-            )
+            objetivo = f"la tasa {emision.ttas_tasa}/{emision.ttas_subtasa or 0}" if emision.ttas_tasa is not None else f"el tributo '{emision.tipo_tributo}'"
+            raise ValueError(f"No hay FormulaTasa activas para {objetivo}")
 
         periodo, mes = self._periodo_mes(emision)
         entrada = [

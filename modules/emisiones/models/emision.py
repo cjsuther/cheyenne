@@ -12,6 +12,8 @@ class Emision(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     tipo_tributo = Column(String(50), nullable=False)
     periodo = Column(String(20), nullable=False)
+    ttas_tasa = Column(Integer, nullable=True, index=True)      # tasa del catálogo a liquidar
+    ttas_subtasa = Column(Integer, nullable=True, default=0)
     descripcion = Column(String(500), nullable=True)
     fecha_emision = Column(DateTime(timezone=True), nullable=True)
     fecha_vencimiento_1 = Column(DateTime(timezone=True), nullable=True)
