@@ -56,6 +56,19 @@ function WorkflowModal({ emision, onClose }) {
   });
   const totalAPagar = (liquidaciones ?? []).reduce((s, l) => s + Number(l.a_pagar || 0), 0);
 
+  const { data: ctaCte } = useQuery({
+    queryKey: ['emisiones-cuentacorriente', emision.id, pasoActual],
+    queryFn: () => emisionesAPI.emisiones.cuentaCorriente(emision.id, { limit: 200 }).then((r) => r.data),
+    enabled: pasoActual >= 11,
+  });
+  const totalDeuda = (ctaCte ?? []).reduce((s, c) => s + Number(c.saldo || 0), 0);
+
+  const { data: comprobantes } = useQuery({
+    queryKey: ['emisiones-comprobantes', emision.id, pasoActual],
+    queryFn: () => emisionesAPI.emisiones.comprobantes(emision.id, { limit: 200 }).then((r) => r.data),
+    enabled: pasoActual >= 12,
+  });
+
   const actionMutation = useMutation({
     mutationFn: ({ apiKey, data }) => {
       const fn = emisionesAPI.emisiones[apiKey];
@@ -65,6 +78,8 @@ function WorkflowModal({ emision, onClose }) {
       setActionError(''); setApprovalNote('');
       queryClient.invalidateQueries({ queryKey: ['emisiones-estado', emision.id] });
       queryClient.invalidateQueries({ queryKey: ['emisiones-liquidaciones', emision.id] });
+      queryClient.invalidateQueries({ queryKey: ['emisiones-cuentacorriente', emision.id] });
+      queryClient.invalidateQueries({ queryKey: ['emisiones-comprobantes', emision.id] });
       queryClient.invalidateQueries({ queryKey: ['emi-emisiones'] });
     },
     onError: (e) => setActionError(e.response?.data?.detail || 'Error al ejecutar accion'),
@@ -143,6 +158,63 @@ function WorkflowModal({ emision, onClose }) {
                 </div>
               ) : (
                 <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-3">Aún no hay liquidaciones. Ejecutá el paso 8 (Generar Liquidaciones).</p>
+              )}
+            </div>
+          )}
+
+          {pasoActual >= 11 && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-sm font-semibold text-gray-700">Cuenta corriente ({ctaCte?.length || 0})</h4>
+                {ctaCte?.length > 0 && <span className="text-sm font-semibold text-red-600">Deuda total: ${totalDeuda.toFixed(2)}</span>}
+              </div>
+              {ctaCte?.length > 0 ? (
+                <div className="overflow-x-auto max-h-72 overflow-y-auto border border-gray-100 rounded-lg">
+                  <table className="w-full text-xs">
+                    <thead className="bg-gray-50 sticky top-0"><tr className="text-left text-gray-500">
+                      <th className="px-3 py-2">Contrib.</th><th className="px-3 py-2">Concepto</th>
+                      <th className="px-3 py-2">Vto</th><th className="px-3 py-2">Estado</th>
+                      <th className="px-3 py-2 text-right">Saldo</th>
+                    </tr></thead>
+                    <tbody>{ctaCte.map((c) => (
+                      <tr key={c.id} className="border-t border-gray-50">
+                        <td className="px-3 py-1.5">{c.id_contribuyente}</td>
+                        <td className="px-3 py-1.5">{c.concepto}</td>
+                        <td className="px-3 py-1.5">{fmtDate(c.fecha_vencimiento)}</td>
+                        <td className="px-3 py-1.5">{c.estado}</td>
+                        <td className="px-3 py-1.5 text-right font-medium">${Number(c.saldo || 0).toFixed(2)}</td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-3">Sin cuenta corriente. Ejecutá el paso 11 (Generar Cuentas Corrientes).</p>
+              )}
+            </div>
+          )}
+
+          {pasoActual >= 12 && (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">Comprobantes / Recibos ({comprobantes?.length || 0})</h4>
+              {comprobantes?.length > 0 ? (
+                <div className="overflow-x-auto max-h-72 overflow-y-auto border border-gray-100 rounded-lg">
+                  <table className="w-full text-xs">
+                    <thead className="bg-gray-50 sticky top-0"><tr className="text-left text-gray-500">
+                      <th className="px-3 py-2">Número</th><th className="px-3 py-2">Contrib.</th>
+                      <th className="px-3 py-2">Cód. barras</th><th className="px-3 py-2 text-right">Importe</th>
+                    </tr></thead>
+                    <tbody>{comprobantes.map((c) => (
+                      <tr key={c.id} className="border-t border-gray-50">
+                        <td className="px-3 py-1.5 font-mono">{c.numero_comprobante}</td>
+                        <td className="px-3 py-1.5">{c.id_contribuyente}</td>
+                        <td className="px-3 py-1.5 font-mono text-gray-500">{c.codigo_barras}</td>
+                        <td className="px-3 py-1.5 text-right font-medium">${Number(c.importe_total || 0).toFixed(2)}</td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-3">Sin comprobantes. Ejecutá el paso 12 (Generar Comprobantes).</p>
               )}
             </div>
           )}

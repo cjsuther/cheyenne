@@ -214,6 +214,8 @@ export const emisionesAPI = {
     ...crud('/emisiones/emisiones'),
     estado: (id) => api.get(`/emisiones/emisiones/${id}/estado`),
     liquidaciones: (id, params) => api.get(`/emisiones/emisiones/${id}/liquidaciones`, { params }),
+    cuentaCorriente: (id, params) => api.get(`/emisiones/emisiones/${id}/cuenta-corriente`, { params }),
+    comprobantes: (id, params) => api.get(`/emisiones/emisiones/${id}/comprobantes`, { params }),
     // Workflow: 16 pasos
     paso1: (id) => api.post(`/emisiones/emisiones/${id}/pasos/1-validar-parametros`),
     paso2: (id, data) => api.post(`/emisiones/emisiones/${id}/pasos/2-cargar-padron`, data),

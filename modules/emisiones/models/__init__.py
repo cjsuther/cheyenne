@@ -5,3 +5,4 @@ from .ordenamiento import Ordenamiento, OrdenamientoItem
 from .cuenta_corriente import CuentaCorriente
 from .paso_workflow import PasoWorkflow
 from .formula_tasa import FormulaTasa, FormulaTasaAcumulador
+from .comprobante import Comprobante

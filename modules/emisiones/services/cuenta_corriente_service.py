@@ -21,8 +21,17 @@ class CuentaCorrienteService:
             Liquidacion.activo == True,
         ).all()
 
+        # idempotente: limpiar lo previo de esta emisión antes de regenerar
+        self.db.query(CuentaCorriente).filter(CuentaCorriente.id_emision == id_emision).delete()
+
         cuentas_creadas = 0
+        total_deuda = 0
         for liq in liquidaciones:
+            # la deuda imputada a la cuenta corriente es `a_cancelar` (no a_pagar, que ya
+            # incluye el descuento por pago anticipado del recibo)
+            deuda = liq.a_cancelar if liq.a_cancelar is not None else (liq.monto_final or 0)
+            if not deuda:
+                continue
             cuenta = CuentaCorriente(
                 id_emision=id_emision,
                 id_contribuyente=liq.id_contribuyente,
@@ -31,16 +40,17 @@ class CuentaCorrienteService:
                 tipo_tributo=liq.tipo,
                 periodo=liq.periodo,
                 cuota=liq.cuota,
-                concepto=f"Emision {emision.tipo_tributo} - {emision.periodo}",
-                monto_original=liq.monto_final,
+                concepto=f"Emision {emision.tipo_tributo} {emision.periodo} - tasa {liq.id_tasa or ''} vto {liq.numero_vencimiento or ''}",
+                monto_original=deuda,
                 monto_pagado=0,
-                saldo=liq.monto_final,
+                saldo=deuda,
                 fecha_vencimiento=liq.fecha_vencimiento_1,
                 estado="pendiente",
                 numero_comprobante=liq.numero_comprobante,
             )
             self.db.add(cuenta)
             cuentas_creadas += 1
+            total_deuda += float(deuda)
 
         self.db.commit()
-        return {"cuentas_creadas": cuentas_creadas}
+        return {"cuentas_creadas": cuentas_creadas, "total_deuda": round(total_deuda, 2)}

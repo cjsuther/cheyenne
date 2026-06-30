@@ -18,17 +18,21 @@ from models.padron import Padron, ContribuyentePadron
 from models.liquidacion import Liquidacion
 from models.ordenamiento import Ordenamiento, OrdenamientoItem
 from models.cuenta_corriente import CuentaCorriente
+from models.comprobante import Comprobante
 from models.paso_workflow import PasoWorkflow
 from services.emision_service import EmisionService
 from services.calculo_service import CalculoService
 from services.padron_loader import fetch_padron, items_a_contribuyentes
 from services.ordenamiento_service import OrdenamientoService
 from services.cuenta_corriente_service import CuentaCorrienteService
+from services.comprobante_service import ComprobanteService
 from schemas.emision import (
     EmisionCreate, EmisionUpdate, EmisionResponse,
     ParametrosCalculo, AprobacionRequest, EmisionListResponse,
 )
 from schemas.liquidacion import LiquidacionResponse
+from schemas.cuenta_corriente import CuentaCorrienteResponse
+from schemas.comprobante import ComprobanteResponse
 from schemas.padron import PadronResponse, ContribuyentePadronResponse
 
 settings = get_settings()
@@ -154,6 +158,38 @@ def get_liquidaciones(
     return (
         db.query(Liquidacion)
         .filter(Liquidacion.id_emision == id, Liquidacion.activo == True)
+        .offset(skip).limit(limit).all()
+    )
+
+
+@router.get("/{id}/cuenta-corriente", response_model=List[CuentaCorrienteResponse])
+def get_cuenta_corriente(
+    id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    EmisionService(db).find_by_id(id)
+    return (
+        db.query(CuentaCorriente)
+        .filter(CuentaCorriente.id_emision == id, CuentaCorriente.activo == True)
+        .offset(skip).limit(limit).all()
+    )
+
+
+@router.get("/{id}/comprobantes", response_model=List[ComprobanteResponse])
+def get_comprobantes(
+    id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    EmisionService(db).find_by_id(id)
+    return (
+        db.query(Comprobante)
+        .filter(Comprobante.id_emision == id, Comprobante.activo == True)
         .offset(skip).limit(limit).all()
     )
 
@@ -534,19 +570,12 @@ def paso_12_generar_comprobantes(
 ):
     emision = _validar_paso(db, id, 12)
     try:
-        liquidaciones = db.query(Liquidacion).filter(
-            Liquidacion.id_emision == id, Liquidacion.activo == True
-        ).all()
-        for i, liq in enumerate(liquidaciones, 1):
-            liq.numero_comprobante = f"E{id:06d}-{i:06d}"
-        db.commit()
-
+        resultado = ComprobanteService(db).generar_comprobantes(id)
         emision.paso_actual = 12
         db.commit()
-        _registrar_paso(db, id, 12, "completado",
-                        resultado=f"Comprobantes generados: {len(liquidaciones)}",
+        _registrar_paso(db, id, 12, "completado", resultado=str(resultado),
                         id_usuario=current_user.get("id"))
-        return {"paso": 12, "estado": "completado", "comprobantes_generados": len(liquidaciones)}
+        return {"paso": 12, "estado": "completado", "resultado": resultado}
     except Exception as e:
         db.rollback()
         _registrar_paso(db, id, 12, "error", error=str(e), id_usuario=current_user.get("id"))
