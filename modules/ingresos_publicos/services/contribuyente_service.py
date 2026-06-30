@@ -6,6 +6,10 @@ from fastapi import HTTPException, status
 
 from models.contribuyente import Contribuyente
 from models.persona import Persona
+from models.cuenta import Cuenta
+from models.inmueble import Inmueble
+from models.comercio import Comercio
+from models.vehiculo import Vehiculo
 
 
 class ContribuyenteService:
@@ -59,6 +63,31 @@ class ContribuyenteService:
 
     def count(self) -> int:
         return self.db.query(Contribuyente).count()
+
+    @staticmethod
+    def _row(obj) -> dict:
+        return {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
+
+    def objetos(self, id_contribuyente: int) -> dict:
+        """Cuentas del contribuyente + sus objetos imponibles (inmuebles/comercios/vehículos)."""
+        cuentas = (
+            self.db.query(Cuenta)
+            .filter(Cuenta.id_contribuyente == id_contribuyente, Cuenta.activo == True)
+            .all()
+        )
+        ids = [c.id for c in cuentas]
+
+        def by_cuenta(Model):
+            if not ids:
+                return []
+            return self.db.query(Model).filter(Model.id_cuenta.in_(ids), Model.activo == True).all()
+
+        return {
+            "cuentas": [self._row(c) for c in cuentas],
+            "inmuebles": [self._row(x) for x in by_cuenta(Inmueble)],
+            "comercios": [self._row(x) for x in by_cuenta(Comercio)],
+            "vehiculos": [self._row(x) for x in by_cuenta(Vehiculo)],
+        }
 
     def find_by_id(self, id: int) -> Contribuyente:
         contribuyente = self.db.query(Contribuyente).filter(Contribuyente.id == id).first()

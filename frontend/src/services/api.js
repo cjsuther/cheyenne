@@ -122,6 +122,7 @@ export const ingresosPublicosAPI = {
   contribuyentes: {
     ...crud('/ingresos-publicos/contribuyentes'),
     search: (q) => api.get('/ingresos-publicos/contribuyentes/search', { params: { q } }),
+    objetos: (id) => api.get(`/ingresos-publicos/contribuyentes/${id}/objetos`),
   },
   cuentas: {
     ...crud('/ingresos-publicos/cuentas'),

@@ -55,6 +55,16 @@ def get_contribuyente(
     return service.find_by_id(id)
 
 
+@router.get("/{id}/objetos")
+def get_objetos_contribuyente(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Vista 360: cuentas + inmuebles/comercios/vehículos del contribuyente."""
+    return ContribuyenteService(db).objetos(id)
+
+
 @router.get("/by-documento/{tipo}/{numero}", response_model=ContribuyenteResponse)
 def get_contribuyente_by_documento(
     tipo: int,

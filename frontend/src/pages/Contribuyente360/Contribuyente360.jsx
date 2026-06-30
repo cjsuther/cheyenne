@@ -9,6 +9,44 @@ import { Modal, Field, inputClass, btnPrimary, btnSecondary } from '../../compon
 const fmtMoney = (v) =>
   `$${Number(v || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const fmtDate = (v) => (v ? new Date(v).toLocaleDateString('es-AR') : '-');
+const nomenclatura = (i) => [i.circuito, i.sector, i.fraccion, i.parcela].filter(Boolean).join('-') || '—';
+
+const CUENTAS_COLS = [
+  { key: 'numero_cuenta', label: 'N° Cuenta' },
+  { key: 'codigo_delegacion', label: 'Delegación' },
+  { key: 'id_tipo_tributo', label: 'Tributo' },
+  { key: 'activo', label: 'Estado', render: (v) => (v ? 'Activa' : 'Baja') },
+];
+const INMUEBLES_COLS = [
+  { key: 'id', label: 'ID' },
+  { key: '_nom', label: 'Nomenclatura', render: (_, r) => nomenclatura(r) },
+];
+const COMERCIOS_COLS = [
+  { key: 'id', label: 'ID' },
+  { key: 'nombre_fantasia', label: 'Nombre de fantasía' },
+  { key: 'cuit', label: 'CUIT' },
+];
+const VEHICULOS_COLS = [
+  { key: 'dominio', label: 'Dominio' },
+  { key: 'modelo', label: 'Modelo' },
+  { key: 'anio', label: 'Año' },
+];
+const PLANES_COLS = [
+  { key: 'numero_plan', label: 'N° Plan' },
+  { key: 'cantidad_cuotas', label: 'Cuotas' },
+  { key: 'importe_total', label: 'Importe total', render: fmtMoney },
+  { key: 'id_estado_plan', label: 'Estado' },
+];
+
+function Seccion({ titulo, cols, data }) {
+  if (!data?.length) return null;
+  return (
+    <div>
+      <h3 className="text-sm font-semibold text-gray-700 mb-2">{titulo} ({data.length})</h3>
+      <DataTable columns={cols} data={data} />
+    </div>
+  );
+}
 
 function Stat({ label, value, highlight }) {
   return (
@@ -46,6 +84,18 @@ export default function Contribuyente360() {
   const { data: pagos } = useQuery({
     queryKey: ['c360-pagos', selected?.id],
     queryFn: () => emisionesAPI.pagosPorContribuyente(selected.id).then((r) => r.data),
+    enabled: !!selected,
+  });
+
+  const { data: objetos } = useQuery({
+    queryKey: ['c360-objetos', selected?.id],
+    queryFn: () => ingresosPublicosAPI.contribuyentes.objetos(selected.id).then((r) => r.data),
+    enabled: !!selected,
+  });
+
+  const { data: planes } = useQuery({
+    queryKey: ['c360-planes', selected?.id],
+    queryFn: () => ingresosPublicosAPI.planesPago.byContribuyente(selected.id).then((r) => r.data),
     enabled: !!selected,
   });
 
@@ -263,6 +313,17 @@ export default function Contribuyente360() {
                   <DataTable columns={pagosCols} data={pagos} />
                 </div>
               )}
+
+              {(objetos?.cuentas?.length || objetos?.inmuebles?.length || objetos?.comercios?.length || objetos?.vehiculos?.length || planes?.length) ? (
+                <div className="pt-2 border-t border-gray-100 space-y-5">
+                  <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Bienes, cuentas y planes</h2>
+                  <Seccion titulo="Cuentas" cols={CUENTAS_COLS} data={objetos?.cuentas} />
+                  <Seccion titulo="Inmuebles" cols={INMUEBLES_COLS} data={objetos?.inmuebles} />
+                  <Seccion titulo="Comercios" cols={COMERCIOS_COLS} data={objetos?.comercios} />
+                  <Seccion titulo="Vehículos" cols={VEHICULOS_COLS} data={objetos?.vehiculos} />
+                  <Seccion titulo="Planes de pago" cols={PLANES_COLS} data={planes} />
+                </div>
+              ) : null}
             </>
           )}
         </div>
