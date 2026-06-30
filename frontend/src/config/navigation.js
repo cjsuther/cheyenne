@@ -31,6 +31,7 @@ export const NAV = [
     ],
   },
   { label: 'Emisiones', path: '/emisiones', module: 'emisiones', tabs: [] },
+  { label: 'Tasas y Fórmulas', path: '/tasas-formulas', module: 'emisiones', tabs: [] },
   {
     label: 'Tesorería', path: '/tesoreria', module: 'tesoreria', tabs: [
       { k: 'cajas', l: 'Cajas' }, { k: 'dependencias', l: 'Dependencias' }, { k: 'recaudadoras', l: 'Recaudadoras' },

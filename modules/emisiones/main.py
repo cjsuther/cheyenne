@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import get_settings
 from database import engine
 from shared.database import Base
-from routers import emisiones_router
+from routers import emisiones_router, formulas_router
 
 # Import all models so they register with Base.metadata
 import models  # noqa: F401
@@ -78,6 +78,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
 app.add_middleware(AuditMiddleware)
 
 app.include_router(emisiones_router)
+app.include_router(formulas_router)
 
 
 @app.on_event("startup")

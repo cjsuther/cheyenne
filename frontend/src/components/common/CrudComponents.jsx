@@ -419,6 +419,24 @@ export function CrudFormModal({ title, item, formFields, apiFns, queryKey, onClo
               );
             }
 
+            if (f.type === 'textarea') {
+              return (
+                <div key={f.key} className="sm:col-span-2">
+                  <label className="block">
+                    <span className="text-sm font-medium text-gray-700">{f.label}</span>
+                    <textarea
+                      value={form[f.key] ?? ''}
+                      onChange={set(f.key)}
+                      required={f.required && !isEdit}
+                      rows={f.rows || 2}
+                      placeholder={f.placeholder}
+                      className={`${inputClass} font-mono text-xs`}
+                    />
+                  </label>
+                </div>
+              );
+            }
+
             return (
               <Field key={f.key} label={f.label}>
                 <input

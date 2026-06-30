@@ -243,4 +243,8 @@ export const emisionesAPI = {
     paso15: (id) => api.post(`/emisiones/emisiones/${id}/pasos/15-solicitar-aprobacion`),
     paso16: (id, data) => api.post(`/emisiones/emisiones/${id}/pasos/16-aprobar-emision`, data),
   },
+  formulas: {
+    ...crud('/emisiones/formulas'),
+    probar: (data) => api.post('/emisiones/formulas/probar', data),
+  },
 };

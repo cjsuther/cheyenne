@@ -98,3 +98,11 @@ export const IconContribuyente360 = (p) => (
     <path d="m21 21-1.9-1.9" />
   </Svg>
 );
+
+export const IconFormulas = (p) => (
+  <Svg {...p}>
+    <rect width="18" height="18" x="3" y="3" rx="2" />
+    <path d="M9 17c2 0 2.8-1 2.8-2.8V10c0-2 1-3.3 3.2-3" />
+    <path d="M9 11.2h5.7" />
+  </Svg>
+);

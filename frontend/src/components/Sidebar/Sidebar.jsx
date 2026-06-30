@@ -3,7 +3,7 @@ import { useAuthStore } from '../../store/auth';
 import MenuSearch from './MenuSearch';
 import {
   IconDashboard, IconAdministracion, IconSeguridad, IconAuditoria,
-  IconIngresos, IconTesoreria, IconEmisiones, IconComunicacion, IconContribuyente360,
+  IconIngresos, IconTesoreria, IconEmisiones, IconComunicacion, IconContribuyente360, IconFormulas,
 } from '../common/icons';
 
 const menuItems = [
@@ -12,6 +12,7 @@ const menuItems = [
   { path: '/administracion', label: 'Administración', module: 'administracion', Icon: IconAdministracion },
   { path: '/ingresos-publicos', label: 'Ingresos Públicos', module: 'ingresos_publicos', Icon: IconIngresos },
   { path: '/emisiones', label: 'Emisiones', module: 'emisiones', Icon: IconEmisiones },
+  { path: '/tasas-formulas', label: 'Tasas y Fórmulas', module: 'emisiones', Icon: IconFormulas },
   { path: '/tesoreria', label: 'Tesorería', module: 'tesoreria', Icon: IconTesoreria },
   { path: '/comunicacion', label: 'Comunicación', module: 'comunicacion', Icon: IconComunicacion },
   { path: '/auditoria', label: 'Auditoría', module: 'auditoria', Icon: IconAuditoria },
