@@ -36,10 +36,11 @@ export default function Contribuyente360() {
     enabled: dq.length >= 2 && !selected,
   });
 
-  const { data: deuda, isFetching: cargandoDeuda } = useQuery({
+  const { data: deuda, isFetching: cargandoDeuda, isError: deudaError, error: deudaErrObj, refetch: refetchDeuda } = useQuery({
     queryKey: ['c360-deuda', selected?.id],
     queryFn: () => emisionesAPI.deudaPorContribuyente(selected.id, { solo_deuda: false }).then((r) => r.data),
     enabled: !!selected,
+    retry: 1,
   });
 
   const { data: pagos } = useQuery({
@@ -214,6 +215,11 @@ export default function Contribuyente360() {
 
           {cargandoDeuda ? (
             <LoadingSpinner />
+          ) : deudaError ? (
+            <div className="bg-red-50 border border-red-100 text-red-700 rounded-xl px-4 py-3 text-sm flex items-center justify-between gap-3">
+              <span>No se pudo cargar la deuda{deudaErrObj?.response?.status ? ` (HTTP ${deudaErrObj.response.status})` : ''}. Probá de nuevo.</span>
+              <button onClick={() => refetchDeuda()} className="text-red-700 underline text-xs shrink-0">Reintentar</button>
+            </div>
           ) : (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
