@@ -300,6 +300,13 @@ def _f_redondeo(args, ctx):
     return v.quantize(q, rounding=ROUND_HALF_EVEN)
 
 
+def _f_redondeo_especial(args, ctx):
+    # ASUNCIÓN: el componente COM del evaluador legacy no está en el código fuente, así que
+    # se asume redondeo a 2 decimales (la regla "especial" exacta queda por confirmar).
+    v = _num(_eval(args[0], ctx))
+    return v.quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN)
+
+
 def _f_entero(args, ctx):
     return Decimal(math.floor(_num(_eval(args[0], ctx))))   # Int() de VB trunca hacia -inf
 
@@ -450,7 +457,8 @@ def _f_suma_acumu(args, ctx):
 
 
 FUNCIONES = {
-    "#SI": _f_si, "#SI_ALFA": _f_si_alfa, "#REDONDEO": _f_redondeo, "#ENTERO": _f_entero,
+    "#SI": _f_si, "#SI_ALFA": _f_si_alfa, "#REDONDEO": _f_redondeo,
+    "#REDONDEOESPECIAL": _f_redondeo_especial, "#ENTERO": _f_entero,
     "#VALOR": _f_valor, "#CAD_EN_LISTA": _f_cad_en_lista, "#NRO_EN_LISTA": _f_nro_en_lista,
     "#ANIO": _f_anio, "#MES": _f_mes, "#DIA": _f_dia, "#FECHA": _f_fecha, "#HOY": _f_hoy,
     "#ENTREFECHAS": _f_entrefechas, "#SUMA_AAMM": _f_suma_aamm, "#SUMA_DIAS": _f_suma_dias,

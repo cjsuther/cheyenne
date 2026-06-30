@@ -14,6 +14,7 @@ class Emision(Base):
     periodo = Column(String(20), nullable=False)
     ttas_tasa = Column(Integer, nullable=True, index=True)      # tasa del catálogo a liquidar
     ttas_subtasa = Column(Integer, nullable=True, default=0)
+    variables_default = Column(JSON, nullable=True)            # variables @I_* por defecto del padrón
     descripcion = Column(String(500), nullable=True)
     fecha_emision = Column(DateTime(timezone=True), nullable=True)
     fecha_vencimiento_1 = Column(DateTime(timezone=True), nullable=True)

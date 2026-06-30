@@ -262,6 +262,8 @@ export default function Emisiones() {
           { key: 'periodo', label: 'Periodo (ej: 2025-01)', required: true },
           { key: 'ttas_tasa', label: 'Tasa del catálogo (opcional)', type: 'int' },
           { key: 'ttas_subtasa', label: 'Sub-tasa', type: 'int', defaultValue: 0 },
+          { key: 'variables_default', label: 'Variables del padrón (JSON, opcional)', type: 'textarea',
+            placeholder: '{"I_CUOTA_ANUAL":"N","I_ZONATARI":"2"}' },
           { key: 'descripcion', label: 'Descripcion' },
           { key: 'fecha_vencimiento_1', label: '1er Vencimiento', type: 'date' },
           { key: 'fecha_vencimiento_2', label: '2do Vencimiento', type: 'date' },

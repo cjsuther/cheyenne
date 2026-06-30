@@ -77,10 +77,12 @@ def liquidar_padron(
                     "a_cancelar": cuota.a_cancelar,
                     "a_pagar": cuota.a_pagar,
                 })
+        errores = [f"{r.tasa}-{r.subtasa}-{r.formula}: {r.error}" for r in resultados if r.error]
         salida.append({
             "id_contribuyente": c.get("id_contribuyente"),
             "id_objeto_imponible": c.get("id_objeto_imponible"),
             "monto_a_pagar": sum((l["a_pagar"] for l in lineas), Decimal("0.00")),
             "lineas": lineas,
+            "errores": errores,
         })
     return salida

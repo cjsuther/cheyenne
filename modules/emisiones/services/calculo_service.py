@@ -144,14 +144,18 @@ class CalculoService:
             raise ValueError(f"No hay FormulaTasa activas para {objetivo}")
 
         periodo, mes = self._periodo_mes(emision)
-        entrada = [
-            {
+        # variables por defecto de la emisión: completan las @I_* que el padrón no provee
+        # (las variables propias del contribuyente tienen prioridad)
+        defaults = emision.variables_default or {}
+        entrada = []
+        for c in contribs:
+            datos = dict(c.datos_calculo or {})
+            datos["variables"] = {**defaults, **(datos.get("variables") or {})}
+            entrada.append({
                 "id_contribuyente": c.id_contribuyente,
                 "id_objeto_imponible": c.id_objeto_imponible,
-                "datos": c.datos_calculo or {},
-            }
-            for c in contribs
-        ]
+                "datos": datos,
+            })
 
         # con catálogo real: solo se emite la tasa de la emisión (las referenciadas se calculan)
         tasas_emitir = {int(emision.ttas_tasa)} if emision.ttas_tasa is not None else None
@@ -185,6 +189,9 @@ class CalculoService:
                 creadas += 1
             monto_total += r["monto_a_pagar"]
 
+        # errores por fórmula (resilencia): se agregan distintos para diagnóstico
+        errores = sorted({e for r in resultado for e in r.get("errores", [])})
+
         # marcar contribuyentes liquidados
         for c in contribs:
             c.estado = "liquidado"
@@ -196,4 +203,6 @@ class CalculoService:
             "liquidaciones_creadas": creadas,
             "contribuyentes": len(contribs),
             "monto_total": float(monto_total),
+            "formulas_con_error": len(errores),
+            "errores": errores[:10],
         }

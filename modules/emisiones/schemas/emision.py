@@ -21,6 +21,7 @@ class EmisionBase(BaseModel):
     periodo: str
     ttas_tasa: Optional[int] = None
     ttas_subtasa: Optional[int] = 0
+    variables_default: Optional[Any] = None
     descripcion: Optional[str] = None
     fecha_vencimiento_1: Optional[datetime] = None
     fecha_vencimiento_2: Optional[datetime] = None

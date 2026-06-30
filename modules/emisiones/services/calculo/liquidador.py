@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from decimal import Decimal, ROUND_HALF_UP
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from .interprete import Contexto, evaluar, evaluar_logica
 
@@ -44,6 +44,7 @@ class LiquidacionFormula:
     formula: int
     aplica: bool
     cuotas: List[CuotaVencimiento] = field(default_factory=list)
+    error: Optional[str] = None
 
     @property
     def total_a_pagar(self) -> Decimal:
@@ -68,7 +69,15 @@ class Liquidador:
 
     def _liquidar_formula(self, f: Dict[str, Any], ctx: Contexto) -> LiquidacionFormula:
         tasa = int(f.get("ttas_Tasa", 0)); sub = int(f.get("ttas_SubTasa", 0)); fort = int(f.get("fort_Numero", 0))
+        try:
+            return self._eval_formula(f, ctx, tasa, sub, fort)
+        except Exception as e:
+            # una fórmula con error (parse/variable/función) no debe tumbar la cuenta:
+            # se omite y queda registrada; #SUMA_FORMU sobre ella devolverá 0.
+            ctx.formulas_calculadas.setdefault(f"{tasa}-{sub}-{fort}", {})
+            return LiquidacionFormula(tasa=tasa, subtasa=sub, formula=fort, aplica=False, cuotas=[], error=str(e))
 
+    def _eval_formula(self, f: Dict[str, Any], ctx: Contexto, tasa: int, sub: int, fort: int) -> LiquidacionFormula:
         # 1. resetear acumuladores y resultados locales (@K_ACUMULA, @K_ACANCELAR, @K_APAGAR)
         for v in _ACUM_VARS:
             ctx.variables[v] = Decimal("0")
