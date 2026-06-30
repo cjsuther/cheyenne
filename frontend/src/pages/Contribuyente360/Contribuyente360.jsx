@@ -42,11 +42,18 @@ export default function Contribuyente360() {
     enabled: !!selected,
   });
 
+  const { data: pagos } = useQuery({
+    queryKey: ['c360-pagos', selected?.id],
+    queryFn: () => emisionesAPI.pagosPorContribuyente(selected.id).then((r) => r.data),
+    enabled: !!selected,
+  });
+
   const queryClient = useQueryClient();
   const [pagando, setPagando] = useState(null); // concepto a pagar
   const [importe, setImporte] = useState('');
   const [pagoError, setPagoError] = useState('');
   const [guardando, setGuardando] = useState(false);
+  const [ultimoRecibo, setUltimoRecibo] = useState(null);
 
   const filas = deuda ?? [];
   const totalDeuda = filas.reduce((s, d) => s + Number(d.saldo || 0), 0);
@@ -68,14 +75,43 @@ export default function Contribuyente360() {
     setGuardando(true);
     setPagoError('');
     try {
-      await emisionesAPI.pagarConcepto(pagando.id, { importe: Number(importe) });
+      const { data } = await emisionesAPI.pagarConcepto(pagando.id, { importe: Number(importe) });
       await queryClient.invalidateQueries({ queryKey: ['c360-deuda', selected.id] });
+      await queryClient.invalidateQueries({ queryKey: ['c360-pagos', selected.id] });
+      setUltimoRecibo({ numero: data.numero_recibo, total: data.total_pagado });
       setPagando(null);
     } catch (e) {
       setPagoError(e?.response?.data?.detail || 'No se pudo registrar el pago');
     } finally {
       setGuardando(false);
     }
+  };
+
+  const imprimirRecibo = (r) => {
+    const win = window.open('', '_blank', 'width=440,height=640');
+    if (!win) return;
+    win.document.write(`<html><head><title>${r.numero_recibo}</title>
+      <style>body{font-family:system-ui,Arial,sans-serif;padding:28px;color:#1f2937}
+      h1{font-size:18px;margin:0}.muted{color:#6b7280;font-size:12px;margin:2px 0}
+      table{width:100%;border-collapse:collapse;margin-top:18px;font-size:13px}
+      td{padding:7px 0;border-bottom:1px solid #eee}.r{text-align:right}
+      .tot td{font-weight:700;font-size:15px;border-bottom:none;padding-top:12px}</style></head>
+      <body>
+        <h1>Recibo de pago</h1>
+        <p class="muted">${r.numero_recibo} · ${r.fecha_pago ? new Date(r.fecha_pago).toLocaleDateString('es-AR') : ''}</p>
+        <p class="muted">Contribuyente: ${selected.nombre_completo} (doc ${selected.numero_documento})</p>
+        <table>
+          <tr><td>Concepto</td><td class="r">${r.concepto || '-'}</td></tr>
+          <tr><td>Tributo / Período</td><td class="r">${(r.tipo_tributo || '-')} ${r.periodo || ''}</td></tr>
+          <tr><td>Capital</td><td class="r">${fmtMoney(r.capital_pagado)}</td></tr>
+          <tr><td>Recargo por mora (${r.dias_mora || 0} d)</td><td class="r">${fmtMoney(r.recargo_mora)}</td></tr>
+          <tr class="tot"><td>Total pagado</td><td class="r">${fmtMoney(r.total_pagado)}</td></tr>
+        </table>
+        <p class="muted" style="margin-top:28px">Cheyenne · Ingresos Públicos</p>
+      </body></html>`);
+    win.document.close();
+    win.focus();
+    win.print();
   };
 
   const cols = [
@@ -97,6 +133,21 @@ export default function Contribuyente360() {
         ) : (
           <span className="text-xs text-green-600 font-medium">Pagado</span>
         ),
+    },
+  ];
+
+  const pagosCols = [
+    { key: 'numero_recibo', label: 'Recibo', render: (v) => <span className="font-mono">{v}</span> },
+    { key: 'fecha_pago', label: 'Fecha', render: fmtDate },
+    { key: 'concepto', label: 'Concepto' },
+    { key: 'capital_pagado', label: 'Capital', render: fmtMoney },
+    { key: 'recargo_mora', label: 'Recargo', render: fmtMoney },
+    { key: 'total_pagado', label: 'Total', render: (v) => <b>{fmtMoney(v)}</b> },
+    {
+      key: '_print', label: '',
+      render: (_, row) => (
+        <button onClick={() => imprimirRecibo(row)} className="text-xs text-primary-600 hover:underline">Imprimir</button>
+      ),
     },
   ];
 
@@ -151,8 +202,15 @@ export default function Contribuyente360() {
               <p className="text-lg font-bold text-gray-800 truncate">{selected.nombre_completo}</p>
               <p className="text-sm text-gray-500">Documento {selected.numero_documento} · Contribuyente #{selected.id}</p>
             </div>
-            <button onClick={() => setSelected(null)} className="text-sm text-primary-600 hover:underline shrink-0">← Buscar otro</button>
+            <button onClick={() => { setSelected(null); setUltimoRecibo(null); }} className="text-sm text-primary-600 hover:underline shrink-0">← Buscar otro</button>
           </div>
+
+          {ultimoRecibo && (
+            <div className="bg-green-50 border border-green-100 text-green-800 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+              <span className="text-sm">✓ Pago registrado · recibo <b>{ultimoRecibo.numero}</b> por {fmtMoney(ultimoRecibo.total)}</span>
+              <button onClick={() => setUltimoRecibo(null)} className="text-green-700 text-xs hover:underline">Cerrar</button>
+            </div>
+          )}
 
           {cargandoDeuda ? (
             <LoadingSpinner />
@@ -185,6 +243,13 @@ export default function Contribuyente360() {
                   </p>
                 )}
               </div>
+
+              {(pagos?.length ?? 0) > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Pagos realizados ({pagos.length})</h3>
+                  <DataTable columns={pagosCols} data={pagos} />
+                </div>
+              )}
             </>
           )}
         </div>

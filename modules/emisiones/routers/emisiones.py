@@ -19,6 +19,7 @@ from models.liquidacion import Liquidacion
 from models.ordenamiento import Ordenamiento, OrdenamientoItem
 from models.cuenta_corriente import CuentaCorriente
 from models.comprobante import Comprobante
+from models.pago_recibo import PagoRecibo
 from models.paso_workflow import PasoWorkflow
 from services.emision_service import EmisionService
 from services.calculo_service import CalculoService
@@ -31,7 +32,7 @@ from schemas.emision import (
     ParametrosCalculo, AprobacionRequest, EmisionListResponse,
 )
 from schemas.liquidacion import LiquidacionResponse
-from schemas.cuenta_corriente import CuentaCorrienteResponse, DeudaItem, PagoRequest, PagoResponse
+from schemas.cuenta_corriente import CuentaCorrienteResponse, DeudaItem, PagoRequest, PagoResponse, ReciboResponse
 from schemas.comprobante import ComprobanteResponse
 from schemas.padron import PadronResponse, ContribuyentePadronResponse
 
@@ -214,6 +215,21 @@ def pagar_concepto(
 ):
     """Registra un pago contra un concepto de deuda: baja el saldo de la cuenta corriente."""
     return CuentaCorrienteService(db).registrar_pago(id_cc, data.importe, data.fecha_pago)
+
+
+@router.get("/pagos/by-contribuyente/{id_contribuyente}", response_model=List[ReciboResponse])
+def get_pagos_por_contribuyente(
+    id_contribuyente: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Recibos de pago de un contribuyente (historial de cobros)."""
+    return (
+        db.query(PagoRecibo)
+        .filter(PagoRecibo.id_contribuyente == id_contribuyente, PagoRecibo.activo == True)
+        .order_by(PagoRecibo.fecha_pago.desc(), PagoRecibo.id.desc())
+        .all()
+    )
 
 
 # --- 16 Workflow Steps ---

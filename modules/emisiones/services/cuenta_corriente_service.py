@@ -9,6 +9,7 @@ from config import get_settings
 from models.emision import Emision
 from models.liquidacion import Liquidacion
 from models.cuenta_corriente import CuentaCorriente
+from models.pago_recibo import PagoRecibo
 
 
 def _q2(v) -> Decimal:
@@ -125,6 +126,26 @@ class CuentaCorrienteService:
             "saldo_resultante": float(cc.saldo),
         })
         cc.historial_pagos = historial
+
+        # comprobante del pago
+        total_pagado = _q2(capital_pagado + mora["recargo"])
+        recibo = PagoRecibo(
+            fecha_pago=datetime.combine(fecha, datetime.min.time(), tzinfo=timezone.utc),
+            id_contribuyente=cc.id_contribuyente,
+            id_cuenta_corriente=cc.id,
+            id_emision=cc.id_emision,
+            tipo_tributo=cc.tipo_tributo,
+            periodo=cc.periodo,
+            concepto=cc.concepto,
+            capital_pagado=capital_pagado,
+            recargo_mora=mora["recargo"],
+            total_pagado=total_pagado,
+            dias_mora=mora["dias_mora"],
+            estado_resultante=cc.estado,
+        )
+        self.db.add(recibo)
+        self.db.flush()
+        recibo.numero_recibo = f"REC-{recibo.id:08d}"
         self.db.commit()
         self.db.refresh(cc)
         return {
@@ -133,4 +154,6 @@ class CuentaCorrienteService:
             "capital_pagado": float(capital_pagado),
             "recargo_mora": float(mora["recargo"]),
             "saldo": float(cc.saldo),
+            "numero_recibo": recibo.numero_recibo,
+            "total_pagado": float(total_pagado),
         }

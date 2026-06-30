@@ -45,3 +45,24 @@ class PagoResponse(BaseModel):
     capital_pagado: float
     recargo_mora: float
     saldo: float
+    numero_recibo: Optional[str] = None
+    total_pagado: Optional[float] = None
+
+
+class ReciboResponse(BaseModel):
+    id: int
+    numero_recibo: Optional[str] = None
+    fecha_pago: Optional[datetime] = None
+    id_contribuyente: int
+    id_cuenta_corriente: int
+    tipo_tributo: Optional[str] = None
+    periodo: Optional[str] = None
+    concepto: Optional[str] = None
+    capital_pagado: Optional[Decimal] = None
+    recargo_mora: Optional[Decimal] = None
+    total_pagado: Optional[Decimal] = None
+    dias_mora: Optional[int] = None
+    estado_resultante: Optional[str] = None
+
+    class Config:
+        from_attributes = True
