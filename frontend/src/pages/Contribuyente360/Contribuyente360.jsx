@@ -216,9 +216,16 @@ export default function Contribuyente360() {
           {cargandoDeuda ? (
             <LoadingSpinner />
           ) : deudaError ? (
-            <div className="bg-red-50 border border-red-100 text-red-700 rounded-xl px-4 py-3 text-sm flex items-center justify-between gap-3">
-              <span>No se pudo cargar la deuda{deudaErrObj?.response?.status ? ` (HTTP ${deudaErrObj.response.status})` : ''}. Probá de nuevo.</span>
-              <button onClick={() => refetchDeuda()} className="text-red-700 underline text-xs shrink-0">Reintentar</button>
+            <div className="bg-red-50 border border-red-100 text-red-700 rounded-xl px-4 py-3 text-sm space-y-1">
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-medium">No se pudo cargar la deuda. Probá de nuevo.</span>
+                <button onClick={() => refetchDeuda()} className="text-red-700 underline text-xs shrink-0">Reintentar</button>
+              </div>
+              <p className="text-xs font-mono text-red-500">
+                {deudaErrObj?.response?.status
+                  ? `HTTP ${deudaErrObj.response.status}`
+                  : `${deudaErrObj?.code || 'sin-codigo'} · ${deudaErrObj?.message || 'error'}`}
+              </p>
             </div>
           ) : (
             <>
