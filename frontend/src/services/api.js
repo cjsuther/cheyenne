@@ -119,7 +119,10 @@ export const ingresosPublicosAPI = {
     list: (params) => api.get('/ingresos-publicos/personas', { params }),
     get: (id) => api.get(`/ingresos-publicos/personas/${id}`),
   },
-  contribuyentes: crud('/ingresos-publicos/contribuyentes'),
+  contribuyentes: {
+    ...crud('/ingresos-publicos/contribuyentes'),
+    search: (q) => api.get('/ingresos-publicos/contribuyentes/search', { params: { q } }),
+  },
   cuentas: {
     ...crud('/ingresos-publicos/cuentas'),
     byContribuyente: (id) =>
@@ -216,6 +219,8 @@ export const emisionesAPI = {
     liquidaciones: (id, params) => api.get(`/emisiones/emisiones/${id}/liquidaciones`, { params }),
     cuentaCorriente: (id, params) => api.get(`/emisiones/emisiones/${id}/cuenta-corriente`, { params }),
     comprobantes: (id, params) => api.get(`/emisiones/emisiones/${id}/comprobantes`, { params }),
+    deudaPorContribuyente: (idContribuyente, params) =>
+      api.get(`/emisiones/emisiones/cuenta-corriente/by-contribuyente/${idContribuyente}`, { params }),
     // Workflow: 16 pasos
     paso1: (id) => api.post(`/emisiones/emisiones/${id}/pasos/1-validar-parametros`),
     paso2: (id, data) => api.post(`/emisiones/emisiones/${id}/pasos/2-cargar-padron`, data),

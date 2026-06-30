@@ -3,6 +3,7 @@
 
 export const NAV = [
   { label: 'Dashboard', path: '/', module: null, tabs: [] },
+  { label: 'Contribuyente 360', path: '/contribuyente-360', module: 'ingresos_publicos', tabs: [] },
   {
     label: 'Administración', path: '/administracion', module: 'administracion', tabs: [
       { k: 'personasFisicas', l: 'Personas Físicas' }, { k: 'personasJuridicas', l: 'Personas Jurídicas' },

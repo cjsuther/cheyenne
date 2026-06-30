@@ -12,6 +12,7 @@ import Comunicacion from './pages/Comunicacion/Comunicacion';
 import Seguridad from './pages/Seguridad/Seguridad';
 import Wav from './pages/Wav/Wav';
 import Emisiones from './pages/Emisiones/Emisiones';
+import Contribuyente360 from './pages/Contribuyente360/Contribuyente360';
 import Perfil from './pages/Perfil/Perfil';
 
 const queryClient = new QueryClient({
@@ -51,6 +52,7 @@ export default function App() {
             <Route path="seguridad/*" element={<Seguridad />} />
             <Route path="wav/*" element={<Wav />} />
             <Route path="emisiones/*" element={<Emisiones />} />
+            <Route path="contribuyente-360" element={<Contribuyente360 />} />
             <Route path="perfil" element={<Perfil />} />
           </Route>
         </Routes>

@@ -2,10 +2,11 @@ import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth';
 import {
   IconAdministracion, IconSeguridad, IconAuditoria, IconIngresos,
-  IconTesoreria, IconEmisiones, IconComunicacion,
+  IconTesoreria, IconEmisiones, IconComunicacion, IconContribuyente360,
 } from '../../components/common/icons';
 
 const modules = [
+  { name: 'Contribuyente 360', path: '/contribuyente-360', desc: 'Buscar contribuyente y ver su deuda', Icon: IconContribuyente360, chip: 'bg-indigo-50 text-indigo-600' },
   { name: 'Administración', path: '/administracion', desc: 'Personas, expedientes, entidades', Icon: IconAdministracion, chip: 'bg-blue-50 text-blue-600' },
   { name: 'Ingresos Públicos', path: '/ingresos-publicos', desc: 'Contribuyentes, cuentas, tributos', Icon: IconIngresos, chip: 'bg-emerald-50 text-emerald-600' },
   { name: 'Emisiones', path: '/emisiones', desc: 'Cálculo y emisión de tasas', Icon: IconEmisiones, chip: 'bg-amber-50 text-amber-600' },

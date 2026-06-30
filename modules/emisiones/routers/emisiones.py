@@ -194,6 +194,23 @@ def get_comprobantes(
     )
 
 
+@router.get("/cuenta-corriente/by-contribuyente/{id_contribuyente}", response_model=List[CuentaCorrienteResponse])
+def get_deuda_por_contribuyente(
+    id_contribuyente: int,
+    solo_deuda: bool = Query(True, description="Si es True, solo filas con saldo > 0"),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Vista 360: toda la cuenta corriente (deuda) de un contribuyente, en todas las emisiones."""
+    q = db.query(CuentaCorriente).filter(
+        CuentaCorriente.id_contribuyente == id_contribuyente,
+        CuentaCorriente.activo == True,
+    )
+    if solo_deuda:
+        q = q.filter(CuentaCorriente.saldo > 0)
+    return q.order_by(CuentaCorriente.fecha_vencimiento).all()
+
+
 # --- 16 Workflow Steps ---
 
 WORKFLOW_STEPS = {

@@ -3,11 +3,12 @@ import { useAuthStore } from '../../store/auth';
 import MenuSearch from './MenuSearch';
 import {
   IconDashboard, IconAdministracion, IconSeguridad, IconAuditoria,
-  IconIngresos, IconTesoreria, IconEmisiones, IconComunicacion,
+  IconIngresos, IconTesoreria, IconEmisiones, IconComunicacion, IconContribuyente360,
 } from '../common/icons';
 
 const menuItems = [
   { path: '/', label: 'Dashboard', Icon: IconDashboard },
+  { path: '/contribuyente-360', label: 'Contribuyente 360', module: 'ingresos_publicos', Icon: IconContribuyente360 },
   { path: '/administracion', label: 'Administración', module: 'administracion', Icon: IconAdministracion },
   { path: '/ingresos-publicos', label: 'Ingresos Públicos', module: 'ingresos_publicos', Icon: IconIngresos },
   { path: '/emisiones', label: 'Emisiones', module: 'emisiones', Icon: IconEmisiones },

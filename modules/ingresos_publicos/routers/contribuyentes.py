@@ -14,7 +14,7 @@ from database import get_db
 from config import get_settings
 from services.contribuyente_service import ContribuyenteService
 from models.contribuyente import Contribuyente
-from schemas.contribuyente import ContribuyenteCreate, ContribuyenteUpdate, ContribuyenteResponse
+from schemas.contribuyente import ContribuyenteCreate, ContribuyenteUpdate, ContribuyenteResponse, ContribuyenteBusqueda
 
 settings = get_settings()
 get_current_user = create_auth_dependency(settings.seguridad_url)
@@ -33,6 +33,16 @@ def list_contribuyentes(
     query = db.query(Contribuyente)
     query = filtered_query(query, Contribuyente, dict(request.query_params), exclude={'skip', 'limit'})
     return query.offset(skip).limit(limit).all()
+
+
+@router.get("/search", response_model=List[ContribuyenteBusqueda])
+def search_contribuyentes(
+    q: str = Query(..., min_length=2, description="CUIL, DNI o nombre/apellido"),
+    limit: int = Query(20, ge=1, le=50),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    return ContribuyenteService(db).search(q, limit)
 
 
 @router.get("/{id}", response_model=ContribuyenteResponse)

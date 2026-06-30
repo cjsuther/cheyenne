@@ -31,3 +31,15 @@ class ContribuyenteResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ContribuyenteBusqueda(BaseModel):
+    """Resultado del buscador 360: contribuyente + datos de su persona."""
+    id: int
+    id_persona: int
+    id_tipo_persona: int
+    numero_documento: str
+    nombre: Optional[str] = None
+    apellido: Optional[str] = None
+    denominacion: Optional[str] = None
+    nombre_completo: str
