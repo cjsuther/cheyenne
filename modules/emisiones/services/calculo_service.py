@@ -138,7 +138,11 @@ class CalculoService:
                     a_pagar=linea["a_pagar"],
                     monto_final=linea["a_pagar"],
                     estado="calculada",
-                    detalle_calculo=linea,
+                    detalle_calculo={
+                        "tasa": linea["tasa"], "subtasa": linea["subtasa"],
+                        "formula": linea["formula"], "vencimiento": linea["vencimiento"],
+                        "a_cancelar": float(linea["a_cancelar"]), "a_pagar": float(linea["a_pagar"]),
+                    },
                 ))
                 creadas += 1
             monto_total += r["monto_a_pagar"]

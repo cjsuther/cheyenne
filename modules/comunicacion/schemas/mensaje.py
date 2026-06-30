@@ -13,7 +13,13 @@ class MensajeCreate(BaseModel):
 
 
 class MensajeUpdate(BaseModel):
+    id_tipo_mensaje: Optional[int] = None
+    id_canal: Optional[int] = None
+    id_prioridad: Optional[int] = None
     id_estado_mensaje: Optional[int] = None
+    identificador: Optional[str] = None
+    titulo: Optional[str] = None
+    cuerpo: Optional[str] = None
 
 
 class MensajeResponse(BaseModel):

@@ -73,3 +73,14 @@ def update_mensaje(
 ):
     service = MensajeService(db)
     return service.modify(id, data.model_dump(exclude_unset=True))
+
+
+@router.delete("/{id}")
+def delete_mensaje(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    service = MensajeService(db)
+    service.remove(id)
+    return {"message": f"Mensaje {id} eliminado"}

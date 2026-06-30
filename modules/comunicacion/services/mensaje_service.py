@@ -52,6 +52,12 @@ class MensajeService:
         self.db.refresh(mensaje)
         return mensaje
 
+    def remove(self, id: int):
+        # Mensaje no tiene campo `activo`: se borra físicamente (es transitorio).
+        mensaje = self.find_by_id(id)
+        self.db.delete(mensaje)
+        self.db.commit()
+
     def count(
         self,
         id_tipo_mensaje: Optional[int] = None,

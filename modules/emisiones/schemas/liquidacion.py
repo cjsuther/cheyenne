@@ -12,6 +12,12 @@ class LiquidacionResponse(BaseModel):
     tipo: str
     periodo: Optional[str] = None
     cuota: Optional[int] = None
+    id_tasa: Optional[int] = None
+    id_sub_tasa: Optional[int] = None
+    fort_numero: Optional[int] = None
+    numero_vencimiento: Optional[int] = None
+    a_cancelar: Optional[Decimal] = None
+    a_pagar: Optional[Decimal] = None
     base_imponible: Optional[Decimal] = None
     alicuota: Optional[Decimal] = None
     monto_calculado: Optional[Decimal] = None
