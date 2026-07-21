@@ -40,8 +40,8 @@ def list_mensajes(
         query = query.filter(Mensaje.id_estado_mensaje == id_estado_mensaje)
     if id_canal is not None:
         query = query.filter(Mensaje.id_canal == id_canal)
-    query = filtered_query(query, Mensaje, dict(request.query_params), exclude={'skip', 'limit', 'id_tipo_mensaje', 'id_estado_mensaje', 'id_canal'})
-    return query.order_by(Mensaje.id.desc()).offset(skip).limit(limit).all()
+    query = filtered_query(query, Mensaje, dict(request.query_params), exclude={'skip', 'limit', 'id_tipo_mensaje', 'id_estado_mensaje', 'id_canal'}, default_sort='id', default_dir='desc')
+    return query.offset(skip).limit(limit).all()
 
 
 @router.get("/{id}", response_model=MensajeResponse)

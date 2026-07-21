@@ -30,8 +30,8 @@ def list_recaudadoras(
     current_user: dict = Depends(get_current_user),
 ):
     query = db.query(Recaudadora)
-    query = filtered_query(query, Recaudadora, dict(request.query_params), exclude={'skip', 'limit'})
-    return query.order_by(Recaudadora.orden).offset(skip).limit(limit).all()
+    query = filtered_query(query, Recaudadora, dict(request.query_params), exclude={'skip', 'limit'}, default_sort='orden')
+    return query.offset(skip).limit(limit).all()
 
 
 @router.get("/{id}", response_model=RecaudadoraResponse)

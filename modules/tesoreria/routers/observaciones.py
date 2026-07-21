@@ -36,8 +36,8 @@ def list_observaciones(
         db.query(Observacion)
         .filter(Observacion.entidad == entidad, Observacion.id_entidad == id_entidad)
     )
-    query = filtered_query(query, Observacion, dict(request.query_params), exclude={'skip', 'limit', 'entidad', 'id_entidad'})
-    return query.order_by(Observacion.fecha.desc()).offset(skip).limit(limit).all()
+    query = filtered_query(query, Observacion, dict(request.query_params), exclude={'skip', 'limit', 'entidad', 'id_entidad'}, default_sort='fecha', default_dir='desc')
+    return query.offset(skip).limit(limit).all()
 
 
 @router.post("", response_model=ObservacionResponse, status_code=201)

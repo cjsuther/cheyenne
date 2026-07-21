@@ -1,4 +1,34 @@
-export default function DataTable({ columns, data, onRowClick }) {
+import { useState, useMemo } from 'react';
+
+export default function DataTable({ columns, data, onRowClick, sort, onSort }) {
+  // Modo cliente: si el contenedor no controla el orden (no pasa onSort),
+  // DataTable ordena localmente los datos ya cargados. Default: por id ascendente.
+  const [localSort, setLocalSort] = useState({ by: 'id', dir: 'asc' });
+  const serverMode = !!onSort;
+  const effSort = serverMode ? sort : localSort;
+  const effOnSort = serverMode ? onSort : (key) => setLocalSort((prev) => prev.by === key
+    ? { by: key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+    : { by: key, dir: 'asc' });
+
+  const sortedData = useMemo(() => {
+    if (serverMode || !data || !effSort?.by) return data;
+    const { by, dir } = effSort;
+    const arr = [...data];
+    arr.sort((ra, rb) => {
+      const a = ra[by], b = rb[by];
+      if (a == null && b == null) return 0;
+      if (a == null) return 1;
+      if (b == null) return -1;
+      const r = (typeof a === 'number' && typeof b === 'number')
+        ? a - b
+        : String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+      return dir === 'desc' ? -r : r;
+    });
+    return arr;
+  }, [data, serverMode, effSort]);
+
+  data = sortedData;
+
   if (!data || data.length === 0) {
     return (
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
@@ -17,14 +47,28 @@ export default function DataTable({ columns, data, onRowClick }) {
       <table className="min-w-full text-left">
         <thead>
           <tr className="border-b border-gray-100">
-            {columns.map((col) => (
-              <th
-                key={col.key}
-                className="px-4 sm:px-6 py-3 bg-gray-50/70 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap first:rounded-tl-2xl last:rounded-tr-2xl"
-              >
-                {col.label}
-              </th>
-            ))}
+            {columns.map((col) => {
+              const sortKey = col.sortKey || col.key;
+              const sortable = col.sortable !== false && col.key !== '_actions';
+              const active = effSort && effSort.by === sortKey;
+              return (
+                <th
+                  key={col.key}
+                  onClick={sortable ? () => effOnSort(sortKey) : undefined}
+                  className={`px-4 sm:px-6 py-3 bg-gray-50/70 text-xs font-semibold uppercase tracking-wider whitespace-nowrap first:rounded-tl-2xl last:rounded-tr-2xl ${active ? 'text-primary-600' : 'text-gray-500'} ${sortable ? 'cursor-pointer select-none hover:bg-gray-100' : ''}`}
+                  title={sortable ? 'Ordenar por esta columna' : undefined}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    {col.label}
+                    {sortable && (
+                      <span className={`text-[10px] ${active ? 'text-primary-600' : 'text-gray-300'}`}>
+                        {active ? (effSort.dir === 'desc' ? '▼' : '▲') : '↕'}
+                      </span>
+                    )}
+                  </span>
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-50">

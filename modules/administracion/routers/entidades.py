@@ -33,8 +33,8 @@ def list_entidades(
     query = db.query(Entidad)
     if tipo:
         query = query.filter(Entidad.tipo == tipo)
-    query = filtered_query(query, Entidad, dict(request.query_params), exclude={'skip', 'limit', 'tipo'})
-    return query.order_by(Entidad.orden).offset(skip).limit(limit).all()
+    query = filtered_query(query, Entidad, dict(request.query_params), exclude={'skip', 'limit', 'tipo'}, default_sort='orden')
+    return query.offset(skip).limit(limit).all()
 
 
 @router.get("/{id}", response_model=EntidadResponse)

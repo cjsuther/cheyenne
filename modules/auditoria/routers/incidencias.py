@@ -44,8 +44,8 @@ def list_incidencias(
         query = query.filter(Incidencia.fecha >= fecha_desde)
     if fecha_hasta:
         query = query.filter(Incidencia.fecha <= fecha_hasta)
-    query = filtered_query(query, Incidencia, dict(request.query_params), exclude={'skip', 'limit', 'id_tipo_incidencia', 'id_nivel_criticidad', 'fecha_desde', 'fecha_hasta'})
-    return query.order_by(Incidencia.id.desc()).offset(skip).limit(limit).all()
+    query = filtered_query(query, Incidencia, dict(request.query_params), exclude={'skip', 'limit', 'id_tipo_incidencia', 'id_nivel_criticidad', 'fecha_desde', 'fecha_hasta'}, default_sort='id', default_dir='desc')
+    return query.offset(skip).limit(limit).all()
 
 
 @router.get("/{id}", response_model=IncidenciaResponse)

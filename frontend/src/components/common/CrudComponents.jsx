@@ -210,7 +210,15 @@ export function CrudTab({ queryKey, apiFns, columns, formFields, entityName, wid
   const [page, setPage] = useState(0);
   const [filterInputs, setFilterInputs] = useState({});
   const [filters, setFilters] = useState({});
+  const [sort, setSort] = useState({ by: 'id', dir: 'asc' });
   const queryClient = useQueryClient();
+
+  const handleSort = (key) => {
+    setPage(0);
+    setSort((prev) => prev.by === key
+      ? { by: key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+      : { by: key, dir: 'asc' });
+  };
 
   // Debounce filtros: aplica después de 400ms y resetea a página 0
   useEffect(() => {
@@ -224,8 +232,8 @@ export function CrudTab({ queryKey, apiFns, columns, formFields, entityName, wid
   }, [filterInputs]);
 
   const { data, isLoading } = useQuery({
-    queryKey: [queryKey, page, filters],
-    queryFn: () => apiFns.list({ skip: page * PAGE_SIZE, limit: PAGE_SIZE, ...filters }).then((r) => r.data),
+    queryKey: [queryKey, page, filters, sort],
+    queryFn: () => apiFns.list({ skip: page * PAGE_SIZE, limit: PAGE_SIZE, ...filters, sort_by: sort.by, sort_dir: sort.dir }).then((r) => r.data),
   });
 
   const deleteMutation = useMutation({
@@ -325,7 +333,7 @@ export function CrudTab({ queryKey, apiFns, columns, formFields, entityName, wid
         <button className={btnPrimary} onClick={() => setModal('create')}>Nuevo {entityName}</button>
       </div>
       <FilterRow columns={allColumns} filterInputs={filterInputs} setFilterInputs={setFilterInputs} />
-      {isLoading ? <LoadingSpinner /> : <DataTable columns={allColumns} data={data} />}
+      {isLoading ? <LoadingSpinner /> : <DataTable columns={allColumns} data={data} sort={sort} onSort={handleSort} />}
       <Pagination page={page} setPage={setPage} dataLength={data?.length} pageSize={PAGE_SIZE} />
       {(modal === 'create' || modal?.mode === 'edit') && (
         <CrudFormModal

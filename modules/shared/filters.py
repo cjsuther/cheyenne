@@ -17,10 +17,43 @@ Uso en routers:
 
 from sqlalchemy import String, Integer, BigInteger, Numeric, Boolean
 
+# Claves de control que nunca son filtros de columna
+_CONTROL_KEYS = {'skip', 'limit', 'sort_by', 'sort_dir'}
 
-def filtered_query(query, model, params: dict, exclude: set = None):
-    """Aplica filtros genéricos por columna desde query params a un query SQLAlchemy."""
-    skip_keys = {'skip', 'limit'} | (exclude or set())
+
+def _valid_column(model, name):
+    """Devuelve la columna del modelo si `name` es una columna real, si no None."""
+    if not name:
+        return None
+    col = getattr(model, name, None)
+    if col is None or not hasattr(col, 'type'):
+        return None
+    return col
+
+
+def apply_order(query, model, params: dict, default_sort: str = 'id', default_dir: str = 'asc'):
+    """Ordena el query según `sort_by`/`sort_dir` de los query params.
+
+    Si `sort_by` no es una columna válida, cae al `default_sort` del endpoint y,
+    en última instancia, a `id`. Resetea cualquier orden previo para ser autoritativo.
+    """
+    p = params or {}
+    sort_by = p.get('sort_by')
+    sort_dir = (p.get('sort_dir') or default_dir or 'asc').lower()
+    col = _valid_column(model, sort_by) or _valid_column(model, default_sort) or _valid_column(model, 'id')
+    if col is None:
+        return query
+    query = query.order_by(None)
+    return query.order_by(col.desc() if sort_dir == 'desc' else col.asc())
+
+
+def filtered_query(query, model, params: dict, exclude: set = None,
+                   default_sort: str = 'id', default_dir: str = 'asc'):
+    """Aplica filtros genéricos por columna + ordenamiento desde query params.
+
+    Ordena por `sort_by`/`sort_dir` si vienen; si no, por `default_sort` (por defecto `id`).
+    """
+    skip_keys = _CONTROL_KEYS | (exclude or set())
     for key, value in params.items():
         if key in skip_keys or not value:
             continue
@@ -43,4 +76,4 @@ def filtered_query(query, model, params: dict, exclude: set = None):
                 pass
         elif isinstance(col_type, Boolean):
             query = query.filter(col == (value.lower() in ('true', '1', 'si')))
-    return query
+    return apply_order(query, model, params, default_sort, default_dir)
