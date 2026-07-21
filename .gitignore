@@ -37,3 +37,6 @@ reference-repo/
 # Internal tooling / local config
 .claude/
 generate_perfil.py
+
+# Análisis del sistema legacy (VB6+SQLServer) — NO versionar (archivos enormes)
+legacy/

@@ -230,10 +230,10 @@ function WorkflowModal({ emision, onClose }) {
 
           {resumen?.lineas > 0 && (
             <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-              <h4 className="text-sm font-semibold text-gray-700 mb-2">Totalizador del c\u00e1lculo</h4>
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">Totalizador del cálculo</h4>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                 <div><p className="text-xs text-gray-500">Cuentas</p><p className="font-bold">{resumen.cuentas}</p></div>
-                <div><p className="text-xs text-gray-500">L\u00edneas</p><p className="font-bold">{resumen.lineas}</p></div>
+                <div><p className="text-xs text-gray-500">Líneas</p><p className="font-bold">{resumen.lineas}</p></div>
                 <div><p className="text-xs text-gray-500">Total a cancelar</p><p className="font-bold">{fmtMoney(resumen.total_a_cancelar)}</p></div>
                 <div><p className="text-xs text-gray-500">Total a pagar</p><p className="font-bold text-primary-700">{fmtMoney(resumen.total_a_pagar)}</p></div>
               </div>
