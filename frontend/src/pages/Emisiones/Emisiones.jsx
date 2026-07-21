@@ -21,6 +21,7 @@ function WorkflowModal({ emision, onClose }) {
   const [approvalNote, setApprovalNote] = useState('');
   const [refId, setRefId] = useState('');
   const [cuentasPrueba, setCuentasPrueba] = useState('');
+  const [directorio, setDirectorio] = useState('');
   const [criterioOrd, setCriterioOrd] = useState(['codigo_postal', 'barrio', 'calle', 'numero']);
   const [editParams, setEditParams] = useState({
     fecha_desde: (emision.fecha_desde || '').slice(0, 10),
@@ -93,6 +94,9 @@ function WorkflowModal({ emision, onClose }) {
     if (step.key === 'ordenamiento_prueba' || step.key === 'ordenamiento_general') {
       data.criterio = ['codigo_postal', 'barrio', 'calle', 'numero'].filter((k) => criterioOrd.includes(k)).join(',');
     }
+    if (step.key === 'impresion_prueba' || step.key === 'impresion_general') {
+      if (directorio) data.directorio = directorio;
+    }
     actionMutation.mutate({ numero: step.numero, data });
   };
 
@@ -138,6 +142,15 @@ function WorkflowModal({ emision, onClose }) {
         <input type="text" value={cuentasPrueba} onChange={(e) => setCuentasPrueba(e.target.value)} placeholder="ej: 1, 2, 13" className={inputClass} />
       </Field>
     );
+    if (step.key === 'impresion_prueba' || step.key === 'impresion_general') {
+      const def = `/output/pdf/emision_${emision.id}/${step.key === 'impresion_prueba' ? 'prueba' : 'final'}`;
+      return (
+        <Field label="Directorio de salida de los recibos (PDF)">
+          <input type="text" value={directorio} onChange={(e) => setDirectorio(e.target.value)} placeholder={def} className={inputClass} />
+          <p className="text-xs text-gray-400 mt-1">Si lo dejás vacío usa: {def}</p>
+        </Field>
+      );
+    }
     if (step.tipo === 'aprobacion') return (
       <Field label="Observación">
         <input type="text" value={approvalNote} onChange={(e) => setApprovalNote(e.target.value)} placeholder="Observación opcional..." className={inputClass} />
