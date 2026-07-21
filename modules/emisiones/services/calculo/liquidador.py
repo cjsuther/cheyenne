@@ -106,7 +106,12 @@ class Liquidador:
                 a_cancelar = _fmt2(evaluar(ac_txt, ctx)) if ac_txt else Decimal("0.00")
                 # el aPagar del vencimiento puede referenciar el aCancelar recién calculado
                 ctx.variables[f"K_ACANCELAR{n}"] = a_cancelar
-                a_pagar = _fmt2(evaluar(ap_txt, ctx)) if ap_txt else Decimal("0.00")
+                # aPagar vacío con aCancelar cargado ⇒ el recibo cobra lo que se cancela
+                # (comportamiento estándar: lo que debés = lo que pagás al vencimiento)
+                if ap_txt:
+                    a_pagar = _fmt2(evaluar(ap_txt, ctx))
+                else:
+                    a_pagar = a_cancelar
                 ctx.variables[f"K_APAGAR{n}"] = a_pagar
                 cuotas.append(CuotaVencimiento(numero=n, a_cancelar=a_cancelar, a_pagar=a_pagar))
                 vals[n] = a_cancelar          # idx 1..4 = aCancelar
