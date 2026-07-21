@@ -35,6 +35,7 @@ function WorkflowModal({ emision, onClose }) {
   });
   const setEP = (k) => (e) => setEditParams((p) => ({ ...p, [k]: e.target.value }));
   const [actionError, setActionError] = useState('');
+  const [reejecutar, setReejecutar] = useState(null); // numero de paso completado que se está reejecutando
   const queryClient = useQueryClient();
 
   const { data: estadoData, isLoading } = useQuery({
@@ -88,7 +89,7 @@ function WorkflowModal({ emision, onClose }) {
   const actionMutation = useMutation({
     mutationFn: ({ numero, data }) => emisionesAPI.emisiones.ejecutarPaso(emision.id, numero, data),
     onSuccess: () => {
-      setActionError(''); setApprovalNote('');
+      setActionError(''); setApprovalNote(''); setReejecutar(null);
       queryClient.invalidateQueries({ queryKey: ['emisiones-estado', emision.id] });
       queryClient.invalidateQueries({ queryKey: ['emisiones-liquidaciones', emision.id] });
       queryClient.invalidateQueries({ queryKey: ['emisiones-cuentacorriente', emision.id] });
@@ -197,28 +198,35 @@ function WorkflowModal({ emision, onClose }) {
               {definicion.map((step) => {
                 const done = step.numero <= pasoActual;
                 const current = step.numero === pasoActual + 1;
-                const bloqueado = current && !step.puede_ejecutar;
-                const input = current && !bloqueado ? renderStepInput(step) : null;
+                const reejec = done && reejecutar === step.numero;   // paso completado en modo reejecuci\u00f3n
+                const bloqueado = (current || reejec) && !step.puede_ejecutar;
+                const expandido = current || reejec;
+                const input = expandido && !bloqueado ? renderStepInput(step) : null;
                 return (
-                  <div key={step.numero} className={`rounded-lg text-sm ${done ? 'bg-green-50 text-green-800' : current ? 'bg-primary-50 text-primary-900 ring-1 ring-primary-300' : 'bg-gray-50 text-gray-400'}`}>
+                  <div key={step.numero} className={`rounded-lg text-sm ${reejec ? 'bg-amber-50 text-amber-900 ring-1 ring-amber-300' : done ? 'bg-green-50 text-green-800' : current ? 'bg-primary-50 text-primary-900 ring-1 ring-primary-300' : 'bg-gray-50 text-gray-400'}`}>
                     <div className="flex items-center gap-3 px-3 py-2">
                       <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${done ? 'bg-green-500 text-white' : current ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-500'}`}>{done ? '\u2713' : step.numero}</span>
                       <div className="flex-1 min-w-0">
-                        <p className={`font-medium ${current ? '' : 'truncate'}`}>{step.numero}. {step.nombre}</p>
-                        {current && <p className="text-xs text-gray-600">{step.descripcion}</p>}
+                        <p className={`font-medium ${expandido ? '' : 'truncate'}`}>{step.numero}. {step.nombre}</p>
+                        {expandido && <p className="text-xs text-gray-600">{step.descripcion}</p>}
                       </div>
                       {step.tipo === 'aprobacion' && <span className="text-[10px] uppercase tracking-wide text-amber-600 shrink-0">aprob.</span>}
+                      {done && !reejec && step.puede_ejecutar && (
+                        <button className="text-[11px] text-green-700 hover:text-green-900 underline shrink-0" onClick={() => { setActionError(''); setReejecutar(step.numero); }}>Reejecutar</button>
+                      )}
                       {current && !input && (
                         bloqueado
                           ? <span className="text-[11px] text-red-500 shrink-0" title={`Requiere permiso ${step.permiso}`}>sin permiso</span>
                           : <button className="bg-primary-600 hover:bg-primary-700 text-white px-3 py-1 rounded text-xs font-medium shrink-0" onClick={() => handleAction(step)} disabled={actionMutation.isPending}>{actionMutation.isPending ? '...' : step.tipo === 'aprobacion' ? 'Aprobar' : 'Ejecutar'}</button>
                       )}
                     </div>
-                    {current && input && (
+                    {expandido && (input || reejec) && (
                       <div className="px-3 pb-3 space-y-2">
+                        {reejec && <p className="text-[11px] text-amber-700">Vas a reejecutar un paso ya completado. Esto recalcula/regenera sus resultados.</p>}
                         {input}
-                        <div className="flex justify-end">
-                          <button className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-1.5 rounded text-xs font-medium" onClick={() => handleAction(step)} disabled={actionMutation.isPending}>{actionMutation.isPending ? 'Procesando...' : step.tipo === 'aprobacion' ? 'Aprobar' : 'Ejecutar'}</button>
+                        <div className="flex justify-end gap-2">
+                          {reejec && <button className="bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded text-xs font-medium" onClick={() => setReejecutar(null)} disabled={actionMutation.isPending}>Cancelar</button>}
+                          <button className={`text-white px-4 py-1.5 rounded text-xs font-medium ${reejec ? 'bg-amber-600 hover:bg-amber-700' : 'bg-primary-600 hover:bg-primary-700'}`} onClick={() => handleAction(step)} disabled={actionMutation.isPending}>{actionMutation.isPending ? 'Procesando...' : reejec ? 'Reejecutar' : step.tipo === 'aprobacion' ? 'Aprobar' : 'Ejecutar'}</button>
                         </div>
                       </div>
                     )}
