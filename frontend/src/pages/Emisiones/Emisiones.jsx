@@ -7,25 +7,6 @@ import { CrudTab, Modal, Field, inputClass, btnPrimary } from '../../components/
 const fmtDate = (v) => (v ? new Date(v).toLocaleDateString() : '');
 const fmtMoney = (v) => `$${Number(v || 0).toFixed(2)}`;
 
-const WORKFLOW_STEPS = [
-  { num: 1, label: 'Validar Parametros', apiKey: 'paso1' },
-  { num: 2, label: 'Cargar Padron', apiKey: 'paso2', needsData: true },
-  { num: 3, label: 'Validar Padron', apiKey: 'paso3' },
-  { num: 4, label: 'Calcular Base Imponible', apiKey: 'paso4' },
-  { num: 5, label: 'Aplicar Alicuotas', apiKey: 'paso5' },
-  { num: 6, label: 'Calcular Bonificaciones', apiKey: 'paso6' },
-  { num: 7, label: 'Calcular Recargos', apiKey: 'paso7' },
-  { num: 8, label: 'Generar Liquidaciones', apiKey: 'paso8' },
-  { num: 9, label: 'Validar Liquidaciones', apiKey: 'paso9', approval: true },
-  { num: 10, label: 'Generar Ordenamiento', apiKey: 'paso10' },
-  { num: 11, label: 'Generar Cuentas Corrientes', apiKey: 'paso11' },
-  { num: 12, label: 'Generar Comprobantes', apiKey: 'paso12' },
-  { num: 13, label: 'Imputacion Contable', apiKey: 'paso13' },
-  { num: 14, label: 'Publicar Deuda', apiKey: 'paso14' },
-  { num: 15, label: 'Solicitar Aprobacion', apiKey: 'paso15' },
-  { num: 16, label: 'Aprobar Emision', apiKey: 'paso16', approval: true },
-];
-
 const estadoColors = {
   borrador: 'bg-gray-100 text-gray-800', en_proceso: 'bg-blue-100 text-blue-800',
   completado: 'bg-green-100 text-green-800', finalizada: 'bg-green-100 text-green-800',
@@ -38,6 +19,7 @@ function EstadoBadge({ estado }) {
 
 function WorkflowModal({ emision, onClose }) {
   const [approvalNote, setApprovalNote] = useState('');
+  const [refId, setRefId] = useState('');
   const [actionError, setActionError] = useState('');
   const queryClient = useQueryClient();
 
@@ -52,28 +34,25 @@ function WorkflowModal({ emision, onClose }) {
   const { data: liquidaciones } = useQuery({
     queryKey: ['emisiones-liquidaciones', emision.id, pasoActual],
     queryFn: () => emisionesAPI.emisiones.liquidaciones(emision.id, { limit: 200 }).then((r) => r.data),
-    enabled: pasoActual >= 8,
+    enabled: pasoActual >= 3,
   });
   const totalAPagar = (liquidaciones ?? []).reduce((s, l) => s + Number(l.a_pagar || 0), 0);
 
   const { data: ctaCte } = useQuery({
     queryKey: ['emisiones-cuentacorriente', emision.id, pasoActual],
     queryFn: () => emisionesAPI.emisiones.cuentaCorriente(emision.id, { limit: 200 }).then((r) => r.data),
-    enabled: pasoActual >= 11,
+    enabled: pasoActual >= 16,
   });
   const totalDeuda = (ctaCte ?? []).reduce((s, c) => s + Number(c.saldo || 0), 0);
 
   const { data: comprobantes } = useQuery({
     queryKey: ['emisiones-comprobantes', emision.id, pasoActual],
     queryFn: () => emisionesAPI.emisiones.comprobantes(emision.id, { limit: 200 }).then((r) => r.data),
-    enabled: pasoActual >= 12,
+    enabled: pasoActual >= 8,
   });
 
   const actionMutation = useMutation({
-    mutationFn: ({ apiKey, data }) => {
-      const fn = emisionesAPI.emisiones[apiKey];
-      return data !== undefined ? fn(emision.id, data) : fn(emision.id);
-    },
+    mutationFn: ({ numero, data }) => emisionesAPI.emisiones.ejecutarPaso(emision.id, numero, data),
     onSuccess: () => {
       setActionError(''); setApprovalNote('');
       queryClient.invalidateQueries({ queryKey: ['emisiones-estado', emision.id] });
@@ -82,18 +61,18 @@ function WorkflowModal({ emision, onClose }) {
       queryClient.invalidateQueries({ queryKey: ['emisiones-comprobantes', emision.id] });
       queryClient.invalidateQueries({ queryKey: ['emi-emisiones'] });
     },
-    onError: (e) => setActionError(e.response?.data?.detail || 'Error al ejecutar accion'),
+    onError: (e) => setActionError(e.response?.data?.detail || 'Error al ejecutar el paso'),
   });
 
   const handleAction = (step) => {
-    if (step.approval) {
-      actionMutation.mutate({ apiKey: step.apiKey, data: { aprobado: true, observaciones: approvalNote } });
-    } else if (step.needsData) {
-      actionMutation.mutate({ apiKey: step.apiKey, data: {} });
-    } else {
-      actionMutation.mutate({ apiKey: step.apiKey });
-    }
+    const data = {};
+    if (step.tipo === 'aprobacion') { data.aprobado = true; data.observaciones = approvalNote; }
+    if (step.numero === 1) { data.id_referencia = Number(refId) || null; }
+    actionMutation.mutate({ numero: step.numero, data });
   };
+
+  const definicion = estadoData?.definicion ?? [];
+  const totalPasos = estadoData?.total_pasos ?? 16;
 
   return (
     <Modal title={`Emision #${emision.id} - Workflow`} onClose={onClose} wide>
@@ -106,29 +85,43 @@ function WorkflowModal({ emision, onClose }) {
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">Progreso ({pasoActual}/16)</h4>
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">Progreso ({pasoActual}/{totalPasos})</h4>
             <div className="space-y-1">
-              {WORKFLOW_STEPS.map((step) => {
-                const done = step.num <= pasoActual;
-                const current = step.num === pasoActual + 1;
+              {definicion.map((step) => {
+                const done = step.numero <= pasoActual;
+                const current = step.numero === pasoActual + 1;
+                const bloqueado = current && !step.puede_ejecutar;
                 return (
-                  <div key={step.num} className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${done ? 'bg-green-50 text-green-800' : current ? 'bg-primary-50 text-primary-800 ring-1 ring-primary-300' : 'bg-gray-50 text-gray-400'}`}>
-                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${done ? 'bg-green-500 text-white' : current ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-500'}`}>{done ? '\u2713' : step.num}</span>
-                    <span className="flex-1 truncate">{step.num}. {step.label}</span>
-                    {current && <button className="bg-primary-600 hover:bg-primary-700 text-white px-3 py-1 rounded text-xs font-medium shrink-0" onClick={() => handleAction(step)} disabled={actionMutation.isPending}>{actionMutation.isPending ? '...' : step.approval ? 'Aprobar' : 'Ejecutar'}</button>}
+                  <div key={step.numero} className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${done ? 'bg-green-50 text-green-800' : current ? 'bg-primary-50 text-primary-800 ring-1 ring-primary-300' : 'bg-gray-50 text-gray-400'}`}>
+                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${done ? 'bg-green-500 text-white' : current ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-500'}`}>{done ? '\u2713' : step.numero}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="truncate font-medium">{step.numero}. {step.nombre}</p>
+                      {current && <p className="text-xs text-gray-500 truncate">{step.descripcion}</p>}
+                    </div>
+                    {step.tipo === 'aprobacion' && <span className="text-[10px] uppercase tracking-wide text-amber-600 shrink-0">aprob.</span>}
+                    {current && (
+                      bloqueado
+                        ? <span className="text-[11px] text-red-500 shrink-0" title={`Requiere permiso ${step.permiso}`}>sin permiso</span>
+                        : <button className="bg-primary-600 hover:bg-primary-700 text-white px-3 py-1 rounded text-xs font-medium shrink-0" onClick={() => handleAction(step)} disabled={actionMutation.isPending}>{actionMutation.isPending ? '...' : step.tipo === 'aprobacion' ? 'Aprobar' : 'Ejecutar'}</button>
+                    )}
                   </div>
                 );
               })}
             </div>
           </div>
 
-          {WORKFLOW_STEPS[pasoActual]?.approval && (
-            <Field label="Observacion"><input type="text" value={approvalNote} onChange={(e) => setApprovalNote(e.target.value)} placeholder="Observacion opcional..." className={inputClass} /></Field>
+          {definicion[pasoActual]?.numero === 1 && (
+            <Field label="Emisi\u00f3n de referencia (ID) \u2014 para importar sus par\u00e1metros">
+              <input type="number" value={refId} onChange={(e) => setRefId(e.target.value)} placeholder="ID de la emisi\u00f3n anterior" className={inputClass} />
+            </Field>
+          )}
+          {definicion[pasoActual]?.tipo === 'aprobacion' && (
+            <Field label="Observaci\u00f3n"><input type="text" value={approvalNote} onChange={(e) => setApprovalNote(e.target.value)} placeholder="Observaci\u00f3n opcional..." className={inputClass} /></Field>
           )}
 
           {actionError && <p className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded">{actionError}</p>}
 
-          {pasoActual >= 8 && (
+          {pasoActual >= 3 && (
             <div>
               <div className="flex items-center justify-between mb-2">
                 <h4 className="text-sm font-semibold text-gray-700">Liquidaciones ({liquidaciones?.length || 0})</h4>
@@ -162,7 +155,7 @@ function WorkflowModal({ emision, onClose }) {
             </div>
           )}
 
-          {pasoActual >= 11 && (
+          {pasoActual >= 16 && (
             <div>
               <div className="flex items-center justify-between mb-2">
                 <h4 className="text-sm font-semibold text-gray-700">Cuenta corriente ({ctaCte?.length || 0})</h4>
@@ -193,7 +186,7 @@ function WorkflowModal({ emision, onClose }) {
             </div>
           )}
 
-          {pasoActual >= 12 && (
+          {pasoActual >= 8 && (
             <div>
               <h4 className="text-sm font-semibold text-gray-700 mb-2">Comprobantes / Recibos ({comprobantes?.length || 0})</h4>
               {comprobantes?.length > 0 ? (

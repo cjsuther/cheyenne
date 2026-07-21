@@ -217,6 +217,7 @@ export const emisionesAPI = {
   emisiones: {
     ...crud('/emisiones/emisiones'),
     estado: (id) => api.get(`/emisiones/emisiones/${id}/estado`),
+    ejecutarPaso: (id, numero, data) => api.post(`/emisiones/emisiones/${id}/pasos/${numero}/ejecutar`, data || {}),
     liquidaciones: (id, params) => api.get(`/emisiones/emisiones/${id}/liquidaciones`, { params }),
     cuentaCorriente: (id, params) => api.get(`/emisiones/emisiones/${id}/cuenta-corriente`, { params }),
     comprobantes: (id, params) => api.get(`/emisiones/emisiones/${id}/comprobantes`, { params }),

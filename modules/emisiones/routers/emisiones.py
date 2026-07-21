@@ -3,7 +3,7 @@ import os
 from typing import List, Optional
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi import APIRouter, Depends, Query, HTTPException, status, Body
 from sqlalchemy.orm import Session
 from starlette.requests import Request
 
@@ -27,6 +27,8 @@ from services.padron_loader import fetch_padron, items_a_contribuyentes
 from services.ordenamiento_service import OrdenamientoService
 from services.cuenta_corriente_service import CuentaCorrienteService
 from services.comprobante_service import ComprobanteService
+from services.pasos_workflow import PASOS, PASOS_POR_NUMERO, TOTAL_PASOS
+from services.ejecutor_pasos import HANDLERS
 from schemas.emision import (
     EmisionCreate, EmisionUpdate, EmisionResponse,
     ParametrosCalculo, AprobacionRequest, EmisionListResponse,
@@ -127,10 +129,22 @@ def get_estado(
         PasoWorkflow.id_emision == id,
         PasoWorkflow.activo == True,
     ).order_by(PasoWorkflow.numero_paso).all()
+    permisos_usuario = set(p["codigo"] for p in current_user.get("permisos", []))
+    es_super = bool(current_user.get("superuser"))
+    definicion = [
+        {
+            "numero": d["numero"], "key": d["key"], "nombre": d["nombre"],
+            "descripcion": d["descripcion"], "tipo": d["tipo"], "permiso": d["permiso"],
+            "puede_ejecutar": es_super or d["permiso"] in permisos_usuario,
+        }
+        for d in PASOS
+    ]
     return {
         "id": emision.id,
         "estado": emision.estado,
         "paso_actual": emision.paso_actual,
+        "total_pasos": TOTAL_PASOS,
+        "definicion": definicion,
         "pasos": [
             {
                 "numero_paso": p.numero_paso,
@@ -138,10 +152,52 @@ def get_estado(
                 "estado": p.estado,
                 "fecha_inicio": p.fecha_inicio,
                 "fecha_fin": p.fecha_fin,
+                "resultado": p.resultado,
+                "error": p.error,
             }
             for p in pasos
         ],
     }
+
+
+@router.post("/{id}/pasos/{numero}/ejecutar")
+def ejecutar_paso(
+    id: int,
+    numero: int,
+    request: Request,
+    data: dict = Body(default={}),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Ejecuta un paso del workflow. Requiere el permiso de ejecución del paso."""
+    paso = PASOS_POR_NUMERO.get(numero)
+    if not paso:
+        raise HTTPException(status_code=404, detail=f"Paso {numero} inexistente")
+    if not current_user.get("superuser"):
+        permisos = [p["codigo"] for p in current_user.get("permisos", [])]
+        if paso["permiso"] not in permisos:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"No tiene el permiso '{paso['permiso']}' para ejecutar el paso {numero} ({paso['nombre']})",
+            )
+    emision = _validar_paso(db, id, numero)
+    handler = HANDLERS.get(paso["key"])
+    if handler is None:
+        raise HTTPException(status_code=501, detail=f"Paso {numero} sin handler")
+    token = request.headers.get("authorization")
+    try:
+        resultado = handler(db, emision, data or {}, token)
+        emision.paso_actual = max(emision.paso_actual or 0, numero)
+        db.commit()
+        _registrar_paso(db, id, numero, "completado", resultado=str(resultado)[:480],
+                        id_usuario=current_user.get("id"), metadata_paso=(data or None))
+        return {"paso": numero, "nombre": paso["nombre"], "estado": "completado", "resultado": resultado}
+    except HTTPException:
+        db.rollback(); raise
+    except Exception as e:
+        db.rollback()
+        _registrar_paso(db, id, numero, "error", error=str(e), id_usuario=current_user.get("id"))
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 # --- Liquidaciones ---
@@ -260,7 +316,8 @@ def _registrar_paso(db: Session, id_emision: int, numero_paso: int, estado: str,
     paso = PasoWorkflow(
         id_emision=id_emision,
         numero_paso=numero_paso,
-        nombre_paso=WORKFLOW_STEPS.get(numero_paso, f"paso_{numero_paso}"),
+        nombre_paso=(PASOS_POR_NUMERO.get(numero_paso, {}).get("nombre")
+                     or WORKFLOW_STEPS.get(numero_paso, f"paso_{numero_paso}")),
         estado=estado,
         fecha_inicio=datetime.now(timezone.utc),
         fecha_fin=datetime.now(timezone.utc) if estado in ("completado", "error") else None,
