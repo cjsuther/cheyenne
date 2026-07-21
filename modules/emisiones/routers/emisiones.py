@@ -152,6 +152,10 @@ def get_estado(
                 "estado": p.estado,
                 "fecha_inicio": p.fecha_inicio,
                 "fecha_fin": p.fecha_fin,
+                "ejecutado_en": p.fecha_fin or p.fecha_inicio,
+                "id_usuario": p.id_usuario,
+                "usuario_nombre": p.usuario_nombre,
+                "usuario_codigo": p.usuario_codigo,
                 "resultado": p.resultado,
                 "error": p.error,
             }
@@ -185,18 +189,23 @@ def ejecutar_paso(
     if handler is None:
         raise HTTPException(status_code=501, detail=f"Paso {numero} sin handler")
     token = request.headers.get("authorization")
+    quien = dict(
+        id_usuario=current_user.get("id"),
+        usuario_nombre=current_user.get("nombre_apellido"),
+        usuario_codigo=current_user.get("codigo"),
+    )
     try:
         resultado = handler(db, emision, data or {}, token)
         emision.paso_actual = max(emision.paso_actual or 0, numero)
         db.commit()
         _registrar_paso(db, id, numero, "completado", resultado=str(resultado)[:480],
-                        id_usuario=current_user.get("id"), metadata_paso=(data or None))
+                        metadata_paso=(data or None), **quien)
         return {"paso": numero, "nombre": paso["nombre"], "estado": "completado", "resultado": resultado}
     except HTTPException:
         db.rollback(); raise
     except Exception as e:
         db.rollback()
-        _registrar_paso(db, id, numero, "error", error=str(e), id_usuario=current_user.get("id"))
+        _registrar_paso(db, id, numero, "error", error=str(e), **quien)
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -367,7 +376,8 @@ WORKFLOW_STEPS = {
 
 def _registrar_paso(db: Session, id_emision: int, numero_paso: int, estado: str,
                     resultado: str = None, error: str = None, id_usuario: int = None,
-                    metadata_paso: dict = None):
+                    metadata_paso: dict = None, usuario_nombre: str = None,
+                    usuario_codigo: str = None):
     paso = PasoWorkflow(
         id_emision=id_emision,
         numero_paso=numero_paso,
@@ -377,6 +387,8 @@ def _registrar_paso(db: Session, id_emision: int, numero_paso: int, estado: str,
         fecha_inicio=datetime.now(timezone.utc),
         fecha_fin=datetime.now(timezone.utc) if estado in ("completado", "error") else None,
         id_usuario=id_usuario,
+        usuario_nombre=usuario_nombre,
+        usuario_codigo=usuario_codigo,
         resultado=resultado,
         error=error,
         metadata_paso=metadata_paso,

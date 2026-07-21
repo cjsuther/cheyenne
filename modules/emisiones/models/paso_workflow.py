@@ -17,6 +17,8 @@ class PasoWorkflow(Base):
     fecha_inicio = Column(DateTime(timezone=True), nullable=True)
     fecha_fin = Column(DateTime(timezone=True), nullable=True)
     id_usuario = Column(BigInteger, nullable=True)
+    usuario_nombre = Column(String(150), nullable=True)  # nombre_apellido del ejecutor (denormalizado)
+    usuario_codigo = Column(String(50), nullable=True)   # login del ejecutor
     resultado = Column(Text, nullable=True)
     metadata_paso = Column(JSON, nullable=True)
     error = Column(Text, nullable=True)

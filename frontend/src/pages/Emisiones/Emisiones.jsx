@@ -5,6 +5,7 @@ import PageHeader from '../../components/common/PageHeader';
 import { CrudTab, Modal, Field, inputClass, btnPrimary } from '../../components/common/CrudComponents';
 
 const fmtDate = (v) => (v ? new Date(v).toLocaleDateString() : '');
+const fmtDateTime = (v) => (v ? new Date(v).toLocaleString() : '-');
 const fmtMoney = (v) => `$${Number(v || 0).toFixed(2)}`;
 
 const estadoColors = {
@@ -366,8 +367,8 @@ function WorkflowModal({ emision, onClose }) {
           {pasos.length > 0 && (
             <div>
               <h4 className="text-sm font-semibold text-gray-700 mb-2">Historial</h4>
-              <div className="overflow-x-auto"><table className="w-full text-xs"><thead><tr className="border-b text-left text-gray-500"><th className="pb-2 pr-3">#</th><th className="pb-2 pr-3">Nombre</th><th className="pb-2 pr-3">Estado</th><th className="pb-2 pr-3">Fecha</th><th className="pb-2">Obs.</th></tr></thead>
-              <tbody>{pasos.map((p, i) => (<tr key={i} className="border-b border-gray-100"><td className="py-1.5 pr-3">{p.numero_paso}</td><td className="py-1.5 pr-3">{p.nombre_paso}</td><td className="py-1.5 pr-3"><EstadoBadge estado={p.estado} /></td><td className="py-1.5 pr-3">{fmtDate(p.ejecutado_en)}</td><td className="py-1.5 text-gray-500">{p.observaciones || '-'}</td></tr>))}</tbody></table></div>
+              <div className="overflow-x-auto"><table className="w-full text-xs"><thead><tr className="border-b text-left text-gray-500"><th className="pb-2 pr-3">#</th><th className="pb-2 pr-3">Nombre</th><th className="pb-2 pr-3">Estado</th><th className="pb-2 pr-3">Usuario</th><th className="pb-2 pr-3">Fecha de ejecución</th><th className="pb-2">Detalle</th></tr></thead>
+              <tbody>{pasos.map((p, i) => (<tr key={i} className="border-b border-gray-100"><td className="py-1.5 pr-3">{p.numero_paso}</td><td className="py-1.5 pr-3">{p.nombre_paso}</td><td className="py-1.5 pr-3"><EstadoBadge estado={p.estado} /></td><td className="py-1.5 pr-3">{p.usuario_nombre || p.usuario_codigo || (p.id_usuario ? `#${p.id_usuario}` : '-')}{p.usuario_nombre && p.usuario_codigo ? <span className="text-gray-400"> ({p.usuario_codigo})</span> : null}</td><td className="py-1.5 pr-3 whitespace-nowrap">{fmtDateTime(p.ejecutado_en)}</td><td className="py-1.5 text-gray-500 max-w-xs truncate" title={p.error || p.resultado || ''}>{p.error || p.resultado || '-'}</td></tr>))}</tbody></table></div>
             </div>
           )}
         </div>
