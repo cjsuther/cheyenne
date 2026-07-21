@@ -3,6 +3,10 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
+from shared.filters import apply_order
+
 from models.perfil import Perfil
 from models.permiso import Permiso
 
@@ -11,8 +15,9 @@ class PerfilService:
     def __init__(self, db: Session):
         self.db = db
 
-    def list(self, skip: int = 0, limit: int = 100) -> List[Perfil]:
-        return self.db.query(Perfil).offset(skip).limit(limit).all()
+    def list(self, skip: int = 0, limit: int = 100, sort_by: str = None, sort_dir: str = 'asc') -> List[Perfil]:
+        query = apply_order(self.db.query(Perfil), Perfil, {'sort_by': sort_by, 'sort_dir': sort_dir})
+        return query.offset(skip).limit(limit).all()
 
     def count(self) -> int:
         return self.db.query(Perfil).count()

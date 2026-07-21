@@ -70,8 +70,14 @@ function UsuariosTab() {
   const [page, setPage] = useState(0);
   const [filterInputs, setFilterInputs] = useState({});
   const [filters, setFilters] = useState({});
+  const [sort, setSort] = useState({ by: 'id', dir: 'asc' });
   const pageSize = 10;
   const queryClient = useQueryClient();
+
+  const handleSort = (key) => {
+    setPage(0);
+    setSort((prev) => prev.by === key ? { by: key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { by: key, dir: 'asc' });
+  };
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -84,8 +90,8 @@ function UsuariosTab() {
   }, [filterInputs]);
 
   const { data: usuarios, isLoading } = useQuery({
-    queryKey: ['usuarios', page, filters],
-    queryFn: () => seguridadAPI.usuarios.list({ skip: page * pageSize, limit: pageSize, ...filters }).then((r) => r.data),
+    queryKey: ['usuarios', page, filters, sort],
+    queryFn: () => seguridadAPI.usuarios.list({ skip: page * pageSize, limit: pageSize, ...filters, sort_by: sort.by, sort_dir: sort.dir }).then((r) => r.data),
   });
 
   const deleteMutation = useMutation({
@@ -129,7 +135,7 @@ function UsuariosTab() {
           <div className="w-[180px] shrink-0" />
         </div>
       </div>
-      {isLoading ? <LoadingSpinner /> : <DataTable columns={columns} data={usuarios} />}
+      {isLoading ? <LoadingSpinner /> : <DataTable columns={columns} data={usuarios} sort={sort} onSort={handleSort} />}
       <div className="flex items-center justify-between mt-3">
         <button disabled={page === 0} onClick={() => setPage(p => p - 1)} className={`px-3 py-1.5 rounded text-xs font-medium ${page === 0 ? 'bg-gray-100 text-gray-400' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}>Anterior</button>
         <span className="text-xs text-gray-500">Pagina {page + 1}</span>
@@ -268,12 +274,18 @@ function UsuarioPerfilesModal({ usuario, onClose }) {
 function PerfilesTab() {
   const [modal, setModal] = useState(null);
   const [page, setPage] = useState(0);
+  const [sort, setSort] = useState({ by: 'id', dir: 'asc' });
   const pageSize = 10;
   const queryClient = useQueryClient();
 
+  const handleSort = (key) => {
+    setPage(0);
+    setSort((prev) => prev.by === key ? { by: key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { by: key, dir: 'asc' });
+  };
+
   const { data: perfiles, isLoading } = useQuery({
-    queryKey: ['perfiles', page],
-    queryFn: () => seguridadAPI.perfiles.list({ skip: page * pageSize, limit: pageSize }).then((r) => r.data),
+    queryKey: ['perfiles', page, sort],
+    queryFn: () => seguridadAPI.perfiles.list({ skip: page * pageSize, limit: pageSize, sort_by: sort.by, sort_dir: sort.dir }).then((r) => r.data),
   });
 
   const deleteMutation = useMutation({
@@ -303,7 +315,7 @@ function PerfilesTab() {
       <div className="mb-3 flex justify-end">
         <button className={btnPrimary} onClick={() => setModal('create')}>Nuevo Perfil</button>
       </div>
-      {isLoading ? <LoadingSpinner /> : <DataTable columns={columns} data={perfiles} />}
+      {isLoading ? <LoadingSpinner /> : <DataTable columns={columns} data={perfiles} sort={sort} onSort={handleSort} />}
       <div className="flex items-center justify-between mt-3">
         <button disabled={page === 0} onClick={() => setPage(p => p - 1)} className={`px-3 py-1.5 rounded text-xs font-medium ${page === 0 ? 'bg-gray-100 text-gray-400' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}>Anterior</button>
         <span className="text-xs text-gray-500">Pagina {page + 1}</span>
@@ -429,10 +441,17 @@ function PerfilPermisosModal({ perfil, onClose }) {
 // ═══════════════════════════════════════════════════════════════════════
 function PermisosTab() {
   const [page, setPage] = useState(0);
+  const [sort, setSort] = useState({ by: 'id', dir: 'asc' });
   const pageSize = 10;
+
+  const handleSort = (key) => {
+    setPage(0);
+    setSort((prev) => prev.by === key ? { by: key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { by: key, dir: 'asc' });
+  };
+
   const { data: permisos, isLoading } = useQuery({
-    queryKey: ['permisos', page],
-    queryFn: () => seguridadAPI.permisos.list({ skip: page * pageSize, limit: pageSize }).then((r) => r.data),
+    queryKey: ['permisos', page, sort],
+    queryFn: () => seguridadAPI.permisos.list({ skip: page * pageSize, limit: pageSize, sort_by: sort.by, sort_dir: sort.dir }).then((r) => r.data),
   });
 
   const columns = [
@@ -444,7 +463,7 @@ function PermisosTab() {
 
   return (
     <>
-      {isLoading ? <LoadingSpinner /> : <DataTable columns={columns} data={permisos} />}
+      {isLoading ? <LoadingSpinner /> : <DataTable columns={columns} data={permisos} sort={sort} onSort={handleSort} />}
       <div className="flex items-center justify-between mt-3">
         <button disabled={page === 0} onClick={() => setPage(p => p - 1)} className={`px-3 py-1.5 rounded text-xs font-medium ${page === 0 ? 'bg-gray-100 text-gray-400' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}>Anterior</button>
         <span className="text-xs text-gray-500">Pagina {page + 1}</span>

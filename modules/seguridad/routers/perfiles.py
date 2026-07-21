@@ -23,11 +23,13 @@ router = APIRouter(prefix="/perfiles", tags=["Perfiles"])
 def list_perfiles(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
+    sort_by: str = Query(None),
+    sort_dir: str = Query('asc'),
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
     service = PerfilService(db)
-    return service.list(skip=skip, limit=limit)
+    return service.list(skip=skip, limit=limit, sort_by=sort_by, sort_dir=sort_dir)
 
 
 @router.get("/{id}", response_model=PerfilResponse)

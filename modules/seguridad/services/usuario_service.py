@@ -7,6 +7,7 @@ from fastapi import HTTPException, status
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from shared.security import get_password_hash
+from shared.filters import apply_order
 
 from models.usuario import Usuario
 from models.acceso import Acceso
@@ -17,8 +18,9 @@ class UsuarioService:
     def __init__(self, db: Session):
         self.db = db
 
-    def list(self, skip: int = 0, limit: int = 100) -> List[Usuario]:
-        return self.db.query(Usuario).offset(skip).limit(limit).all()
+    def list(self, skip: int = 0, limit: int = 100, sort_by: str = None, sort_dir: str = 'asc') -> List[Usuario]:
+        query = apply_order(self.db.query(Usuario), Usuario, {'sort_by': sort_by, 'sort_dir': sort_dir})
+        return query.offset(skip).limit(limit).all()
 
     def count(self) -> int:
         return self.db.query(Usuario).count()
