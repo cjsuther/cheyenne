@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTabParam } from '../../hooks/useTabParam';
 import { administracionAPI } from '../../services/api';
 import PageHeader from '../../components/common/PageHeader';
+import GroupedTabBar from '../../components/common/GroupedTabBar';
 import { CrudTab } from '../../components/common/CrudComponents';
 
 // ── Helpers para queryFn de listas ──────────────────────────────────
@@ -30,18 +31,21 @@ const TABS = [
   { key: 'etiquetas', label: 'Etiquetas' },
 ];
 
+const GRUPOS = [
+  { label: 'Personas', keys: ['personasFisicas', 'personasJuridicas'] },
+  { label: 'Expedientes', keys: ['expedientes', 'documentos', 'archivos'] },
+  { label: 'Ubicaciones', keys: ['paises', 'provincias', 'localidades', 'jurisdicciones'] },
+  { label: 'Contable', keys: ['cuentasContables', 'recursosPorRubro', 'mediosPago'] },
+  { label: 'Contacto', keys: ['direcciones', 'contactos'] },
+  { label: 'Otros', keys: ['entidades', 'observaciones', 'etiquetas', 'listas'] },
+];
+
 export default function Administracion() {
   const [tab, setTab] = useTabParam('personasFisicas');
   return (
     <div>
       <PageHeader title="Administracion" subtitle="Gestion de personas, expedientes, entidades y datos administrativos" />
-      <div className="flex gap-1.5 mb-4 overflow-x-auto pb-2 -mx-1 px-1">
-        {TABS.map((t) => (
-          <button key={t.key} onClick={() => setTab(t.key)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${tab === t.key ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-          >{t.label}</button>
-        ))}
-      </div>
+      <GroupedTabBar grupos={GRUPOS} tabsMeta={TABS} tab={tab} setTab={setTab} />
       {tab === 'personasFisicas' && <PersonasFisicasTab />}
       {tab === 'personasJuridicas' && <PersonasJuridicasTab />}
       {tab === 'expedientes' && <ExpedientesTab />}

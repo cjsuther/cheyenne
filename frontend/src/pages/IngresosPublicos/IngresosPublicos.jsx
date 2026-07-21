@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTabParam } from '../../hooks/useTabParam';
 import { ingresosPublicosAPI } from '../../services/api';
 import PageHeader from '../../components/common/PageHeader';
+import GroupedTabBar from '../../components/common/GroupedTabBar';
 import DataTable from '../../components/common/DataTable';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { CrudTab, inputClass, btnPrimary, btnSecondary, Field } from '../../components/common/CrudComponents';
@@ -83,18 +84,23 @@ const TABS = [
   { key: 'listas', label: 'Listas' },
 ];
 
+const GRUPOS = [
+  { label: 'Contribuyentes', keys: ['contribuyentes', 'cuentas'] },
+  { label: 'Inmuebles', keys: ['inmuebles', 'valuaciones', 'superficies', 'frentes'] },
+  { label: 'Comercios', keys: ['comercios', 'comercioRubros', 'comercioDdjj'] },
+  { label: 'Vehículos', keys: ['vehiculos', 'vehiculoVal'] },
+  { label: 'Emisiones', keys: ['emisiones', 'emisionDef'] },
+  { label: 'Planes de pago', keys: ['planesPago', 'simularPlan', 'cuotasPlan', 'planPagoDef'] },
+  { label: 'Tributos', keys: ['tasas', 'subTasas', 'certificados', 'multas'] },
+  { label: 'Configuración', keys: ['listas'] },
+];
+
 export default function IngresosPublicos() {
   const [tab, setTab] = useTabParam('contribuyentes');
   return (
     <div>
       <PageHeader title="Ingresos Publicos" subtitle="Contribuyentes, cuentas, emisiones, planes de pago y tributos" />
-      <div className="flex gap-1.5 mb-4 overflow-x-auto pb-2 -mx-1 px-1">
-        {TABS.map((t) => (
-          <button key={t.key} onClick={() => setTab(t.key)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${tab === t.key ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-          >{t.label}</button>
-        ))}
-      </div>
+      <GroupedTabBar grupos={GRUPOS} tabsMeta={TABS} tab={tab} setTab={setTab} />
       {tab === 'contribuyentes' && <ContribuyentesTab />}
       {tab === 'cuentas' && <CuentasTab />}
       {tab === 'comercios' && <ComerciosTab />}
