@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, String, Integer, Boolean, DateTime, Numeric, Text, JSON
+from sqlalchemy import Column, BigInteger, String, Integer, Boolean, DateTime, Date, Numeric, Text, JSON
 from datetime import datetime, timezone
 
 import sys, os
@@ -16,6 +16,12 @@ class Emision(Base):
     ttas_subtasa = Column(Integer, nullable=True, default=0)
     variables_default = Column(JSON, nullable=True)            # variables @I_* por defecto del padrón
     cuentas_prueba = Column(JSON, nullable=True)               # ids de contribuyente para el cálculo de prueba
+    # parámetros editables del paso 2 y criterio de ordenamiento (pasos 7/12)
+    fecha_desde = Column(Date, nullable=True)
+    fecha_hasta = Column(Date, nullable=True)
+    numero_cuota = Column(Integer, nullable=True)
+    criterio_seleccion = Column(Text, nullable=True)
+    criterio_ordenamiento = Column(String(120), nullable=True)
     descripcion = Column(String(500), nullable=True)
     fecha_emision = Column(DateTime(timezone=True), nullable=True)
     fecha_vencimiento_1 = Column(DateTime(timezone=True), nullable=True)

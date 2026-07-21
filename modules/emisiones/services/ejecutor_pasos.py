@@ -73,9 +73,33 @@ def h_importar(db, emision, data, token):
 
 
 def h_editar(db, emision, data, token):
-    # La edición de parámetros se hace por PUT /emisiones/{id}. Este paso es el checkpoint.
-    return {"info": "Parámetros habilitados para edición (PUT /emisiones/{id})",
-            "ttas_tasa": emision.ttas_tasa, "periodo": emision.periodo}
+    """Aplica los parámetros editados: fechas desde/hasta, vencimientos, número de cuota,
+    tasa/sub-tasa y criterios de selección."""
+    from datetime import datetime
+
+    def _date(v):
+        return datetime.strptime(str(v)[:10], "%Y-%m-%d").date() if v else None
+
+    def _dt(v):
+        return datetime.fromisoformat(str(v).replace("Z", "")) if v else None
+
+    aplicados = {}
+    for k in ("numero_cuota", "ttas_tasa", "ttas_subtasa"):
+        if k in data and str(data[k]).strip() not in ("", "None"):
+            setattr(emision, k, int(data[k])); aplicados[k] = int(data[k])
+    for k in ("fecha_desde", "fecha_hasta"):
+        if data.get(k):
+            setattr(emision, k, _date(data[k])); aplicados[k] = str(data[k])[:10]
+    for k in ("fecha_vencimiento_1", "fecha_vencimiento_2"):
+        if data.get(k):
+            setattr(emision, k, _dt(data[k])); aplicados[k] = str(data[k])
+    if "criterio_seleccion" in data:
+        emision.criterio_seleccion = data["criterio_seleccion"] or None
+        aplicados["criterio_seleccion"] = data["criterio_seleccion"]
+    if "variables_default" in data and data["variables_default"] is not None:
+        emision.variables_default = data["variables_default"]
+        aplicados["variables_default"] = "actualizado"
+    return {"editado": aplicados or "sin cambios"}
 
 
 def h_calculo_prueba(db, emision, data, token):
@@ -97,10 +121,13 @@ def h_calculo_general(db, emision, data, token):
 
 
 def h_ordenamiento(db, emision, data, token, ambito):
-    # TODO Phase 2: aplicar data['criterio'] (codigo_postal/barrio/calle/numero)
+    crit = data.get("criterio") or emision.criterio_ordenamiento or "codigo_postal,barrio,calle,numero"
+    if isinstance(crit, list):
+        crit = ",".join(str(c) for c in crit)
+    emision.criterio_ordenamiento = crit
     r = OrdenamientoService(db).generar_ordenamiento(emision.id)
     r["ambito"] = ambito
-    r["criterio"] = data.get("criterio", "codigo_postal,barrio,calle,numero")
+    r["criterio"] = crit
     return r
 
 

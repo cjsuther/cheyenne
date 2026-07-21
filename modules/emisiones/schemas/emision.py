@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, List, Any
-from datetime import datetime
+from datetime import datetime, date
 from decimal import Decimal
 
 
@@ -23,6 +23,11 @@ class EmisionBase(BaseModel):
     ttas_subtasa: Optional[int] = 0
     variables_default: Optional[Any] = None
     cuentas_prueba: Optional[Any] = None
+    fecha_desde: Optional[date] = None
+    fecha_hasta: Optional[date] = None
+    numero_cuota: Optional[int] = None
+    criterio_seleccion: Optional[str] = None
+    criterio_ordenamiento: Optional[str] = None
     descripcion: Optional[str] = None
     fecha_vencimiento_1: Optional[datetime] = None
     fecha_vencimiento_2: Optional[datetime] = None

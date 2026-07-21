@@ -21,6 +21,18 @@ function WorkflowModal({ emision, onClose }) {
   const [approvalNote, setApprovalNote] = useState('');
   const [refId, setRefId] = useState('');
   const [cuentasPrueba, setCuentasPrueba] = useState('');
+  const [criterioOrd, setCriterioOrd] = useState(['codigo_postal', 'barrio', 'calle', 'numero']);
+  const [editParams, setEditParams] = useState({
+    fecha_desde: (emision.fecha_desde || '').slice(0, 10),
+    fecha_hasta: (emision.fecha_hasta || '').slice(0, 10),
+    fecha_vencimiento_1: (emision.fecha_vencimiento_1 || '').slice(0, 10),
+    fecha_vencimiento_2: (emision.fecha_vencimiento_2 || '').slice(0, 10),
+    numero_cuota: emision.numero_cuota ?? '',
+    ttas_tasa: emision.ttas_tasa ?? '',
+    ttas_subtasa: emision.ttas_subtasa ?? 0,
+    criterio_seleccion: emision.criterio_seleccion || '',
+  });
+  const setEP = (k) => (e) => setEditParams((p) => ({ ...p, [k]: e.target.value }));
   const [actionError, setActionError] = useState('');
   const queryClient = useQueryClient();
 
@@ -76,7 +88,11 @@ function WorkflowModal({ emision, onClose }) {
     const data = {};
     if (step.tipo === 'aprobacion') { data.aprobado = true; data.observaciones = approvalNote; }
     if (step.numero === 1) { data.id_referencia = Number(refId) || null; }
+    if (step.key === 'editar_calculo') { Object.assign(data, editParams); }
     if (step.key === 'calculo_prueba') { data.cuentas = cuentasPrueba; }
+    if (step.key === 'ordenamiento_prueba' || step.key === 'ordenamiento_general') {
+      data.criterio = ['codigo_postal', 'barrio', 'calle', 'numero'].filter((k) => criterioOrd.includes(k)).join(',');
+    }
     actionMutation.mutate({ numero: step.numero, data });
   };
 
@@ -87,6 +103,34 @@ function WorkflowModal({ emision, onClose }) {
     if (step.numero === 1) return (
       <Field label="Emisión de referencia (ID) — para importar sus parámetros">
         <input type="number" value={refId} onChange={(e) => setRefId(e.target.value)} placeholder="ID de la emisión anterior" className={inputClass} />
+      </Field>
+    );
+    if (step.key === 'editar_calculo') return (
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <Field label="Fecha desde"><input type="date" value={editParams.fecha_desde} onChange={setEP('fecha_desde')} className={inputClass} /></Field>
+        <Field label="Fecha hasta"><input type="date" value={editParams.fecha_hasta} onChange={setEP('fecha_hasta')} className={inputClass} /></Field>
+        <Field label="N° de cuota"><input type="number" value={editParams.numero_cuota} onChange={setEP('numero_cuota')} className={inputClass} /></Field>
+        <Field label="1er vencimiento"><input type="date" value={editParams.fecha_vencimiento_1} onChange={setEP('fecha_vencimiento_1')} className={inputClass} /></Field>
+        <Field label="2do vencimiento"><input type="date" value={editParams.fecha_vencimiento_2} onChange={setEP('fecha_vencimiento_2')} className={inputClass} /></Field>
+        <div />
+        <Field label="Tasa"><input type="number" value={editParams.ttas_tasa} onChange={setEP('ttas_tasa')} className={inputClass} /></Field>
+        <Field label="Sub-tasa"><input type="number" value={editParams.ttas_subtasa} onChange={setEP('ttas_subtasa')} className={inputClass} /></Field>
+        <div />
+        <div className="col-span-2 sm:col-span-3">
+          <Field label="Criterios de selección"><input type="text" value={editParams.criterio_seleccion} onChange={setEP('criterio_seleccion')} placeholder="ej: zona=centro; estado=activo" className={inputClass} /></Field>
+        </div>
+      </div>
+    );
+    if (step.key === 'ordenamiento_prueba' || step.key === 'ordenamiento_general') return (
+      <Field label="Criterio de ordenamiento para reparto">
+        <div className="flex flex-wrap gap-4 mt-1">
+          {[['codigo_postal', 'Código postal'], ['barrio', 'Barrio'], ['calle', 'Calle'], ['numero', 'Número']].map(([k, l]) => (
+            <label key={k} className="flex items-center gap-1.5 text-sm">
+              <input type="checkbox" checked={criterioOrd.includes(k)} onChange={(e) => setCriterioOrd((prev) => e.target.checked ? [...prev, k] : prev.filter((x) => x !== k))} className="w-4 h-4" />
+              {l}
+            </label>
+          ))}
+        </div>
       </Field>
     );
     if (step.key === 'calculo_prueba') return (
