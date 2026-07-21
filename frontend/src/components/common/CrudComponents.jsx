@@ -243,13 +243,14 @@ export function CrudTab({ queryKey, apiFns, columns, formFields, entityName, wid
     })),
   });
 
-  const lookupMaps = {};
+  const lookupMaps = {};       // entidad (search_select): solo etiqueta
+  const codeLookupMaps = {};   // lista (remote_select): etiqueta + código entre paréntesis
   remoteSelects.forEach((f, i) => {
     const d = lookupResults[i].data;
     if (d) {
       const vk = f.optionValue || 'id';
       const lk = f.optionLabel || 'nombre';
-      lookupMaps[f.key] = Object.fromEntries(d.map((item) => [item[vk], item[lk]]));
+      codeLookupMaps[f.key] = Object.fromEntries(d.map((item) => [item[vk], item[lk]]));
     }
   });
 
@@ -285,7 +286,19 @@ export function CrudTab({ queryKey, apiFns, columns, formFields, entityName, wid
   });
 
   const resolvedColumns = columns.map((col) => {
-    if (lookupMaps[col.key] && !col.render) {
+    if (col.render) return col;
+    if (codeLookupMaps[col.key]) {
+      const map = codeLookupMaps[col.key];
+      return {
+        ...col,
+        render: (v) => {
+          if (v === null || v === undefined || v === '') return '';
+          const label = map[v];
+          return label != null && label !== '' ? `${label} (${v})` : v;
+        },
+      };
+    }
+    if (lookupMaps[col.key]) {
       const map = lookupMaps[col.key];
       return { ...col, render: (v) => map[v] ?? v ?? '' };
     }
