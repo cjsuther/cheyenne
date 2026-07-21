@@ -106,6 +106,13 @@ function WorkflowModal({ emision, onClose }) {
     <Modal title={`Emision #${emision.id} - Workflow`} onClose={onClose} wide>
       {isLoading ? <div className="text-center py-8 text-gray-500">Cargando...</div> : (
         <div className="space-y-6">
+          {actionError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 flex items-start gap-2">
+              <span className="shrink-0">⚠</span>
+              <span className="flex-1">{actionError}</span>
+              <button onClick={() => setActionError('')} className="text-red-500 hover:text-red-700 shrink-0" title="Cerrar">✕</button>
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-gray-50 rounded-lg p-4">
             <div><span className="text-xs text-gray-500">Tributo</span><p className="text-sm font-medium capitalize">{emision.tipo_tributo}</p></div>
             <div><span className="text-xs text-gray-500">Periodo</span><p className="text-sm font-medium">{emision.periodo}</p></div>
@@ -170,7 +177,6 @@ function WorkflowModal({ emision, onClose }) {
             </div>
           )}
 
-          {actionError && <p className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded">{actionError}</p>}
 
           {pasoActual >= 3 && (
             <div>
