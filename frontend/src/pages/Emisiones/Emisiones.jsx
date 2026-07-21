@@ -83,6 +83,25 @@ function WorkflowModal({ emision, onClose }) {
   const definicion = estadoData?.definicion ?? [];
   const totalPasos = estadoData?.total_pasos ?? 16;
 
+  const renderStepInput = (step) => {
+    if (step.numero === 1) return (
+      <Field label="Emisión de referencia (ID) — para importar sus parámetros">
+        <input type="number" value={refId} onChange={(e) => setRefId(e.target.value)} placeholder="ID de la emisión anterior" className={inputClass} />
+      </Field>
+    );
+    if (step.key === 'calculo_prueba') return (
+      <Field label="Cuentas de prueba — IDs de contribuyente separados por coma">
+        <input type="text" value={cuentasPrueba} onChange={(e) => setCuentasPrueba(e.target.value)} placeholder="ej: 1, 2, 13" className={inputClass} />
+      </Field>
+    );
+    if (step.tipo === 'aprobacion') return (
+      <Field label="Observación">
+        <input type="text" value={approvalNote} onChange={(e) => setApprovalNote(e.target.value)} placeholder="Observación opcional..." className={inputClass} />
+      </Field>
+    );
+    return null;
+  };
+
   return (
     <Modal title={`Emision #${emision.id} - Workflow`} onClose={onClose} wide>
       {isLoading ? <div className="text-center py-8 text-gray-500">Cargando...</div> : (
@@ -100,38 +119,35 @@ function WorkflowModal({ emision, onClose }) {
                 const done = step.numero <= pasoActual;
                 const current = step.numero === pasoActual + 1;
                 const bloqueado = current && !step.puede_ejecutar;
+                const input = current && !bloqueado ? renderStepInput(step) : null;
                 return (
-                  <div key={step.numero} className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${done ? 'bg-green-50 text-green-800' : current ? 'bg-primary-50 text-primary-800 ring-1 ring-primary-300' : 'bg-gray-50 text-gray-400'}`}>
-                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${done ? 'bg-green-500 text-white' : current ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-500'}`}>{done ? '\u2713' : step.numero}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="truncate font-medium">{step.numero}. {step.nombre}</p>
-                      {current && <p className="text-xs text-gray-500 truncate">{step.descripcion}</p>}
+                  <div key={step.numero} className={`rounded-lg text-sm ${done ? 'bg-green-50 text-green-800' : current ? 'bg-primary-50 text-primary-900 ring-1 ring-primary-300' : 'bg-gray-50 text-gray-400'}`}>
+                    <div className="flex items-center gap-3 px-3 py-2">
+                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${done ? 'bg-green-500 text-white' : current ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-500'}`}>{done ? '\u2713' : step.numero}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className={`font-medium ${current ? '' : 'truncate'}`}>{step.numero}. {step.nombre}</p>
+                        {current && <p className="text-xs text-gray-600">{step.descripcion}</p>}
+                      </div>
+                      {step.tipo === 'aprobacion' && <span className="text-[10px] uppercase tracking-wide text-amber-600 shrink-0">aprob.</span>}
+                      {current && !input && (
+                        bloqueado
+                          ? <span className="text-[11px] text-red-500 shrink-0" title={`Requiere permiso ${step.permiso}`}>sin permiso</span>
+                          : <button className="bg-primary-600 hover:bg-primary-700 text-white px-3 py-1 rounded text-xs font-medium shrink-0" onClick={() => handleAction(step)} disabled={actionMutation.isPending}>{actionMutation.isPending ? '...' : step.tipo === 'aprobacion' ? 'Aprobar' : 'Ejecutar'}</button>
+                      )}
                     </div>
-                    {step.tipo === 'aprobacion' && <span className="text-[10px] uppercase tracking-wide text-amber-600 shrink-0">aprob.</span>}
-                    {current && (
-                      bloqueado
-                        ? <span className="text-[11px] text-red-500 shrink-0" title={`Requiere permiso ${step.permiso}`}>sin permiso</span>
-                        : <button className="bg-primary-600 hover:bg-primary-700 text-white px-3 py-1 rounded text-xs font-medium shrink-0" onClick={() => handleAction(step)} disabled={actionMutation.isPending}>{actionMutation.isPending ? '...' : step.tipo === 'aprobacion' ? 'Aprobar' : 'Ejecutar'}</button>
+                    {current && input && (
+                      <div className="px-3 pb-3 space-y-2">
+                        {input}
+                        <div className="flex justify-end">
+                          <button className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-1.5 rounded text-xs font-medium" onClick={() => handleAction(step)} disabled={actionMutation.isPending}>{actionMutation.isPending ? 'Procesando...' : step.tipo === 'aprobacion' ? 'Aprobar' : 'Ejecutar'}</button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 );
               })}
             </div>
           </div>
-
-          {definicion[pasoActual]?.numero === 1 && (
-            <Field label="Emisi\u00f3n de referencia (ID) \u2014 para importar sus par\u00e1metros">
-              <input type="number" value={refId} onChange={(e) => setRefId(e.target.value)} placeholder="ID de la emisi\u00f3n anterior" className={inputClass} />
-            </Field>
-          )}
-          {definicion[pasoActual]?.key === 'calculo_prueba' && (
-            <Field label="Cuentas de prueba \u2014 IDs de contribuyente separados por coma">
-              <input type="text" value={cuentasPrueba} onChange={(e) => setCuentasPrueba(e.target.value)} placeholder="ej: 1, 2, 13" className={inputClass} />
-            </Field>
-          )}
-          {definicion[pasoActual]?.tipo === 'aprobacion' && (
-            <Field label="Observaci\u00f3n"><input type="text" value={approvalNote} onChange={(e) => setApprovalNote(e.target.value)} placeholder="Observaci\u00f3n opcional..." className={inputClass} /></Field>
-          )}
 
           {resumen?.lineas > 0 && (
             <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
