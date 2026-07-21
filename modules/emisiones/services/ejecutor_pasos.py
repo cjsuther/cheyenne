@@ -132,10 +132,15 @@ def h_ordenamiento(db, emision, data, token, ambito):
 
 
 def h_impresion(db, emision, data, token, ambito):
-    # Genera los comprobantes/recibos (con código de barras). TODO Phase 2: PDF a directorio.
+    # 1) asegura los comprobantes (numerados, con código de barras)
     r = ComprobanteService(db).generar_comprobantes(emision.id)
     r["ambito"] = ambito
-    r["directorio"] = data.get("directorio") or (f"/output/pdf/emision_{emision.id}/{ambito}")
+    # 2) genera los PDF de los recibos en el directorio
+    from services.pdf_service import generar_recibos_pdf
+    db.flush()
+    pdf = generar_recibos_pdf(db, emision, ambito, data.get("directorio"))
+    r["directorio"] = pdf["directorio"]
+    r["recibos_pdf"] = pdf["recibos"]
     return r
 
 

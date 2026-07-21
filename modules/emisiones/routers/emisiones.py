@@ -224,6 +224,37 @@ def get_resumen_calculo(
     }
 
 
+@router.get("/{id}/recibos-pdf")
+def listar_recibos_pdf(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Lista los PDF de recibos generados (impresión de prueba/general)."""
+    EmisionService(db).find_by_id(id)
+    from services.pdf_service import listar_recibos
+    return listar_recibos(id)
+
+
+@router.get("/{id}/recibos-pdf/archivo")
+def descargar_recibo_pdf(
+    id: int,
+    ambito: str,
+    archivo: str,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Descarga un PDF de recibo."""
+    import os
+    from fastapi.responses import FileResponse
+    from services.pdf_service import ruta_recibo
+    EmisionService(db).find_by_id(id)
+    path = ruta_recibo(id, ambito, archivo)
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="Recibo no encontrado")
+    return FileResponse(path, media_type="application/pdf", filename=os.path.basename(path))
+
+
 # --- Liquidaciones ---
 
 @router.get("/{id}/liquidaciones", response_model=List[LiquidacionResponse])

@@ -71,6 +71,20 @@ function WorkflowModal({ emision, onClose }) {
     enabled: pasoActual >= 3,
   });
 
+  const { data: recibosPdf } = useQuery({
+    queryKey: ['emisiones-recibospdf', emision.id, pasoActual],
+    queryFn: () => emisionesAPI.emisiones.recibosPdf(emision.id).then((r) => r.data),
+    enabled: pasoActual >= 8,
+  });
+
+  const descargarRecibo = async (r) => {
+    const { data } = await emisionesAPI.emisiones.descargarRecibo(emision.id, r.ambito, r.archivo);
+    const url = URL.createObjectURL(data);
+    const a = document.createElement('a');
+    a.href = url; a.download = r.archivo; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const actionMutation = useMutation({
     mutationFn: ({ numero, data }) => emisionesAPI.emisiones.ejecutarPaso(emision.id, numero, data),
     onSuccess: () => {
@@ -80,6 +94,7 @@ function WorkflowModal({ emision, onClose }) {
       queryClient.invalidateQueries({ queryKey: ['emisiones-cuentacorriente', emision.id] });
       queryClient.invalidateQueries({ queryKey: ['emisiones-comprobantes', emision.id] });
       queryClient.invalidateQueries({ queryKey: ['emisiones-resumen', emision.id] });
+      queryClient.invalidateQueries({ queryKey: ['emisiones-recibospdf', emision.id] });
       queryClient.invalidateQueries({ queryKey: ['emi-emisiones'] });
     },
     onError: (e) => setActionError(e.response?.data?.detail || 'Error al ejecutar el paso'),
@@ -231,6 +246,20 @@ function WorkflowModal({ emision, onClose }) {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {recibosPdf?.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">Recibos generados ({recibosPdf.length})</h4>
+              <div className="max-h-48 overflow-y-auto border border-gray-100 rounded-lg divide-y divide-gray-50">
+                {recibosPdf.map((r) => (
+                  <div key={r.ambito + r.archivo} className="flex items-center justify-between px-3 py-2 text-xs">
+                    <span className="font-mono truncate">{r.archivo} <span className="text-gray-400">· {r.ambito} · {Math.round(r.bytes / 1024)} KB</span></span>
+                    <button onClick={() => descargarRecibo(r)} className="text-primary-600 hover:underline shrink-0 ml-2">Descargar PDF</button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
