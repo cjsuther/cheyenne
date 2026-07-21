@@ -42,12 +42,12 @@ def _asegurar_padron(db: Session, emision: Emision, token: Optional[str]) -> int
     return len(items)
 
 
-def _liquidar(db: Session, emision: Emision, token: Optional[str], modo: str) -> Dict[str, Any]:
+def _liquidar(db: Session, emision: Emision, token: Optional[str], modo: str, solo=None) -> Dict[str, Any]:
     cant = _asegurar_padron(db, emision, token)
     # idempotente: se recalcula desde cero (general reemplaza a prueba)
     db.query(Liquidacion).filter(Liquidacion.id_emision == emision.id).delete()
     db.flush()
-    res = CalculoService(db).generar_liquidaciones(emision.id)
+    res = CalculoService(db).generar_liquidaciones(emision.id, solo_contribuyentes=solo)
     res["modo"] = modo
     res["padron"] = cant
     return res
@@ -79,9 +79,16 @@ def h_editar(db, emision, data, token):
 
 
 def h_calculo_prueba(db, emision, data, token):
-    # Phase 1: calcula sobre el padrón. TODO Phase 2: acotar a data['cuentas'] de prueba.
-    r = _liquidar(db, emision, token, "prueba")
-    r["cuentas_prueba"] = data.get("cuentas") or []
+    # acota el cálculo a las cuentas de prueba (ids de contribuyente) que carga el operador
+    cuentas = data.get("cuentas") or emision.cuentas_prueba or []
+    if isinstance(cuentas, str):
+        cuentas = [x.strip() for x in cuentas.replace(";", ",").split(",") if x.strip()]
+    cuentas = [int(x) for x in cuentas if str(x).strip().isdigit()]
+    if not cuentas:
+        raise ValueError("Cargá al menos una cuenta de prueba (id de contribuyente)")
+    emision.cuentas_prueba = cuentas
+    r = _liquidar(db, emision, token, "prueba", solo=set(cuentas))
+    r["cuentas_prueba"] = cuentas
     return r
 
 

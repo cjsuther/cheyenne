@@ -20,6 +20,7 @@ function EstadoBadge({ estado }) {
 function WorkflowModal({ emision, onClose }) {
   const [approvalNote, setApprovalNote] = useState('');
   const [refId, setRefId] = useState('');
+  const [cuentasPrueba, setCuentasPrueba] = useState('');
   const [actionError, setActionError] = useState('');
   const queryClient = useQueryClient();
 
@@ -51,6 +52,12 @@ function WorkflowModal({ emision, onClose }) {
     enabled: pasoActual >= 8,
   });
 
+  const { data: resumen } = useQuery({
+    queryKey: ['emisiones-resumen', emision.id, pasoActual],
+    queryFn: () => emisionesAPI.emisiones.resumen(emision.id).then((r) => r.data),
+    enabled: pasoActual >= 3,
+  });
+
   const actionMutation = useMutation({
     mutationFn: ({ numero, data }) => emisionesAPI.emisiones.ejecutarPaso(emision.id, numero, data),
     onSuccess: () => {
@@ -59,6 +66,7 @@ function WorkflowModal({ emision, onClose }) {
       queryClient.invalidateQueries({ queryKey: ['emisiones-liquidaciones', emision.id] });
       queryClient.invalidateQueries({ queryKey: ['emisiones-cuentacorriente', emision.id] });
       queryClient.invalidateQueries({ queryKey: ['emisiones-comprobantes', emision.id] });
+      queryClient.invalidateQueries({ queryKey: ['emisiones-resumen', emision.id] });
       queryClient.invalidateQueries({ queryKey: ['emi-emisiones'] });
     },
     onError: (e) => setActionError(e.response?.data?.detail || 'Error al ejecutar el paso'),
@@ -68,6 +76,7 @@ function WorkflowModal({ emision, onClose }) {
     const data = {};
     if (step.tipo === 'aprobacion') { data.aprobado = true; data.observaciones = approvalNote; }
     if (step.numero === 1) { data.id_referencia = Number(refId) || null; }
+    if (step.key === 'calculo_prueba') { data.cuentas = cuentasPrueba; }
     actionMutation.mutate({ numero: step.numero, data });
   };
 
@@ -115,8 +124,34 @@ function WorkflowModal({ emision, onClose }) {
               <input type="number" value={refId} onChange={(e) => setRefId(e.target.value)} placeholder="ID de la emisi\u00f3n anterior" className={inputClass} />
             </Field>
           )}
+          {definicion[pasoActual]?.key === 'calculo_prueba' && (
+            <Field label="Cuentas de prueba \u2014 IDs de contribuyente separados por coma">
+              <input type="text" value={cuentasPrueba} onChange={(e) => setCuentasPrueba(e.target.value)} placeholder="ej: 1, 2, 13" className={inputClass} />
+            </Field>
+          )}
           {definicion[pasoActual]?.tipo === 'aprobacion' && (
             <Field label="Observaci\u00f3n"><input type="text" value={approvalNote} onChange={(e) => setApprovalNote(e.target.value)} placeholder="Observaci\u00f3n opcional..." className={inputClass} /></Field>
+          )}
+
+          {resumen?.lineas > 0 && (
+            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">Totalizador del c\u00e1lculo</h4>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                <div><p className="text-xs text-gray-500">Cuentas</p><p className="font-bold">{resumen.cuentas}</p></div>
+                <div><p className="text-xs text-gray-500">L\u00edneas</p><p className="font-bold">{resumen.lineas}</p></div>
+                <div><p className="text-xs text-gray-500">Total a cancelar</p><p className="font-bold">{fmtMoney(resumen.total_a_cancelar)}</p></div>
+                <div><p className="text-xs text-gray-500">Total a pagar</p><p className="font-bold text-primary-700">{fmtMoney(resumen.total_a_pagar)}</p></div>
+              </div>
+              {resumen.por_vencimiento?.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {resumen.por_vencimiento.map((v) => (
+                    <span key={v.vencimiento} className="text-xs bg-white border border-gray-200 rounded-full px-2 py-0.5">
+                      Vto {v.vencimiento}: a pagar {fmtMoney(v.a_pagar)}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
           {actionError && <p className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded">{actionError}</p>}

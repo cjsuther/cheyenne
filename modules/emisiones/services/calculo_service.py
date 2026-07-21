@@ -132,9 +132,14 @@ class CalculoService:
         return {"info": "los recargos de mora se aplican en la recaudación, no en la emisión"}
 
     # --------------------------------------------------- paso 8: liquidación real
-    def generar_liquidaciones(self, id_emision: int) -> Dict[str, Any]:
+    def generar_liquidaciones(self, id_emision: int, solo_contribuyentes=None) -> Dict[str, Any]:
         emision = self._get_emision(id_emision)
         contribs = self._get_contribuyentes(id_emision)
+        if solo_contribuyentes:
+            objetivo = {int(x) for x in solo_contribuyentes}
+            contribs = [c for c in contribs if c.id_contribuyente in objetivo]
+            if not contribs:
+                raise ValueError("Ninguna de las cuentas de prueba está en el padrón")
         if not contribs:
             raise ValueError("El padrón está vacío: no hay contribuyentes para liquidar")
 

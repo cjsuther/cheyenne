@@ -200,6 +200,30 @@ def ejecutar_paso(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.get("/{id}/resumen")
+def get_resumen_calculo(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Totalizador del último cálculo (para las aprobaciones): cuentas, importes y por vencimiento."""
+    EmisionService(db).find_by_id(id)
+    liqs = db.query(Liquidacion).filter(Liquidacion.id_emision == id, Liquidacion.activo == True).all()
+    por_vto = {}
+    for l in liqs:
+        v = l.numero_vencimiento or l.cuota or 0
+        d = por_vto.setdefault(v, {"vencimiento": v, "a_cancelar": 0.0, "a_pagar": 0.0})
+        d["a_cancelar"] += float(l.a_cancelar or 0)
+        d["a_pagar"] += float(l.a_pagar or 0)
+    return {
+        "cuentas": len({l.id_contribuyente for l in liqs}),
+        "lineas": len(liqs),
+        "total_a_cancelar": round(sum(float(l.a_cancelar or 0) for l in liqs), 2),
+        "total_a_pagar": round(sum(float(l.a_pagar or 0) for l in liqs), 2),
+        "por_vencimiento": [por_vto[k] for k in sorted(por_vto)],
+    }
+
+
 # --- Liquidaciones ---
 
 @router.get("/{id}/liquidaciones", response_model=List[LiquidacionResponse])
