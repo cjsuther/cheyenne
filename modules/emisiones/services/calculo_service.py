@@ -166,6 +166,14 @@ class CalculoService:
         tasas_emitir = {int(emision.ttas_tasa)} if emision.ttas_tasa is not None else None
         resultado = liquidar_padron(formulas, entrada, periodo, mes, tasas_emitir)
 
+        # idempotencia: borrar liquidaciones previas del alcance que se recalcula
+        # (todas si es general; solo las cuentas objetivo si es cálculo de prueba)
+        ids_contrib = {c.id_contribuyente for c in contribs}
+        (self.db.query(Liquidacion)
+            .filter(Liquidacion.id_emision == id_emision,
+                    Liquidacion.id_contribuyente.in_(ids_contrib))
+            .delete(synchronize_session=False))
+
         creadas = 0
         monto_total = Decimal("0.00")
         for r in resultado:
