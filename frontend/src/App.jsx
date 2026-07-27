@@ -16,6 +16,9 @@ import Contribuyente360 from './pages/Contribuyente360/Contribuyente360';
 import TasasFormulas from './pages/TasasFormulas/TasasFormulas';
 import Importacion from './pages/Importacion/Importacion';
 import Interface from './pages/Interface/Interface';
+import Personas from './pages/Contribuyente/Personas';
+import Configuracion from './pages/Configuracion/Configuracion';
+import Contaduria from './pages/Contaduria/Contaduria';
 import Perfil from './pages/Perfil/Perfil';
 
 const queryClient = new QueryClient({
@@ -47,18 +50,26 @@ export default function App() {
             }
           >
             <Route index element={<Dashboard />} />
-            <Route path="administracion/*" element={<Administracion />} />
-            <Route path="auditoria/*" element={<Auditoria />} />
+            {/* Contribuyente */}
+            <Route path="contribuyente-360" element={<Contribuyente360 />} />
+            <Route path="contribuyente/personas" element={<Personas />} />
+            {/* Ingresos Públicos */}
             <Route path="ingresos-publicos/*" element={<IngresosPublicos />} />
-            <Route path="tesoreria/*" element={<Tesoreria />} />
-            <Route path="comunicacion/*" element={<Comunicacion />} />
-            <Route path="seguridad/*" element={<Seguridad />} />
-            <Route path="wav/*" element={<Wav />} />
             <Route path="emisiones/*" element={<Emisiones />} />
+            <Route path="tasas-formulas" element={<TasasFormulas />} />
+            <Route path="tesoreria/*" element={<Tesoreria />} />
+            <Route path="wav/*" element={<Wav />} />
+            <Route path="comunicacion/*" element={<Comunicacion />} />
             <Route path="importacion" element={<Importacion />} />
             <Route path="interface" element={<Interface />} />
-            <Route path="contribuyente-360" element={<Contribuyente360 />} />
-            <Route path="tasas-formulas" element={<TasasFormulas />} />
+            {/* Contaduría */}
+            <Route path="contaduria" element={<Contaduria />} />
+            {/* Configuración (maestros) */}
+            <Route path="configuracion" element={<Configuracion />} />
+            <Route path="administracion/*" element={<Administracion />} />
+            {/* Seguridad */}
+            <Route path="seguridad/*" element={<Seguridad />} />
+            <Route path="auditoria/*" element={<Auditoria />} />
             <Route path="perfil" element={<Perfil />} />
           </Route>
         </Routes>

@@ -1,23 +1,15 @@
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth';
-import {
-  IconAdministracion, IconSeguridad, IconAuditoria, IconIngresos,
-  IconTesoreria, IconEmisiones, IconComunicacion, IconContribuyente360,
-} from '../../components/common/icons';
-
-const modules = [
-  { name: 'Contribuyente 360', path: '/contribuyente-360', desc: 'Buscar contribuyente y ver su deuda', Icon: IconContribuyente360, chip: 'bg-indigo-50 text-indigo-600' },
-  { name: 'Administración', path: '/administracion', desc: 'Personas, expedientes, entidades', Icon: IconAdministracion, chip: 'bg-blue-50 text-blue-600' },
-  { name: 'Ingresos Públicos', path: '/ingresos-publicos', desc: 'Contribuyentes, cuentas, tributos', Icon: IconIngresos, chip: 'bg-emerald-50 text-emerald-600' },
-  { name: 'Emisiones', path: '/emisiones', desc: 'Cálculo y emisión de tasas', Icon: IconEmisiones, chip: 'bg-amber-50 text-amber-600' },
-  { name: 'Tesorería', path: '/tesoreria', desc: 'Cajas, recaudación, recibos', Icon: IconTesoreria, chip: 'bg-violet-50 text-violet-600' },
-  { name: 'Comunicación', path: '/comunicacion', desc: 'Mensajes y notificaciones', Icon: IconComunicacion, chip: 'bg-pink-50 text-pink-600' },
-  { name: 'Auditoría', path: '/auditoria', desc: 'Incidencias y registros', Icon: IconAuditoria, chip: 'bg-yellow-50 text-yellow-700' },
-  { name: 'Seguridad', path: '/seguridad', desc: 'Usuarios, perfiles, permisos', Icon: IconSeguridad, chip: 'bg-red-50 text-red-600' },
-];
+import { SUPER_MODULES } from '../../config/superModules';
 
 export default function Dashboard() {
   const user = useAuthStore((s) => s.user);
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const canSee = (it) => !it.module || user?.superuser || hasPermission(it.module, 'read');
+
+  const modulos = SUPER_MODULES
+    .map((sm) => ({ ...sm, visibles: sm.items.filter(canSee) }))
+    .filter((sm) => sm.visibles.length > 0);
 
   return (
     <div className="space-y-6">
@@ -32,29 +24,41 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* Accesos a módulos */}
+      {/* Super-módulos */}
       <div>
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Módulos</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {modules.map(({ name, path, desc, Icon, chip }) => (
-            <Link
-              key={path}
-              to={path}
-              className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all p-5 flex flex-col"
-            >
-              <div className={`w-11 h-11 rounded-xl ${chip} flex items-center justify-center mb-4`}>
-                <Icon className="w-6 h-6" />
-              </div>
-              <h3 className="font-semibold text-gray-800 group-hover:text-primary-700 transition-colors">{name}</h3>
-              <p className="text-sm text-gray-500 mt-1 flex-1">{desc}</p>
-              <span className="text-xs font-medium text-primary-600 mt-3 inline-flex items-center gap-1">
-                Abrir
-                <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </span>
-            </Link>
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {modulos.map((sm) => {
+            const destino = sm.visibles[0]?.path || '/';
+            return (
+              <Link
+                key={sm.key}
+                to={destino}
+                className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:border-primary-200 transition-all p-5 flex flex-col"
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`w-12 h-12 rounded-xl ${sm.chip} flex items-center justify-center`}>
+                    <sm.Icon className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-gray-800 group-hover:text-primary-700 transition-colors">{sm.label}</h3>
+                    <p className="text-xs text-gray-500">{sm.desc}</p>
+                  </div>
+                </div>
+                <div className="mt-auto flex flex-wrap gap-1.5">
+                  {sm.visibles.slice(0, 6).map((it) => (
+                    <span key={it.path} className="text-[11px] bg-gray-50 text-gray-500 rounded px-2 py-0.5">{it.label}</span>
+                  ))}
+                  {sm.visibles.length > 6 && (
+                    <span className="text-[11px] text-gray-400 px-1">+{sm.visibles.length - 6}</span>
+                  )}
+                  {sm.key === 'contaduria' && (
+                    <span className="text-[11px] text-slate-400 px-1 italic">próximamente</span>
+                  )}
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </div>

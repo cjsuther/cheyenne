@@ -40,12 +40,18 @@ const GRUPOS = [
   { label: 'Otros', keys: ['entidades', 'observaciones', 'etiquetas', 'listas'] },
 ];
 
-export default function Administracion() {
-  const [tab, setTab] = useTabParam('personasFisicas');
+export default function Administracion({
+  titulo = 'Administración',
+  subtitulo = 'Gestión de personas, expedientes, entidades y datos administrativos',
+  gruposVisibles = null,
+}) {
+  const grupos = gruposVisibles ? GRUPOS.filter((g) => gruposVisibles.includes(g.label)) : GRUPOS;
+  const primerTab = grupos[0]?.keys[0] || 'personasFisicas';
+  const [tab, setTab] = useTabParam(primerTab);
   return (
     <div>
-      <PageHeader title="Administracion" subtitle="Gestion de personas, expedientes, entidades y datos administrativos" />
-      <GroupedTabBar grupos={GRUPOS} tabsMeta={TABS} tab={tab} setTab={setTab} />
+      <PageHeader title={titulo} subtitle={subtitulo} />
+      <GroupedTabBar grupos={grupos} tabsMeta={TABS} tab={tab} setTab={setTab} />
       {tab === 'personasFisicas' && <PersonasFisicasTab />}
       {tab === 'personasJuridicas' && <PersonasJuridicasTab />}
       {tab === 'expedientes' && <ExpedientesTab />}
