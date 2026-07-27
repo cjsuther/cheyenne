@@ -276,5 +276,6 @@ export const wavAPI = {
   pagos: {
     byCuenta: (id) => api.get(`/wav/pagos/by-cuenta/${id}`),
     pagoContado: (data) => api.post('/wav/pagos/contado', data),
+    planPago: (data) => api.post('/wav/pagos/plan-pago', data),
   },
 };

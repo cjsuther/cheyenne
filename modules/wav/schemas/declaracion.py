@@ -50,6 +50,7 @@ class DeclaracionJuradaResponse(BaseModel):
     fecha_presentacion: Optional[datetime] = None
     id_estado_declaracion: int
     importe_total: Decimal
+    saldo: Decimal = Decimal("0")
     items: List[DeclaracionJuradaItemResponse] = []
 
     class Config:

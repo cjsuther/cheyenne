@@ -12,6 +12,7 @@ class PlanPago(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     id_cuenta = Column(BigInteger, ForeignKey("wav_cuentas.id"), nullable=True)
+    id_declaracion_jurada = Column(BigInteger, nullable=True)
     id_plan_pago_definicion = Column(BigInteger, nullable=True)
     cantidad_cuotas = Column(Integer, nullable=False)
     importe_total = Column(Numeric(18, 2), nullable=False, default=0)

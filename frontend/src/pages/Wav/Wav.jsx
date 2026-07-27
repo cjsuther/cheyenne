@@ -105,8 +105,23 @@ export default function Wav() {
   );
 }
 
+const ESTADO_DDJJ = {
+  10: { t: 'Pendiente', c: 'bg-amber-100 text-amber-700' },
+  20: { t: 'Parcial', c: 'bg-blue-100 text-blue-700' },
+  30: { t: 'Pagada', c: 'bg-green-100 text-green-700' },
+  40: { t: 'En plan', c: 'bg-purple-100 text-purple-700' },
+};
+const EstadoDDJJ = (id) => {
+  const e = ESTADO_DDJJ[id] || { t: `#${id}`, c: 'bg-gray-100 text-gray-600' };
+  return <span className={`px-2 py-0.5 rounded text-xs font-medium ${e.c}`}>{e.t}</span>;
+};
+
 function CuentaPanel({ cuenta }) {
   const qc = useQueryClient();
+  const refetch = () => {
+    qc.invalidateQueries({ queryKey: ['wav-ddjj', cuenta.id] });
+    qc.invalidateQueries({ queryKey: ['wav-pagos', cuenta.id] });
+  };
   const { data: ddjj } = useQuery({
     queryKey: ['wav-ddjj', cuenta.id],
     queryFn: () => wavAPI.declaraciones.byCuenta(cuenta.id).then((r) => r.data),
@@ -134,12 +149,7 @@ function CuentaPanel({ cuenta }) {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['wav-ddjj', cuenta.id] }); setItems([{ descripcion: '', base_imponible: '', alicuota: '' }]); },
   });
 
-  // Registrar pago contado (se integra a Tesorería)
-  const [importe, setImporte] = useState('');
-  const pagar = useMutation({
-    mutationFn: () => wavAPI.pagos.pagoContado({ id_cuenta: cuenta.id, id_tipo_tributo: cuenta.id_tipo_tributo, importe: Number(importe) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['wav-pagos', cuenta.id] }); setImporte(''); },
-  });
+  const [accion, setAccion] = useState(null); // { modo: 'pago'|'plan', ddjj }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -167,26 +177,30 @@ function CuentaPanel({ cuenta }) {
         <button className={`${btn} w-full mt-3`} onClick={() => crearDDJJ.mutate()} disabled={crearDDJJ.isPending || totalDDJJ <= 0}>
           {crearDDJJ.isPending ? 'Presentando...' : 'Presentar DDJJ'}
         </button>
+      </div>
 
-        <h4 className="text-xs font-semibold text-gray-500 uppercase mt-5 mb-2">Declaraciones presentadas</h4>
-        <div className="space-y-1">
+      {/* DDJJ y su deuda */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">Declaraciones y deuda</h3>
+        <div className="space-y-1.5">
           {ddjj?.length ? ddjj.map((d) => (
-            <div key={d.id} className="flex items-center justify-between text-sm bg-gray-50 rounded px-3 py-1.5">
-              <span>{d.numero_declaracion || `DDJJ #${d.id}`} · {d.mes}/{d.anio}</span>
-              <span className="font-medium">{fmtMoney(d.importe_total)}</span>
+            <div key={d.id} className="bg-gray-50 rounded-lg px-3 py-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="font-medium">{d.numero_declaracion || `DDJJ #${d.id}`} · {d.mes}/{d.anio}</span>
+                {EstadoDDJJ(d.id_estado_declaracion)}
+              </div>
+              <div className="flex items-center justify-between mt-1 text-xs text-gray-600">
+                <span>Total {fmtMoney(d.importe_total)} · Saldo <b className={Number(d.saldo) > 0 ? 'text-red-600' : 'text-green-600'}>{fmtMoney(d.saldo)}</b></span>
+                {Number(d.saldo) > 0 && (
+                  <span className="flex gap-2">
+                    <button className={btnSec} onClick={() => setAccion({ modo: 'pago', ddjj: d })}>Pagar</button>
+                    <button className={btnSec} onClick={() => setAccion({ modo: 'plan', ddjj: d })}>Plan</button>
+                  </span>
+                )}
+              </div>
             </div>
           )) : <p className="text-sm text-gray-400">Sin declaraciones.</p>}
         </div>
-      </div>
-
-      {/* Pagos */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">Registrar pago (al contado)</h3>
-        <div className="flex gap-2">
-          <input className={inputCls} type="number" placeholder="Importe" value={importe} onChange={(e) => setImporte(e.target.value)} />
-          <button className={btn} onClick={() => pagar.mutate()} disabled={pagar.isPending || Number(importe) <= 0}>{pagar.isPending ? '...' : 'Pagar'}</button>
-        </div>
-        <p className="text-xs text-gray-400 mt-1">El pago se registra como recaudación en Tesorería.</p>
 
         <h4 className="text-xs font-semibold text-gray-500 uppercase mt-5 mb-2">Pagos realizados</h4>
         <div className="space-y-1">
@@ -196,18 +210,71 @@ function CuentaPanel({ cuenta }) {
               <span className="font-medium">{fmtMoney(p.importe)}</span>
             </div>
           )) : <p className="text-sm text-gray-400">Sin pagos.</p>}
+          {pagos?.planes_pago?.map((pl) => (
+            <div key={`pl${pl.id}`} className="flex items-center justify-between text-sm bg-purple-50 rounded px-3 py-1.5">
+              <span>Plan #{pl.id} · {pl.cantidad_cuotas} cuotas de {fmtMoney(pl.importe_cuota)}</span>
+              <span className="font-medium">{fmtMoney(pl.importe_total)}</span>
+            </div>
+          ))}
         </div>
-        {pagos?.planes_pago?.length > 0 && (
-          <>
-            <h4 className="text-xs font-semibold text-gray-500 uppercase mt-4 mb-2">Planes de pago</h4>
-            {pagos.planes_pago.map((pl) => (
-              <div key={pl.id} className="flex items-center justify-between text-sm bg-gray-50 rounded px-3 py-1.5">
-                <span>Plan #{pl.id} · {pl.cantidad_cuotas} cuotas</span>
-                <span className="font-medium">{fmtMoney(pl.importe_total)}</span>
-              </div>
-            ))}
-          </>
-        )}
+      </div>
+
+      {accion && (
+        <AccionDeudaModal cuenta={cuenta} accion={accion} onClose={() => setAccion(null)} onDone={() => { setAccion(null); refetch(); }} />
+      )}
+    </div>
+  );
+}
+
+function AccionDeudaModal({ cuenta, accion, onClose, onDone }) {
+  const { modo, ddjj } = accion;
+  const saldo = Number(ddjj.saldo || 0);
+  const [importe, setImporte] = useState(String(saldo));
+  const [cuotas, setCuotas] = useState('3');
+
+  const pagar = useMutation({
+    mutationFn: () => wavAPI.pagos.pagoContado({
+      id_cuenta: cuenta.id, id_declaracion_jurada: ddjj.id, id_tipo_tributo: cuenta.id_tipo_tributo, importe: Number(importe),
+    }),
+    onSuccess: onDone,
+  });
+  const armarPlan = useMutation({
+    mutationFn: () => wavAPI.pagos.planPago({
+      id_cuenta: cuenta.id, id_declaracion_jurada: ddjj.id, cantidad_cuotas: Number(cuotas),
+      importe_total: saldo, importe_cuota: Number((saldo / Math.max(Number(cuotas), 1)).toFixed(2)),
+    }),
+    onSuccess: onDone,
+  });
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+        <div className="px-5 py-3 border-b flex items-center justify-between">
+          <h3 className="font-semibold text-gray-800">{modo === 'pago' ? 'Pagar' : 'Armar plan'} — {ddjj.numero_declaracion || `DDJJ #${ddjj.id}`}</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+        </div>
+        <div className="p-5 space-y-3">
+          <p className="text-sm text-gray-500">Saldo de la declaración: <b>{fmtMoney(saldo)}</b></p>
+          {modo === 'pago' ? (
+            <>
+              <label className="text-xs text-gray-500">Importe a pagar</label>
+              <input className={inputCls} type="number" value={importe} onChange={(e) => setImporte(e.target.value)} />
+              <p className="text-xs text-gray-400">Se registra como recaudación en Tesorería.</p>
+              <button className={`${btn} w-full`} disabled={pagar.isPending || Number(importe) <= 0} onClick={() => pagar.mutate()}>
+                {pagar.isPending ? 'Procesando...' : 'Confirmar pago'}
+              </button>
+            </>
+          ) : (
+            <>
+              <label className="text-xs text-gray-500">Cantidad de cuotas</label>
+              <input className={inputCls} type="number" min="1" value={cuotas} onChange={(e) => setCuotas(e.target.value)} />
+              <p className="text-sm text-gray-600">{cuotas} cuotas de <b>{fmtMoney(saldo / Math.max(Number(cuotas), 1))}</b></p>
+              <button className={`${btn} w-full`} disabled={armarPlan.isPending || Number(cuotas) < 1} onClick={() => armarPlan.mutate()}>
+                {armarPlan.isPending ? 'Procesando...' : 'Confirmar plan'}
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -12,6 +12,7 @@ class PagoContado(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     id_cuenta = Column(BigInteger, ForeignKey("wav_cuentas.id"), nullable=True)
+    id_declaracion_jurada = Column(BigInteger, nullable=True)
     id_tipo_tributo = Column(BigInteger, nullable=True)
     importe = Column(Numeric(18, 2), nullable=False)
     fecha_pago = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

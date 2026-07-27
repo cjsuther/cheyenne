@@ -6,6 +6,7 @@ from decimal import Decimal
 
 class PagoContadoCreate(BaseModel):
     id_cuenta: Optional[int] = None
+    id_declaracion_jurada: Optional[int] = None
     id_tipo_tributo: Optional[int] = None
     importe: Decimal
     id_pasarela_pago: Optional[int] = None
@@ -16,6 +17,7 @@ class PagoContadoCreate(BaseModel):
 class PagoContadoResponse(BaseModel):
     id: int
     id_cuenta: Optional[int] = None
+    id_declaracion_jurada: Optional[int] = None
     id_tipo_tributo: Optional[int] = None
     importe: Decimal
     fecha_pago: datetime
@@ -30,6 +32,7 @@ class PagoContadoResponse(BaseModel):
 
 class PlanPagoCreate(BaseModel):
     id_cuenta: Optional[int] = None
+    id_declaracion_jurada: Optional[int] = None
     id_plan_pago_definicion: Optional[int] = None
     cantidad_cuotas: int
     importe_total: Decimal = Decimal("0")

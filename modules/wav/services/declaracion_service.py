@@ -43,6 +43,7 @@ class DeclaracionService:
             item_data["importe"] = importe
             total += importe
         declaracion_data["importe_total"] = total
+        declaracion_data["saldo"] = total
         declaracion = DeclaracionJurada(**declaracion_data)
         self.db.add(declaracion)
         self.db.flush()

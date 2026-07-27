@@ -18,6 +18,7 @@ class DeclaracionJurada(Base):
     fecha_presentacion = Column(DateTime(timezone=True), nullable=True)
     id_estado_declaracion = Column(BigInteger, nullable=False, default=10)
     importe_total = Column(Numeric(18, 2), nullable=False, default=0)
+    saldo = Column(Numeric(18, 2), nullable=False, default=0)
 
     cuenta = relationship("Cuenta", back_populates="declaraciones")
     items = relationship("DeclaracionJuradaItem", back_populates="declaracion", lazy="selectin", cascade="all, delete-orphan")
