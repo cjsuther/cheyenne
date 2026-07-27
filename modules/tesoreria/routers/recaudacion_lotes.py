@@ -2,7 +2,7 @@ import sys
 import os
 from typing import List
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Body, HTTPException
 from sqlalchemy.orm import Session
 from starlette.requests import Request
 
@@ -110,6 +110,38 @@ def delete_lote(
     service = RecaudacionService(db)
     service.remove_lote(id)
     return {"message": f"RecaudacionLote {id} eliminado"}
+
+
+@router.post("/cobro-externo", status_code=201)
+def registrar_cobro_externo(
+    request: Request,
+    data: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Registra un cobro externo (p. ej. autogestión WAV) como recaudación en un lote diario;
+    impacta la deuda de emisiones si viene numero_comprobante."""
+    importe = data.get("importe")
+    if importe is None:
+        raise HTTPException(status_code=400, detail="importe es obligatorio")
+    from datetime import datetime
+    fecha = data.get("fecha_cobro")
+    if isinstance(fecha, str) and fecha:
+        try:
+            fecha = datetime.fromisoformat(fecha.replace("Z", "+00:00"))
+        except ValueError:
+            fecha = None
+    else:
+        fecha = None
+    rec = RecaudacionService(db).registrar_cobro_externo(
+        importe=importe,
+        numero_cuenta=data.get("numero_cuenta"),
+        numero_comprobante=data.get("numero_comprobante"),
+        codigo_tipo_tributo=data.get("codigo_tipo_tributo"),
+        fecha_cobro=fecha,
+    )
+    _impactar_deuda_en_emisiones(rec, request.headers.get("authorization"))
+    return {"id": rec.id, "id_recaudacion_lote": rec.id_recaudacion_lote, "importe_cobro": float(rec.importe_cobro)}
 
 
 @router.get("/{id_lote}/recaudaciones", response_model=List[RecaudacionResponse])

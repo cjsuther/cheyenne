@@ -262,3 +262,19 @@ export const emisionesAPI = {
   descargarRecibo: (idEmision, ambito, archivo) =>
     api.get(`/emisiones/emisiones/${idEmision}/recibos-pdf/archivo`, { params: { ambito, archivo }, responseType: 'blob' }),
 };
+
+export const wavAPI = {
+  cuentas: {
+    byContribuyente: (id) => api.get(`/wav/cuentas/by-contribuyente/${id}`),
+    create: (data) => api.post('/wav/cuentas', data),
+  },
+  declaraciones: {
+    byCuenta: (id) => api.get(`/wav/declaraciones/by-cuenta/${id}`),
+    get: (id) => api.get(`/wav/declaraciones/${id}`),
+    create: (data) => api.post('/wav/declaraciones', data),
+  },
+  pagos: {
+    byCuenta: (id) => api.get(`/wav/pagos/by-cuenta/${id}`),
+    pagoContado: (data) => api.post('/wav/pagos/contado', data),
+  },
+};

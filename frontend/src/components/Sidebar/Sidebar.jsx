@@ -3,7 +3,7 @@ import { useAuthStore } from '../../store/auth';
 import MenuSearch from './MenuSearch';
 import {
   IconDashboard, IconAdministracion, IconSeguridad, IconAuditoria,
-  IconIngresos, IconTesoreria, IconEmisiones, IconComunicacion, IconContribuyente360, IconFormulas,
+  IconIngresos, IconTesoreria, IconEmisiones, IconComunicacion, IconContribuyente360, IconFormulas, IconWav,
 } from '../common/icons';
 
 const menuItems = [
@@ -15,6 +15,7 @@ const menuItems = [
   { path: '/tasas-formulas', label: 'Tasas y Fórmulas', module: 'emisiones', Icon: IconFormulas },
   { path: '/tesoreria', label: 'Tesorería', module: 'tesoreria', Icon: IconTesoreria },
   { path: '/comunicacion', label: 'Comunicación', module: 'comunicacion', Icon: IconComunicacion },
+  { path: '/wav', label: 'WAV — Autogestión', module: 'wav', Icon: IconWav },
   { path: '/auditoria', label: 'Auditoría', module: 'auditoria', Icon: IconAuditoria },
   { path: '/seguridad', label: 'Seguridad', module: 'seguridad', Icon: IconSeguridad },
 ];

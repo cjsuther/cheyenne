@@ -36,6 +36,17 @@ class CuentaService:
             )
         return cuenta
 
+    def create(self, data: dict) -> Cuenta:
+        if not data.get("numero_cuenta"):
+            # numero de cuenta autogenerado: tributo + contribuyente + correlativo
+            n = self.db.query(Cuenta).count() + 1
+            data["numero_cuenta"] = f"WAV-{int(data.get('id_tipo_tributo') or 0):03d}-{n:06d}"
+        cuenta = Cuenta(**data)
+        self.db.add(cuenta)
+        self.db.commit()
+        self.db.refresh(cuenta)
+        return cuenta
+
     def list_by_contribuyente(self, id_contribuyente: int, skip: int = 0, limit: int = 20) -> List[Cuenta]:
         return (
             self.db.query(Cuenta)

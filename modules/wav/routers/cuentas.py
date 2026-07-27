@@ -11,7 +11,7 @@ from shared.base_module import create_auth_dependency
 from database import get_db
 from config import get_settings
 from services.cuenta_service import CuentaService
-from schemas.cuenta import CuentaResponse
+from schemas.cuenta import CuentaCreate, CuentaResponse
 
 settings = get_settings()
 get_current_user = create_auth_dependency(settings.seguridad_url)
@@ -60,3 +60,13 @@ def get_cuenta(
 ):
     service = CuentaService(db)
     return service.find_by_id(id)
+
+
+@router.post("", response_model=CuentaResponse, status_code=201)
+def create_cuenta(
+    data: CuentaCreate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    service = CuentaService(db)
+    return service.create(data.model_dump())

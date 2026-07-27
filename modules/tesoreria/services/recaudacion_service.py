@@ -78,6 +78,44 @@ class RecaudacionService:
             )
         return item
 
+
+    # ── Cobro externo (p. ej. autogestión WAV): consolida en un lote diario ──
+    ORIGEN_AUTOGESTION = 900
+
+    def get_or_create_lote_dia(self, fecha, origen_id=None):
+        numero = int(fecha.strftime("%Y%m%d"))
+        q = self.db.query(RecaudacionLote).filter(RecaudacionLote.numero_lote == numero)
+        if origen_id is not None:
+            q = q.filter(RecaudacionLote.id_origen_recaudacion == origen_id)
+        lote = q.first()
+        if not lote:
+            lote = RecaudacionLote(numero_lote=numero, fecha_lote=fecha, id_origen_recaudacion=origen_id)
+            self.db.add(lote)
+            self.db.commit()
+            self.db.refresh(lote)
+        return lote
+
+    def registrar_cobro_externo(self, importe, numero_cuenta=None, numero_comprobante=None,
+                                codigo_tipo_tributo=None, fecha_cobro=None, origen_id=None):
+        from datetime import datetime, timezone
+        from decimal import Decimal
+        fc = fecha_cobro or datetime.now(timezone.utc)
+        lote = self.get_or_create_lote_dia(fc.date(), origen_id if origen_id is not None else self.ORIGEN_AUTOGESTION)
+        rec = Recaudacion(
+            id_recaudacion_lote=lote.id,
+            importe_cobro=importe,
+            numero_cuenta=numero_cuenta,
+            numero_comprobante=numero_comprobante,
+            codigo_tipo_tributo=codigo_tipo_tributo,
+            fecha_cobro=fc,
+        )
+        self.db.add(rec)
+        lote.casos = (lote.casos or 0) + 1
+        lote.importe_total = (Decimal(str(lote.importe_total or 0)) + Decimal(str(importe)))
+        self.db.commit()
+        self.db.refresh(rec)
+        return rec
+
     def add_recaudacion(self, data: dict) -> Recaudacion:
         item = Recaudacion(**data)
         self.db.add(item)

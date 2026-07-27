@@ -30,17 +30,27 @@ class DeclaracionService:
         return declaracion
 
     def create(self, declaracion_data: dict) -> DeclaracionJurada:
+        from decimal import Decimal
         items_data = declaracion_data.pop("items", [])
+        # el total se calcula a partir de los renglones (base imponible x alícuota)
+        total = Decimal("0")
+        for item_data in items_data:
+            base = Decimal(str(item_data.get("base_imponible") or 0))
+            alic = Decimal(str(item_data.get("alicuota") or 0))
+            importe = Decimal(str(item_data.get("importe") or 0))
+            if importe == 0 and base and alic:
+                importe = (base * alic / Decimal("100")).quantize(Decimal("0.01"))
+            item_data["importe"] = importe
+            total += importe
+        declaracion_data["importe_total"] = total
         declaracion = DeclaracionJurada(**declaracion_data)
         self.db.add(declaracion)
         self.db.flush()
+        if not declaracion.numero_declaracion:
+            declaracion.numero_declaracion = f"DDJJ-{declaracion.id:08d}"
 
         for item_data in items_data:
-            item = DeclaracionJuradaItem(
-                id_declaracion_jurada=declaracion.id,
-                **item_data,
-            )
-            self.db.add(item)
+            self.db.add(DeclaracionJuradaItem(id_declaracion_jurada=declaracion.id, **item_data))
 
         self.db.commit()
         self.db.refresh(declaracion)
