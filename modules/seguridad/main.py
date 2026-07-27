@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import get_settings
 from database import engine
 from shared.database import Base
-from middleware.audit_middleware import AuditMiddleware
+from shared.audit_middleware import AuditMiddleware
 from routers import auth_router, usuarios_router, perfiles_router, permisos_router, listas_router
 
 settings = get_settings()
@@ -29,7 +29,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(AuditMiddleware)
+
+app.add_middleware(AuditMiddleware, modulo="seguridad")
 
 app.include_router(auth_router)
 app.include_router(usuarios_router)

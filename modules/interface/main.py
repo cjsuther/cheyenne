@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import get_settings
 from database import engine
 from shared.database import Base
+from shared.audit_middleware import AuditMiddleware
 from routers import consultas_router, boletas_router, pagos_router, listas_router
 
 settings = get_settings()
@@ -28,6 +29,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(AuditMiddleware, modulo="interface")
 
 app.include_router(consultas_router)
 app.include_router(boletas_router)

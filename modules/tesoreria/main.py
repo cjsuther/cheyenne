@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import get_settings
 from database import engine
 from shared.database import Base
+from shared.audit_middleware import AuditMiddleware
 from routers import (
     cajas_router,
     recaudacion_lotes_router,
@@ -43,6 +44,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(AuditMiddleware, modulo="tesoreria")
 
 app.include_router(cajas_router)
 app.include_router(recaudacion_lotes_router)

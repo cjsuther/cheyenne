@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import get_settings
 from database import engine
 from shared.database import Base
+from shared.audit_middleware import AuditMiddleware
 from routers import (
     contribuyentes_router,
     cuentas_router,
@@ -52,6 +53,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(AuditMiddleware, modulo="ingresos_publicos")
 
 app.include_router(contribuyentes_router)
 app.include_router(cuentas_router)

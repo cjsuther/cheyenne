@@ -10,7 +10,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import get_settings
 from database import engine
 from shared.database import Base
-from routers import incidencias_router, listas_router
+from shared.audit_middleware import AuditMiddleware
+from routers import incidencias_router, listas_router, eventos_router
 
 settings = get_settings()
 
@@ -29,8 +30,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.add_middleware(AuditMiddleware, modulo="auditoria")
+
 app.include_router(incidencias_router)
 app.include_router(listas_router)
+app.include_router(eventos_router)
 
 
 @app.on_event("startup")

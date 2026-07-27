@@ -107,6 +107,9 @@ export const auditoriaAPI = {
     list: (params) => api.get('/auditoria/incidencias', { params }),
     get: (id) => api.get(`/auditoria/incidencias/${id}`),
   },
+  eventos: {
+    list: (params) => api.get('/auditoria/eventos', { params }),
+  },
 };
 
 export const comunicacionAPI = {
