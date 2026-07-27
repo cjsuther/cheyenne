@@ -78,6 +78,40 @@ def listar_recibos(id_emision: int) -> list:
     return out
 
 
+def recibos_de_contribuyente(db: Session, id_contribuyente: int) -> list:
+    """Recibos PDF de un contribuyente en todas sus emisiones (para la Vista 360 y Tesorería).
+
+    Cruza los comprobantes del contribuyente contra los PDF existentes en disco: el archivo
+    se nombra con el numero_comprobante, y el comprobante tiene el id_contribuyente.
+    """
+    comps = (
+        db.query(Comprobante)
+        .filter(Comprobante.id_contribuyente == id_contribuyente, Comprobante.activo == True)
+        .all()
+    )
+    if not comps:
+        return []
+    meta = {c.numero_comprobante: c for c in comps if c.numero_comprobante}
+    out = []
+    for eid in sorted({c.id_emision for c in comps}):
+        for f in listar_recibos(eid):
+            stem = f["archivo"][:-4] if f["archivo"].endswith(".pdf") else f["archivo"]
+            c = meta.get(stem)
+            if not c:
+                continue  # recibo de otro contribuyente en la misma emisión
+            out.append({
+                "id_emision": eid,
+                "numero_comprobante": c.numero_comprobante,
+                "tipo_tributo": c.tipo_tributo,
+                "periodo": c.periodo,
+                "importe_total": float(c.importe_total or 0),
+                "ambito": f["ambito"],
+                "archivo": f["archivo"],
+                "bytes": f["bytes"],
+            })
+    return out
+
+
 def ruta_recibo(id_emision: int, ambito: str, archivo: str) -> str:
     # anti path-traversal
     ambito = os.path.basename(ambito)

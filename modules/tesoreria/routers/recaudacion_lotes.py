@@ -18,10 +18,43 @@ from models.recaudacion import Recaudacion
 from schemas.recaudacion_lote import RecaudacionLoteCreate, RecaudacionLoteUpdate, RecaudacionLoteResponse
 from schemas.recaudacion import RecaudacionCreate, RecaudacionUpdate, RecaudacionResponse
 
+import logging
+import httpx
+
 settings = get_settings()
 get_current_user = create_auth_dependency(settings.seguridad_url)
 
+logger = logging.getLogger("tesoreria.recaudacion")
+
 router = APIRouter(prefix="/recaudacion-lotes", tags=["Recaudacion Lotes"])
+
+
+def _impactar_deuda_en_emisiones(recaudacion, token: str) -> None:
+    """Best-effort: avisa a emisiones para bajar la deuda del comprobante cobrado.
+    Nunca interrumpe ni falla el registro de la recaudación (solo loguea)."""
+    numero = getattr(recaudacion, "numero_comprobante", None)
+    importe = getattr(recaudacion, "importe_cobro", None)
+    if not numero or importe is None:
+        return
+    fecha = getattr(recaudacion, "fecha_cobro", None)
+    payload = {
+        "numero_comprobante": numero,
+        "importe": float(importe),
+        "fecha_pago": fecha.date().isoformat() if fecha else None,
+        "origen": "tesoreria",
+    }
+    headers = {"Authorization": token} if token else {}
+    try:
+        with httpx.Client(timeout=10) as client:
+            resp = client.post(
+                f"{settings.emisiones_url}/emisiones/cuenta-corriente/pagar-por-comprobante",
+                json=payload, headers=headers,
+            )
+        if resp.status_code >= 400:
+            logger.warning("emisiones rechazó el impacto de %s: HTTP %s %s",
+                           numero, resp.status_code, resp.text[:200])
+    except Exception as e:  # red caída, timeout, etc.
+        logger.warning("No se pudo impactar la deuda en emisiones para %s: %s", numero, e)
 
 
 @router.get("", response_model=List[RecaudacionLoteResponse])
@@ -97,13 +130,17 @@ def list_recaudaciones(
 def create_recaudacion(
     id_lote: int,
     data: RecaudacionCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     service = RecaudacionService(db)
     recaudacion_data = data.model_dump()
     recaudacion_data["id_recaudacion_lote"] = id_lote
-    return service.add_recaudacion(recaudacion_data)
+    recaudacion = service.add_recaudacion(recaudacion_data)
+    # integración: el cobro impacta la cuenta corriente de emisiones (HTTP, no bloqueante)
+    _impactar_deuda_en_emisiones(recaudacion, request.headers.get("authorization"))
+    return recaudacion
 
 
 @router.put("/recaudaciones/{id}", response_model=RecaudacionResponse)

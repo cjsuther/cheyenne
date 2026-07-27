@@ -87,6 +87,20 @@ export default function Contribuyente360() {
     enabled: !!selected,
   });
 
+  const { data: recibos } = useQuery({
+    queryKey: ['c360-recibos', selected?.id],
+    queryFn: () => emisionesAPI.recibosPdfPorContribuyente(selected.id).then((r) => r.data),
+    enabled: !!selected,
+  });
+
+  const descargarRecibo = async (r) => {
+    const { data } = await emisionesAPI.descargarRecibo(r.id_emision, r.ambito, r.archivo);
+    const url = URL.createObjectURL(data);
+    const a = document.createElement('a');
+    a.href = url; a.download = r.archivo; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const { data: objetos } = useQuery({
     queryKey: ['c360-objetos', selected?.id],
     queryFn: () => ingresosPublicosAPI.contribuyentes.objetos(selected.id).then((r) => r.data),
@@ -311,6 +325,27 @@ export default function Contribuyente360() {
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 mb-2">Pagos realizados ({pagos.length})</h3>
                   <DataTable columns={pagosCols} data={pagos} />
+                </div>
+              )}
+
+              {(recibos?.length ?? 0) > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Recibos / comprobantes ({recibos.length})</h3>
+                  <div className="space-y-1.5">
+                    {recibos.map((r) => (
+                      <div key={`${r.id_emision}-${r.archivo}`} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 text-sm">
+                        <div className="min-w-0">
+                          <span className="font-medium text-gray-800">{r.numero_comprobante}</span>
+                          <span className="text-gray-500 ml-2 capitalize">{r.tipo_tributo} {r.periodo}</span>
+                          <span className="text-[11px] text-gray-400 ml-2">({r.ambito})</span>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-gray-600">{fmtMoney(r.importe_total)}</span>
+                          <button onClick={() => descargarRecibo(r)} className="text-primary-600 hover:underline">Descargar PDF</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

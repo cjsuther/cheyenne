@@ -245,6 +245,18 @@ def listar_recibos_pdf(
     return listar_recibos(id)
 
 
+@router.get("/recibos-pdf/by-contribuyente/{id_contribuyente}")
+def listar_recibos_pdf_contribuyente(
+    id_contribuyente: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Vista 360 / Tesorería: recibos PDF de un contribuyente en todas sus emisiones.
+    La descarga usa el endpoint /{id}/recibos-pdf/archivo con id_emision, ambito y archivo."""
+    from services.pdf_service import recibos_de_contribuyente
+    return recibos_de_contribuyente(db, id_contribuyente)
+
+
 @router.get("/{id}/recibos-pdf/archivo")
 def descargar_recibo_pdf(
     id: int,
@@ -335,6 +347,30 @@ def pagar_concepto(
 ):
     """Registra un pago contra un concepto de deuda: baja el saldo de la cuenta corriente."""
     return CuentaCorrienteService(db).registrar_pago(id_cc, data.importe, data.fecha_pago)
+
+
+@router.post("/cuenta-corriente/pagar-por-comprobante")
+def pagar_por_comprobante(
+    data: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Impacta un cobro en la cuenta corriente a partir del numero_comprobante.
+    Lo usa Tesorería (HTTP) al registrar una recaudación para bajar la deuda."""
+    numero = data.get("numero_comprobante")
+    importe = data.get("importe")
+    if not numero or importe is None:
+        raise HTTPException(status_code=400, detail="numero_comprobante e importe son obligatorios")
+    fecha = data.get("fecha_pago")
+    if isinstance(fecha, str) and fecha:
+        from datetime import date as _date
+        try:
+            fecha = _date.fromisoformat(fecha[:10])
+        except ValueError:
+            fecha = None
+    else:
+        fecha = None
+    return CuentaCorrienteService(db).pagar_por_comprobante(numero, importe, fecha)
 
 
 @router.get("/pagos/by-contribuyente/{id_contribuyente}", response_model=List[ReciboResponse])

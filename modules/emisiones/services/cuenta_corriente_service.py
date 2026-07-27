@@ -96,6 +96,47 @@ class CuentaCorrienteService:
             out.append(d)
         return out
 
+    def pagar_por_comprobante(self, numero_comprobante: str, importe, fecha_pago=None) -> Dict[str, Any]:
+        """Aplica un cobro (p. ej. desde Tesorería) a la deuda de un comprobante.
+
+        Reparte el importe entre las cuotas pendientes del comprobante, de la más
+        antigua a la más nueva. Devuelve los recibos generados y el sobrante no imputado.
+        """
+        if not numero_comprobante:
+            raise HTTPException(status_code=400, detail="numero_comprobante es obligatorio")
+        importe = _q2(importe)
+        if importe <= 0:
+            raise HTTPException(status_code=400, detail="El importe debe ser mayor a cero")
+        filas = (
+            self.db.query(CuentaCorriente)
+            .filter(
+                CuentaCorriente.numero_comprobante == numero_comprobante,
+                CuentaCorriente.activo == True,
+                CuentaCorriente.saldo > 0,
+            )
+            .order_by(CuentaCorriente.fecha_vencimiento)
+            .all()
+        )
+        if not filas:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No hay deuda pendiente para el comprobante {numero_comprobante}",
+            )
+        restante = importe
+        recibos = []
+        for cc in filas:
+            if restante <= 0:
+                break
+            pagar = min(restante, _q2(cc.saldo))
+            recibos.append(self.registrar_pago(cc.id, pagar, fecha_pago))
+            restante = _q2(restante - pagar)
+        return {
+            "numero_comprobante": numero_comprobante,
+            "aplicado": float(_q2(importe - restante)),
+            "sobrante": float(restante),
+            "recibos": recibos,
+        }
+
     def registrar_pago(self, id_cc: int, importe, fecha_pago=None) -> Dict[str, Any]:
         cc = self.db.query(CuentaCorriente).filter(
             CuentaCorriente.id == id_cc, CuentaCorriente.activo == True

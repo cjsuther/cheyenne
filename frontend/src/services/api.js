@@ -254,4 +254,8 @@ export const emisionesAPI = {
     api.post(`/emisiones/emisiones/cuenta-corriente/${idCc}/pagar`, data),
   pagosPorContribuyente: (idContribuyente) =>
     api.get(`/emisiones/emisiones/pagos/by-contribuyente/${idContribuyente}`),
+  recibosPdfPorContribuyente: (idContribuyente) =>
+    api.get(`/emisiones/emisiones/recibos-pdf/by-contribuyente/${idContribuyente}`),
+  descargarRecibo: (idEmision, ambito, archivo) =>
+    api.get(`/emisiones/emisiones/${idEmision}/recibos-pdf/archivo`, { params: { ambito, archivo }, responseType: 'blob' }),
 };
