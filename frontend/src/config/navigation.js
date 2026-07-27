@@ -3,19 +3,16 @@
 
 export const NAV = [
   { label: 'Dashboard', path: '/', module: null, tabs: [] },
+
+  // ── Contribuyente ──
   { label: 'Contribuyente 360', path: '/contribuyente-360', module: 'ingresos_publicos', tabs: [] },
   {
-    label: 'Administración', path: '/administracion', module: 'administracion', tabs: [
+    label: 'Personas', path: '/contribuyente/personas', module: 'administracion', tabs: [
       { k: 'personasFisicas', l: 'Personas Físicas' }, { k: 'personasJuridicas', l: 'Personas Jurídicas' },
-      { k: 'expedientes', l: 'Expedientes' }, { k: 'entidades', l: 'Entidades' }, { k: 'listas', l: 'Listas' },
-      { k: 'paises', l: 'Países' }, { k: 'provincias', l: 'Provincias' }, { k: 'localidades', l: 'Localidades' },
-      { k: 'cuentasContables', l: 'Cuentas Contables' }, { k: 'jurisdicciones', l: 'Jurisdicciones' },
-      { k: 'recursosPorRubro', l: 'Recursos por Rubro' }, { k: 'documentos', l: 'Documentos' },
-      { k: 'mediosPago', l: 'Medios de Pago' }, { k: 'direcciones', l: 'Direcciones' },
-      { k: 'contactos', l: 'Contactos' }, { k: 'archivos', l: 'Archivos' },
-      { k: 'observaciones', l: 'Observaciones' }, { k: 'etiquetas', l: 'Etiquetas' },
     ],
   },
+
+  // ── Ingresos Públicos ──
   {
     label: 'Ingresos Públicos', path: '/ingresos-publicos', module: 'ingresos_publicos', tabs: [
       { k: 'contribuyentes', l: 'Contribuyentes' }, { k: 'cuentas', l: 'Cuentas' },
@@ -40,17 +37,39 @@ export const NAV = [
       { k: 'entidades', l: 'Entidades' }, { k: 'listas', l: 'Listas' },
     ],
   },
+  { label: 'WAV — Autogestión', path: '/wav', module: 'wav', tabs: [] },
   {
     label: 'Comunicación', path: '/comunicacion', module: 'comunicacion', tabs: [
       { k: 'mensajes', l: 'Mensajes' }, { k: 'listas', l: 'Listas' },
     ],
   },
-  { label: 'Auditoría', path: '/auditoria', module: 'auditoria', tabs: [] },
+  { label: 'Importación', path: '/importacion', module: 'importacion', tabs: [] },
+  { label: 'Interface', path: '/interface', module: 'interface', tabs: [] },
+
+  // ── Contaduría ──
+  { label: 'Contaduría', path: '/contaduria', module: null, tabs: [] },
+
+  // ── Configuración (maestros) ──
+  {
+    label: 'Configuración', path: '/configuracion', module: 'administracion', tabs: [
+      { k: 'expedientes', l: 'Expedientes' }, { k: 'documentos', l: 'Documentos' }, { k: 'archivos', l: 'Archivos' },
+      { k: 'paises', l: 'Países' }, { k: 'provincias', l: 'Provincias' }, { k: 'localidades', l: 'Localidades' },
+      { k: 'jurisdicciones', l: 'Jurisdicciones' }, { k: 'cuentasContables', l: 'Cuentas Contables' },
+      { k: 'recursosPorRubro', l: 'Recursos por Rubro' }, { k: 'mediosPago', l: 'Medios de Pago' },
+      { k: 'direcciones', l: 'Direcciones' }, { k: 'contactos', l: 'Contactos' },
+      { k: 'entidades', l: 'Entidades' }, { k: 'observaciones', l: 'Observaciones' },
+      { k: 'etiquetas', l: 'Etiquetas' }, { k: 'listas', l: 'Listas' },
+    ],
+  },
+
+  // ── Seguridad ──
   {
     label: 'Seguridad', path: '/seguridad', module: 'seguridad', tabs: [
       { k: 'usuarios', l: 'Usuarios' }, { k: 'perfiles', l: 'Perfiles' }, { k: 'permisos', l: 'Permisos' },
     ],
   },
+  { label: 'Auditoría', path: '/auditoria', module: 'auditoria', tabs: [] },
+  { label: 'Mi Perfil', path: '/perfil', module: null, tabs: [] },
 ];
 
 const norm = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
