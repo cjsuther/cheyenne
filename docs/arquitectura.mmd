@@ -1,0 +1,99 @@
+%% Cheyenne — Arquitectura de la solución e interacción de componentes
+%% Ver en: https://mermaid.live  ·  VS Code (Markdown Preview Mermaid)  ·  GitHub
+flowchart TB
+    Browser["🌐 Navegador del usuario"]
+
+    subgraph EDGE["Borde / Ingreso"]
+        Nginx["Nginx — reverse proxy :80<br/>• enruta /api/&#123;módulo&#125;/ → backend<br/>• / → frontend<br/>• rate-limit: auth 5r/s · api 30r/s"]
+        Frontend["Frontend — React SPA<br/>Vite + Tailwind + React Query<br/>(build estático servido por Nginx)"]
+    end
+
+    subgraph AUTH["Autoridad de identidad"]
+        Seguridad["seguridad :8000<br/>JWT + RBAC<br/>/auth/token · /auth/me"]
+    end
+
+    subgraph CORE["Núcleo Rentas"]
+        IP["ingresos_publicos :8000<br/>padrón · tasas · planes de pago"]
+        EM["emisiones :8000<br/>motor de cálculo (+ workers)"]
+        TE["tesoreria :8000<br/>recaudación / cobros"]
+    end
+
+    subgraph SUP["Módulos de soporte / maestros (FastAPI :8000)"]
+        AD["administracion<br/>(+ workers)"]
+        CO["comunicacion"]
+        CN["contaduria"]
+        AU["auditoria"]
+        IM["importacion"]
+        IN["interface"]
+        WA["wav"]
+    end
+
+    subgraph DATA["Capa de datos"]
+        PG[("PostgreSQL 16<br/>1 esquema/prefijo por módulo<br/>sin acceso cruzado a tablas")]
+        RD[("Redis 7<br/>cola de workers async / cache")]
+    end
+
+    %% Presentación
+    Browser -->|HTTP/HTTPS| Nginx
+    Nginx -->|"/"| Frontend
+
+    %% Nginx → backends
+    Nginx -->|/api/seguridad/| Seguridad
+    Nginx -->|/api/ingresos-publicos/| IP
+    Nginx -->|/api/emisiones/| EM
+    Nginx -->|/api/tesoreria/| TE
+    Nginx -->|/api/administracion/| AD
+    Nginx -->|/api/comunicacion/| CO
+    Nginx -->|/api/contaduria/| CN
+    Nginx -->|/api/auditoria/| AU
+    Nginx -->|/api/importacion/| IM
+    Nginx -->|/api/interface/| IN
+    Nginx -->|/api/wav/| WA
+
+    %% Autenticación: TODOS los módulos validan el token contra seguridad
+    IP -. "valida token /auth/me" .-> Seguridad
+    EM -. "/auth/me" .-> Seguridad
+    TE -. "/auth/me" .-> Seguridad
+    AD -. "/auth/me" .-> Seguridad
+    CO -. "/auth/me" .-> Seguridad
+    CN -. "/auth/me" .-> Seguridad
+    AU -. "/auth/me" .-> Seguridad
+    IM -. "/auth/me" .-> Seguridad
+    IN -. "/auth/me" .-> Seguridad
+    WA -. "/auth/me" .-> Seguridad
+
+    %% Única llamada de negocio entre módulos hoy
+    EM ==>|"GET /padron/&#123;tipo&#125; (HTTP)"| IP
+
+    %% Persistencia (cada módulo SOLO en sus tablas)
+    Seguridad --> PG
+    IP --> PG
+    EM --> PG
+    TE --> PG
+    AD --> PG
+    CO --> PG
+    CN --> PG
+    AU --> PG
+    IM --> PG
+    IN --> PG
+    WA --> PG
+
+    %% Redis (solo los que tienen workers/cache)
+    Seguridad --> RD
+    AD --> RD
+    CO --> RD
+    TE --> RD
+    EM --> RD
+
+    classDef edge fill:#0F172A,stroke:#fff,color:#fff;
+    classDef auth fill:#DC2626,stroke:#fff,color:#fff;
+    classDef core fill:#059669,stroke:#fff,color:#fff;
+    classDef sup  fill:#64748B,stroke:#fff,color:#fff;
+    classDef data fill:#B45309,stroke:#fff,color:#fff;
+    classDef front fill:#4F46E5,stroke:#fff,color:#fff;
+    class Nginx edge;
+    class Frontend front;
+    class Seguridad auth;
+    class IP,EM,TE core;
+    class AD,CO,CN,AU,IM,IN,WA sup;
+    class PG,RD data;

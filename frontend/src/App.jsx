@@ -14,6 +14,8 @@ import Wav from './pages/Wav/Wav';
 import Emisiones from './pages/Emisiones/Emisiones';
 import Contribuyente360 from './pages/Contribuyente360/Contribuyente360';
 import TasasFormulas from './pages/TasasFormulas/TasasFormulas';
+import Importacion from './pages/Importacion/Importacion';
+import Interface from './pages/Interface/Interface';
 import Perfil from './pages/Perfil/Perfil';
 
 const queryClient = new QueryClient({
@@ -53,6 +55,8 @@ export default function App() {
             <Route path="seguridad/*" element={<Seguridad />} />
             <Route path="wav/*" element={<Wav />} />
             <Route path="emisiones/*" element={<Emisiones />} />
+            <Route path="importacion" element={<Importacion />} />
+            <Route path="interface" element={<Interface />} />
             <Route path="contribuyente-360" element={<Contribuyente360 />} />
             <Route path="tasas-formulas" element={<TasasFormulas />} />
             <Route path="perfil" element={<Perfil />} />

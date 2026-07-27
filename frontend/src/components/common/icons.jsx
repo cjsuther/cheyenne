@@ -90,6 +90,22 @@ export const IconWav = (p) => (
   </Svg>
 );
 
+export const IconImportacion = (p) => (
+  <Svg {...p}>
+    <path d="M12 3v12" />
+    <path d="M8 11l4 4 4-4" />
+    <path d="M4 21h16" />
+  </Svg>
+);
+
+export const IconInterface = (p) => (
+  <Svg {...p}>
+    <rect x="3" y="4" width="18" height="12" rx="2" />
+    <path d="M8 20h8" />
+    <path d="M12 16v4" />
+  </Svg>
+);
+
 export const IconContribuyente360 = (p) => (
   <Svg {...p}>
     <circle cx="10" cy="7" r="4" />

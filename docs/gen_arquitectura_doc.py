@@ -129,8 +129,9 @@ h1("4. Cómo se comunican los módulos")
 bullet("Autenticación (todos → seguridad): cada request autenticado dispara una validación del "
        "token contra seguridad (GET /auth/me), implementada en la dependencia compartida "
        "shared/base_module.create_auth_dependency.")
-bullet("Padrón (emisiones → ingresos_publicos): el paso 2 de la emisión (\"Cargar padrón\") trae "
-       "por HTTP los inmuebles/comercios/vehículos con su base imponible desde ingresos_publicos.")
+bullet("Padrón (emisiones → ingresos_publicos): al generar el cálculo de prueba y el general "
+       "(pasos 3 y 5) emisiones trae por HTTP los inmuebles/comercios/vehículos con su base "
+       "imponible desde ingresos_publicos (/padron/{tipo}).")
 bullet("Auditoría (middleware en los 11 módulos): registra método, ruta, status y usuario, pero a "
        "los LOGS de la aplicación (stdout) — NO persiste en el módulo auditoria.")
 bullet("Orquestación desde el frontend: el frontend combina datos de varios módulos sin que estos "
@@ -138,8 +139,29 @@ bullet("Orquestación desde el frontend: el frontend combina datos de varios mó
 bullet("Redis: administracion, comunicacion, emisiones, tesoreria y seguridad lo declaran para "
        "workers asíncronos / cache.")
 
+# ── 4b. Ciclo de una emisión ─────────────────────────────────────────
+h1("5. Ciclo de una emisión de punta a punta")
+para("El caso de uso central del sistema es la emisión de un tributo. Se ejecuta como un workflow "
+     "de 16 pasos con control de permisos: cada paso exige su propio permiso "
+     "(emisiones_pasoNN_...), validado contra seguridad y asignable por rol. El historial guarda "
+     "qué usuario ejecutó cada paso y en qué fecha/hora.")
+img2 = os.path.join(HERE, "flujo-emision.png")
+if os.path.exists(img2):
+    doc.add_picture(img2, width=Inches(5.6))
+    doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+para("Figura 2 — Los 16 pasos agrupados por fase, con las interacciones externas de cada uno.",
+     italic=True, color=GREY)
+para("Interacciones que dispara el flujo:", bold=True)
+bullet("Pasos 3 y 5 (cálculos de prueba y general): emisiones pide por HTTP el padrón a "
+       "ingresos_publicos (/padron/{tipo}) para obtener la base imponible y liquidar.")
+bullet("Pasos 8 y 14 (impresión de recibos de prueba y general): emisiones genera los PDF de los "
+       "recibos, con su código de barras de pago, en el volumen emisiones_pdfs.")
+bullet("Paso 16 (cuenta corriente): consolida las liquidaciones en la deuda del contribuyente.")
+bullet("Todos los pasos: el permiso del paso se verifica contra seguridad (/auth/me) antes de "
+       "ejecutar; sin el permiso, el paso queda bloqueado en la UI y rechazado por el backend.")
+
 # ── 5. Matriz de interacción ─────────────────────────────────────────
-h1("5. Matriz de interacción módulo a módulo")
+h1("6. Matriz de interacción módulo a módulo")
 table(["Llamador", "Llamado", "Vía", "Propósito", "Cuándo"], [
     ["Todos los módulos", "seguridad", "HTTP GET /auth/me", "Validar el JWT y traer datos/permisos del usuario", "Cada request autenticado"],
     ["emisiones", "ingresos_publicos", "HTTP (padrón)", "Traer el padrón (base imponible) para liquidar", "Paso 2 de cada emisión"],
@@ -150,7 +172,7 @@ para("No existen otros llamados de negocio módulo-a-módulo: el resto de los m�
      "autónomos y solo dependen de seguridad para autenticar.", italic=True, color=GREY)
 
 # ── 6. Duplicación / sub-utilización ─────────────────────────────────
-h1("6. Módulos sub-utilizados y duplicación de información")
+h1("7. Módulos sub-utilizados y duplicación de información")
 para("Del mapeo anterior surgen estos puntos de atención:", bold=True)
 table(["Tema", "Qué pasa", "Riesgo", "Recomendación"], [
     ["Personas duplicadas", "administracion_personas_fisicas/juridicas conviven con ingresos_publicos_personas/contribuyentes", "Datos de persona en 2 módulos → inconsistencia / doble carga", "Fuente única: maestro en administracion; ingresos_publicos referencia por HTTP"],
@@ -164,7 +186,7 @@ table(["Tema", "Qué pasa", "Riesgo", "Recomendación"], [
 ], widths=[1.2, 2.3, 1.7, 2.2])
 
 # ── 7. Conclusiones ──────────────────────────────────────────────────
-h1("7. Conclusiones")
+h1("8. Conclusiones")
 bullet("La arquitectura de microservicios está bien planteada: bajo acoplamiento, HTTP-only, "
        "seguridad centralizada y auditoría no bloqueante.")
 bullet("El dominio de Rentas está concentrado en 4 módulos maduros (ingresos_publicos, emisiones, "

@@ -1,0 +1,53 @@
+%% Cheyenne — Ciclo de una emisión (16 pasos) e interacciones
+%% Ver en: https://mermaid.live · VS Code · GitHub
+flowchart TD
+    subgraph PREP["Preparación"]
+        P1["1 · Importar cálculo anterior<br/>(ejecución)"]
+        P2["2 · Editar cálculo anterior<br/>(edición)"]
+    end
+    subgraph PRU["Cálculo de prueba"]
+        P3["3 · Generar cálculo de prueba<br/>(ejecución)"]
+        P4["4 · Aprobación cálculo de prueba<br/>(aprobación)"]
+    end
+    subgraph GEN["Cálculo general"]
+        P5["5 · Generar cálculo general<br/>(ejecución)"]
+        P6["6 · Aprobación cálculo general<br/>(aprobación)"]
+    end
+    subgraph RPRU["Prueba de reparto e impresión"]
+        P7["7 · Ordenamiento de prueba"]
+        P8["8 · Impresión recibos de prueba"]
+        P9["9 · Aprob. ordenamiento de prueba"]
+        P10["10 · Aprob. impresión de prueba"]
+        P11["11 · Aprob. código de barras"]
+    end
+    subgraph RGEN["Reparto e impresión general"]
+        P12["12 · Ordenamiento general"]
+        P13["13 · Aprob. ordenamiento general"]
+        P14["14 · Impresión recibos general"]
+        P15["15 · Aprob. impresión general"]
+    end
+    subgraph FIN["Cierre"]
+        P16["16 · Generación de la cuenta corriente"]
+    end
+
+    P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7 --> P8 --> P9 --> P10 --> P11 --> P12 --> P13 --> P14 --> P15 --> P16
+
+    IP[("ingresos_publicos<br/>padrón / base imponible")]
+    PDF[["Volumen emisiones_pdfs<br/>(recibos PDF + código de barras)"]]
+    CC[("Cuenta corriente<br/>deuda del contribuyente")]
+    SEG["seguridad — permiso por paso<br/>emisiones_pasoNN_... (/auth/me)"]
+
+    IP -. "padrón" .-> P3
+    IP -. "padrón" .-> P5
+    P8 -- "genera" --> PDF
+    P14 -- "genera" --> PDF
+    P16 -- "consolida" --> CC
+    SEG -. "valida permiso en cada paso" .-> PRU
+    SEG -. "valida permiso en cada paso" .-> RGEN
+
+    classDef ejec fill:#ECFDF5,stroke:#059669,color:#065F46;
+    classDef edic fill:#FFF7ED,stroke:#B45309,color:#7C2D12;
+    classDef aprob fill:#EFF6FF,stroke:#2563EB,color:#1E3A8A;
+    class P1,P3,P5,P7,P8,P12,P14,P16 ejec;
+    class P2 edic;
+    class P4,P6,P9,P10,P11,P13,P15 aprob;

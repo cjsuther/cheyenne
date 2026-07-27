@@ -4,6 +4,7 @@ import MenuSearch from './MenuSearch';
 import {
   IconDashboard, IconAdministracion, IconSeguridad, IconAuditoria,
   IconIngresos, IconTesoreria, IconEmisiones, IconComunicacion, IconContribuyente360, IconFormulas, IconWav,
+  IconImportacion, IconInterface,
 } from '../common/icons';
 
 const menuItems = [
@@ -16,6 +17,8 @@ const menuItems = [
   { path: '/tesoreria', label: 'Tesorería', module: 'tesoreria', Icon: IconTesoreria },
   { path: '/comunicacion', label: 'Comunicación', module: 'comunicacion', Icon: IconComunicacion },
   { path: '/wav', label: 'WAV — Autogestión', module: 'wav', Icon: IconWav },
+  { path: '/importacion', label: 'Importación', module: 'importacion', Icon: IconImportacion },
+  { path: '/interface', label: 'Interface', module: 'interface', Icon: IconInterface },
   { path: '/auditoria', label: 'Auditoría', module: 'auditoria', Icon: IconAuditoria },
   { path: '/seguridad', label: 'Seguridad', module: 'seguridad', Icon: IconSeguridad },
 ];
