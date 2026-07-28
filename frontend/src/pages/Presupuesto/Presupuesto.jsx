@@ -8,10 +8,14 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { CrudTab, Modal, Field, inputClass, btnPrimary, btnSecondary } from '../../components/common/CrudComponents';
 import PartidasTab from './PartidasTab';
 import ModificacionesTab from './ModificacionesTab';
+import RecursosTab from './RecursosTab';
+import TableroTab from './TableroTab';
 
 const TABS = [
   { key: 'partidas', label: 'Partidas' },
   { key: 'modificaciones', label: 'Modificaciones' },
+  { key: 'recursos', label: 'Recursos' },
+  { key: 'tablero', label: 'Tablero' },
   { key: 'ejercicios', label: 'Ejercicios' },
   { key: 'jurisdicciones', label: 'Jurisdicciones' },
   { key: 'estructuras', label: 'Estructuras Prog.' },
@@ -21,7 +25,7 @@ const TABS = [
 ];
 
 const GRUPOS = [
-  { label: 'Ejercicio', keys: ['partidas', 'modificaciones', 'ejercicios'] },
+  { label: 'Ejercicio', keys: ['partidas', 'modificaciones', 'recursos', 'tablero', 'ejercicios'] },
   { label: 'Nomencladores', keys: ['jurisdicciones', 'estructuras', 'objetosGasto', 'fuentes', 'rubros'] },
 ];
 
@@ -33,6 +37,8 @@ export default function Presupuesto() {
       <GroupedTabBar grupos={GRUPOS} tabsMeta={TABS} tab={tab} setTab={setTab} />
       {tab === 'partidas' && <PartidasTab />}
       {tab === 'modificaciones' && <ModificacionesTab />}
+      {tab === 'recursos' && <RecursosTab />}
+      {tab === 'tablero' && <TableroTab />}
       {tab === 'ejercicios' && <EjerciciosTab />}
       {tab === 'jurisdicciones' && (
         <NomencladorTab

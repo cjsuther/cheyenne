@@ -5,3 +5,6 @@ from .nomencladores import (
 from .ejercicios import router as ejercicios_router
 from .partidas import router as partidas_router
 from .modificaciones import router as modificaciones_router
+from .afectaciones import router as afectaciones_router
+from .recursos import router as recursos_router
+from .tablero import router as tablero_router
