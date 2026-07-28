@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     secret_key: str = "supersecretkey"
     seguridad_url: str = "http://seguridad:8000"
     presupuesto_url: str = "http://presupuesto:8000"
+    tesoreria_url: str = "http://tesoreria:8000"
     environment: str = "development"
     debug: bool = True
 

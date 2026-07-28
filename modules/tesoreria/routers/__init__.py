@@ -9,3 +9,4 @@ from .dependencias import router as dependencias_router
 from .recaudadoras import router as recaudadoras_router
 from .archivos import router as archivos_router
 from .observaciones import router as observaciones_router
+from .egresos import beneficiarios_router, cuentas_router, op_router, egresos_router

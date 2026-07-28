@@ -204,11 +204,31 @@ def avanzar(id: int, request: Request, data: dict = Body(default={}),
     else:
         g.estado, g.op_numero = "pagado", documento
     _registrar(g, tipo_afectacion, current_user, documento, importe, afect["id"])
+
+    # integración: al PAGAR, generar la orden de pago en Tesorería (best-effort, idempotente)
+    tes_msg = None
+    if etapa == "pagar":
+        try:
+            with httpx.Client(timeout=10) as client:
+                resp = client.post(f"{settings.tesoreria_url}/ordenes-pago",
+                    json={"anio": g.anio, "importe": float(importe),
+                          "concepto": g.descripcion, "beneficiario_nombre": g.proveedor,
+                          "origen": "contaduria", "referencia_externa": f"GEX-{g.anio}-{g.numero:04d}"},
+                    headers={"Authorization": token} if token else {})
+            if resp.status_code < 400:
+                g.op_numero = resp.json().get("orden_pago") or g.op_numero
+            else:
+                tes_msg = f"Tesorería no generó la OP: HTTP {resp.status_code}"
+        except Exception as e:
+            tes_msg = f"No se pudo generar la OP en Tesorería: {e}"
+
     db.commit(); db.refresh(g)
     out = _serializar(g)
     for k in ("advertencia", "advertencias_cuota"):
         if afect.get(k):
             out[k] = afect[k]
+    if tes_msg:
+        out["tesoreria_aviso"] = tes_msg
     return out
 
 

@@ -31,6 +31,7 @@ export const NAV = [
   { label: 'Tasas y Fórmulas', path: '/tasas-formulas', module: 'emisiones', tabs: [] },
   {
     label: 'Tesorería', path: '/tesoreria', module: 'tesoreria', tabs: [
+      { k: 'ordenesPago', l: 'Órdenes de Pago' }, { k: 'parteEgresos', l: 'Parte de Egresos' }, { k: 'beneficiarios', l: 'Beneficiarios' }, { k: 'cuentasBanc', l: 'Cuentas Bancarias' },
       { k: 'cajas', l: 'Cajas' }, { k: 'dependencias', l: 'Dependencias' }, { k: 'recaudadoras', l: 'Recaudadoras' },
       { k: 'recaudacionLotes', l: 'Recaudación' }, { k: 'reciboPubLotes', l: 'Recibos Publicación' },
       { k: 'pagoRendLotes', l: 'Pagos Rendición' }, { k: 'regContLotes', l: 'Registros Contables' },

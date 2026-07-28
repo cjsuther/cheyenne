@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTabParam } from '../../hooks/useTabParam';
+import { OrdenesPagoTab, ParteEgresosTab } from './EgresosTabs';
+import { CrudTab as _CrudTab } from '../../components/common/CrudComponents';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tesoreriaAPI } from '../../services/api';
 import PageHeader from '../../components/common/PageHeader';
@@ -195,6 +197,10 @@ function DetailModal({ lote, detailApiFns, detailName, entityName, detailColumns
 // ═══════════════════════════════════════════════════════════════════════
 
 const TABS = [
+  { key: 'ordenesPago', label: 'Órdenes de Pago' },
+  { key: 'parteEgresos', label: 'Parte de Egresos' },
+  { key: 'beneficiarios', label: 'Beneficiarios' },
+  { key: 'cuentasBanc', label: 'Cuentas Bancarias' },
   { key: 'cajas', label: 'Cajas' },
   { key: 'dependencias', label: 'Dependencias' },
   { key: 'recaudadoras', label: 'Recaudadoras' },
@@ -207,7 +213,7 @@ const TABS = [
 ];
 
 export default function Tesoreria() {
-  const [tab, setTab] = useTabParam('cajas');
+  const [tab, setTab] = useTabParam('ordenesPago');
   return (
     <div>
       <PageHeader title="Tesoreria" subtitle="Cajas, recaudacion, recibos, pagos y registros contables" />
@@ -218,6 +224,18 @@ export default function Tesoreria() {
           >{t.label}</button>
         ))}
       </div>
+      {tab === 'ordenesPago' && <OrdenesPagoTab />}
+      {tab === 'parteEgresos' && <ParteEgresosTab />}
+      {tab === 'beneficiarios' && (
+        <_CrudTab queryKey="tes-benef-crud" apiFns={tesoreriaAPI.beneficiarios} entityName="Beneficiario"
+          columns={[{ key: 'codigo', label: 'Código' }, { key: 'nombre', label: 'Nombre' }, { key: 'cuit', label: 'CUIT' }, { key: 'cbu', label: 'CBU' }, { key: 'activo', label: 'Estado', render: (v) => (v ? 'Activo' : 'Baja') }]}
+          formFields={[{ key: 'codigo', label: 'Código', required: true }, { key: 'nombre', label: 'Nombre', required: true }, { key: 'cuit', label: 'CUIT' }, { key: 'cbu', label: 'CBU' }, { key: 'activo', label: 'Activo', type: 'boolean', defaultValue: true }]} />
+      )}
+      {tab === 'cuentasBanc' && (
+        <_CrudTab queryKey="tes-ctas-crud" apiFns={tesoreriaAPI.cuentasBancarias} entityName="Cuenta bancaria" wide
+          columns={[{ key: 'banco', label: 'Banco' }, { key: 'numero', label: 'Número' }, { key: 'tipo', label: 'Tipo' }, { key: 'descripcion', label: 'Descripción' }, { key: 'saldo_inicial', label: 'Saldo inicial' }, { key: 'activo', label: 'Estado', render: (v) => (v ? 'Activa' : 'Baja') }]}
+          formFields={[{ key: 'banco', label: 'Banco', required: true }, { key: 'numero', label: 'Número de cuenta', required: true }, { key: 'tipo', label: 'Tipo (cta cte / caja ahorro)' }, { key: 'descripcion', label: 'Descripción' }, { key: 'saldo_inicial', label: 'Saldo inicial', type: 'decimal', defaultValue: 0 }, { key: 'activo', label: 'Activo', type: 'boolean', defaultValue: true }]} />
+      )}
       {tab === 'cajas' && <CajasTab />}
       {tab === 'dependencias' && <DependenciasTab />}
       {tab === 'recaudadoras' && <RecaudadorasTab />}

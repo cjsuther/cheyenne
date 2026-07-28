@@ -214,6 +214,15 @@ export const tesoreriaAPI = {
   },
   entidades: crud('/tesoreria/entidades'),
   listas: crud('/tesoreria/listas'),
+  beneficiarios: crud('/tesoreria/beneficiarios'),
+  cuentasBancarias: crud('/tesoreria/cuentas-bancarias'),
+  ordenesPago: {
+    list: (params) => api.get('/tesoreria/ordenes-pago', { params }),
+    create: (data) => api.post('/tesoreria/ordenes-pago', data),
+    pagar: (id, data) => api.post(`/tesoreria/ordenes-pago/${id}/pagar`, data),
+    anular: (id) => api.post(`/tesoreria/ordenes-pago/${id}/anular`, {}),
+  },
+  parteEgresos: (fecha) => api.get('/tesoreria/egresos/parte-diario', { params: fecha ? { fecha } : {} }),
 };
 
 export const emisionesAPI = {

@@ -23,3 +23,4 @@ from .configuracion import Configuracion
 from .archivo import Archivo
 from .observacion import Observacion
 from .etiqueta import Etiqueta
+from .egresos import Beneficiario, CuentaBancaria, OrdenPago, Egreso

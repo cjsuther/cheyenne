@@ -12,6 +12,7 @@ from database import engine
 from shared.database import Base
 from shared.audit_middleware import AuditMiddleware
 from routers import (
+    beneficiarios_router, cuentas_router, op_router, egresos_router,
     cajas_router,
     recaudacion_lotes_router,
     recibo_publicacion_lotes_router,
@@ -54,6 +55,10 @@ app.include_router(pago_rendicion_lotes_router)
 app.include_router(registro_contable_lotes_router)
 app.include_router(listas_router)
 app.include_router(entidades_router)
+app.include_router(beneficiarios_router)
+app.include_router(cuentas_router)
+app.include_router(op_router)
+app.include_router(egresos_router)
 app.include_router(dependencias_router)
 app.include_router(recaudadoras_router)
 app.include_router(archivos_router)
