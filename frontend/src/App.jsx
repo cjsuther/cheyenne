@@ -19,6 +19,7 @@ import Interface from './pages/Interface/Interface';
 import Personas from './pages/Contribuyente/Personas';
 import Configuracion from './pages/Configuracion/Configuracion';
 import Contaduria from './pages/Contaduria/Contaduria';
+import Presupuesto from './pages/Presupuesto/Presupuesto';
 import Perfil from './pages/Perfil/Perfil';
 
 const queryClient = new QueryClient({
@@ -62,6 +63,8 @@ export default function App() {
             <Route path="comunicacion/*" element={<Comunicacion />} />
             <Route path="importacion" element={<Importacion />} />
             <Route path="interface" element={<Interface />} />
+            {/* Presupuesto */}
+            <Route path="presupuesto" element={<Presupuesto />} />
             {/* Contaduría */}
             <Route path="contaduria" element={<Contaduria />} />
             {/* Configuración (maestros) */}

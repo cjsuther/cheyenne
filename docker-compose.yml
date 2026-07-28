@@ -98,6 +98,23 @@ services:
     networks:
       - cheyenne-net
 
+  # ─── MÓDULO PRESUPUESTO ───────────────────────────────────────────
+  presupuesto:
+    build:
+      context: ./modules
+      dockerfile: presupuesto/Dockerfile
+    container_name: cheyenne-presupuesto
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cheyenne}:${POSTGRES_PASSWORD:-cheyenne123}@postgres:5432/${POSTGRES_DB:-cheyenne}
+      SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+      SEGURIDAD_URL: http://seguridad:8000
+      ADMINISTRACION_URL: http://administracion:8000
+    depends_on:
+      - seguridad
+    networks:
+      - cheyenne-net
+
   # ─── MÓDULO IMPORTACIÓN ───────────────────────────────────────────
   importacion:
     build:
@@ -225,6 +242,7 @@ services:
       - ingresos_publicos
       - tesoreria
       - emisiones
+      - presupuesto
       - wav
     networks:
       - cheyenne-net

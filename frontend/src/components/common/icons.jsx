@@ -106,6 +106,13 @@ export const IconInterface = (p) => (
   </Svg>
 );
 
+export const IconPresupuesto = (p) => (
+  <Svg {...p}>
+    <path d="M12 3v18" />
+    <path d="M17 8a4 3 0 0 0-4-2h-2a3 3 0 0 0 0 6h2a3 3 0 0 1 0 6h-2a4 3 0 0 1-4-2" />
+  </Svg>
+);
+
 export const IconContaduria = (p) => (
   <Svg {...p}>
     <rect x="4" y="3" width="16" height="18" rx="2" />

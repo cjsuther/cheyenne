@@ -46,6 +46,9 @@ export const NAV = [
   { label: 'Importación', path: '/importacion', module: 'importacion', tabs: [] },
   { label: 'Interface', path: '/interface', module: 'interface', tabs: [] },
 
+  // ── Presupuesto ──
+  { label: 'Presupuesto', path: '/presupuesto', module: 'presupuesto', tabs: [] },
+
   // ── Contaduría ──
   { label: 'Contaduría', path: '/contaduria', module: null, tabs: [] },
 

@@ -334,13 +334,13 @@ table(["Entrega", "Contenido", "Criterios de aceptación"], [
 para("Cada entrega se despliega y verifica end-to-end en el servidor (patrón actual: build + migración + "
      "verificación por API + limpieza de datos de prueba).", italic=True, color=GREY)
 
-# ══ 14. Preguntas abiertas ═══════════════════════════════════════════
-h1("14. Preguntas abiertas (a validar antes o durante E1)")
-bullet("¿Control de sobregiro por defecto en 'bloquear' (recomendado, fiel a RAFAM) o 'advertir'?")
-bullet("¿La estructura programática se usará por jurisdicción (como el legacy) o única para todo el municipio?")
-bullet("¿Prórroga con crédito inicial = 'inicial del año anterior' o 'vigente del año anterior'? (el sistema soporta ambas; definir default)")
-bullet("¿Se migran datos reales del legacy en la puesta en marcha (qué ejercicio)?")
-bullet("¿PPG (perspectiva de género) como etiqueta libre alcanza, o se necesita el % formal por estructura (espr_PorcentajePPG)?")
+# ══ 14. Decisiones tomadas ═══════════════════════════════════════════
+h1("14. Decisiones tomadas (validadas el 2026-07-28)")
+bullet("Sobregiro: CONFIGURABLE por ejercicio (bloquear/advertir); default 'bloquear' (fiel a RAFAM).")
+bullet("Estructura programática: POR JURISDICCIÓN (fiel al legacy); si una estructura aplica a todo el municipio, jurisdicción en nulo.")
+bullet("Prórroga: CONFIGURABLE al momento de prorrogar (origen_credito = inicial | vigente del año anterior).")
+bullet("Migración de datos: solo datos de PRUEBA por ahora (seed sintético inspirado en los DDL del legacy); los importadores quedan disponibles para producción.")
+bullet("PPG (perspectiva de género): mediante etiquetas libres por partida (configurable; sin estructura formal por ahora).")
 
 out = os.path.join(HERE, "Cheyenne-Presupuesto-Analisis-y-Diseno.docx")
 doc.save(out)
