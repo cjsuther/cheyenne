@@ -47,7 +47,13 @@ export const NAV = [
   { label: 'Interface', path: '/interface', module: 'interface', tabs: [] },
 
   // ── Presupuesto ──
-  { label: 'Presupuesto', path: '/presupuesto', module: 'presupuesto', tabs: [] },
+  {
+    label: 'Presupuesto', path: '/presupuesto', module: 'presupuesto', tabs: [
+      { k: 'ejercicios', l: 'Ejercicios' }, { k: 'jurisdicciones', l: 'Jurisdicciones' },
+      { k: 'estructuras', l: 'Estructuras Programáticas' }, { k: 'objetosGasto', l: 'Objetos del Gasto' },
+      { k: 'fuentes', l: 'Fuentes de Financiamiento' }, { k: 'rubros', l: 'Rubros de Recursos' },
+    ],
+  },
 
   // ── Contaduría ──
   { label: 'Contaduría', path: '/contaduria', module: null, tabs: [] },

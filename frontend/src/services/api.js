@@ -263,6 +263,20 @@ export const emisionesAPI = {
     api.get(`/emisiones/emisiones/${idEmision}/recibos-pdf/archivo`, { params: { ambito, archivo }, responseType: 'blob' }),
 };
 
+export const presupuestoAPI = {
+  jurisdicciones: { ...crud('/presupuesto/jurisdicciones'), arbol: () => api.get('/presupuesto/jurisdicciones/arbol'), importar: () => api.post('/presupuesto/jurisdicciones/importar') },
+  objetosGasto: { ...crud('/presupuesto/objetos-gasto'), arbol: () => api.get('/presupuesto/objetos-gasto/arbol') },
+  fuentes: { ...crud('/presupuesto/fuentes'), arbol: () => api.get('/presupuesto/fuentes/arbol') },
+  rubros: { ...crud('/presupuesto/rubros'), arbol: () => api.get('/presupuesto/rubros/arbol') },
+  estructuras: crud('/presupuesto/estructuras'),
+  ejercicios: {
+    list: (params) => api.get('/presupuesto/ejercicios', { params }),
+    create: (data) => api.post('/presupuesto/ejercicios', data),
+    transicionar: (anio, transicion, data) => api.post(`/presupuesto/ejercicios/${anio}/${transicion}`, data || {}),
+    configurar: (anio, data) => api.put(`/presupuesto/ejercicios/${anio}/configuracion`, data),
+  },
+};
+
 export const wavAPI = {
   cuentas: {
     byContribuyente: (id) => api.get(`/wav/cuentas/by-contribuyente/${id}`),

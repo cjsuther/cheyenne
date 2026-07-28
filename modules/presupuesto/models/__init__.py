@@ -1,1 +1,2 @@
-# Los modelos del módulo Presupuesto se registran acá (E2+: ejercicios, nomencladores, partidas...)
+from .nomencladores import Jurisdiccion, ObjetoGasto, Fuente, Rubro, Estructura
+from .ejercicio import Ejercicio
