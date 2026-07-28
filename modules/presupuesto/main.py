@@ -15,6 +15,7 @@ from routers import (
     info_router, jurisdicciones_router, objetos_gasto_router,
     fuentes_router, rubros_router, estructuras_router, ejercicios_router, partidas_router, modificaciones_router,
     afectaciones_router, recursos_router, tablero_router,
+    cuotas_router, cargos_router, rrhh_router, reportes_router,
 )
 
 import models  # noqa: F401
@@ -50,6 +51,10 @@ app.include_router(modificaciones_router)
 app.include_router(afectaciones_router)
 app.include_router(recursos_router)
 app.include_router(tablero_router)
+app.include_router(cuotas_router)
+app.include_router(cargos_router)
+app.include_router(rrhh_router)
+app.include_router(reportes_router)
 
 
 @app.on_event("startup")

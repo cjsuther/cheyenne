@@ -9,12 +9,16 @@ import { CrudTab, Modal, Field, inputClass, btnPrimary, btnSecondary } from '../
 import PartidasTab from './PartidasTab';
 import ModificacionesTab from './ModificacionesTab';
 import RecursosTab from './RecursosTab';
+import CuotasTab from './CuotasTab';
+import RRHHTab from './RRHHTab';
 import TableroTab from './TableroTab';
 
 const TABS = [
   { key: 'partidas', label: 'Partidas' },
   { key: 'modificaciones', label: 'Modificaciones' },
   { key: 'recursos', label: 'Recursos' },
+  { key: 'cuotas', label: 'Cuotas' },
+  { key: 'rrhh', label: 'RRHH' },
   { key: 'tablero', label: 'Tablero' },
   { key: 'ejercicios', label: 'Ejercicios' },
   { key: 'jurisdicciones', label: 'Jurisdicciones' },
@@ -22,11 +26,12 @@ const TABS = [
   { key: 'objetosGasto', label: 'Objetos del Gasto' },
   { key: 'fuentes', label: 'Fuentes' },
   { key: 'rubros', label: 'Rubros' },
+  { key: 'cargos', label: 'Cargos' },
 ];
 
 const GRUPOS = [
-  { label: 'Ejercicio', keys: ['partidas', 'modificaciones', 'recursos', 'tablero', 'ejercicios'] },
-  { label: 'Nomencladores', keys: ['jurisdicciones', 'estructuras', 'objetosGasto', 'fuentes', 'rubros'] },
+  { label: 'Ejercicio', keys: ['partidas', 'modificaciones', 'recursos', 'cuotas', 'rrhh', 'tablero', 'ejercicios'] },
+  { label: 'Nomencladores', keys: ['jurisdicciones', 'estructuras', 'objetosGasto', 'fuentes', 'rubros', 'cargos'] },
 ];
 
 export default function Presupuesto() {
@@ -38,6 +43,8 @@ export default function Presupuesto() {
       {tab === 'partidas' && <PartidasTab />}
       {tab === 'modificaciones' && <ModificacionesTab />}
       {tab === 'recursos' && <RecursosTab />}
+      {tab === 'cuotas' && <CuotasTab />}
+      {tab === 'rrhh' && <RRHHTab />}
       {tab === 'tablero' && <TableroTab />}
       {tab === 'ejercicios' && <EjerciciosTab />}
       {tab === 'jurisdicciones' && (
@@ -107,6 +114,22 @@ export default function Presupuesto() {
               { value: 'municipal', label: 'Municipal' }, { value: 'provincial', label: 'Provincial' },
               { value: 'nacional', label: 'Nacional' }, { value: 'afectado', label: 'Afectado' },
             ] },
+            { key: 'activo', label: 'Activo', type: 'boolean', defaultValue: true },
+          ]}
+        />
+      )}
+      {tab === 'cargos' && (
+        <CrudTab
+          queryKey="presu-cargos" apiFns={presupuestoAPI.cargos} entityName="Cargo"
+          columns={[
+            { key: 'codigo', label: 'Código' }, { key: 'nombre', label: 'Nombre' },
+            { key: 'categoria', label: 'Categoría' },
+            { key: 'activo', label: 'Estado', render: (v) => (v ? 'Activo' : 'Baja') },
+          ]}
+          formFields={[
+            { key: 'codigo', label: 'Código', required: true },
+            { key: 'nombre', label: 'Nombre del cargo', required: true },
+            { key: 'categoria', label: 'Categoría' },
             { key: 'activo', label: 'Activo', type: 'boolean', defaultValue: true },
           ]}
         />
@@ -207,8 +230,8 @@ const ESTADO_EJ = {
 const ACCIONES = {
   formulacion: [{ t: 'aprobar', label: 'Aprobar', pideActo: true }],
   aprobado: [{ t: 'vigencia', label: 'Poner en vigencia' }],
-  vigente: [{ t: 'cerrar', label: 'Cerrar' }],
-  cerrado: [{ t: 'reabrir', label: 'Reabrir' }],
+  vigente: [{ t: 'cerrar', label: 'Cerrar' }, { t: 'prorrogar', label: 'Prorrogar →', esProrroga: true }],
+  cerrado: [{ t: 'reabrir', label: 'Reabrir' }, { t: 'prorrogar', label: 'Prorrogar →', esProrroga: true }],
 };
 
 function EjerciciosTab() {
@@ -300,8 +323,12 @@ function TransicionModal({ modal, onClose, onDone, onError }) {
   const { accion, ejercicio } = modal;
   const [acto, setActo] = useState('');
   const [obs, setObs] = useState('');
+  const [origenCredito, setOrigenCredito] = useState('inicial');
+  const [anioDestino, setAnioDestino] = useState(String(ejercicio.anio + 1));
   const m = useMutation({
-    mutationFn: () => presupuestoAPI.ejercicios.transicionar(ejercicio.anio, accion.t, {
+    mutationFn: () => accion.esProrroga
+      ? presupuestoAPI.ejercicios.prorrogar(ejercicio.anio, { origen_credito: origenCredito, anio_destino: Number(anioDestino) })
+      : presupuestoAPI.ejercicios.transicionar(ejercicio.anio, accion.t, {
       ...(accion.pideActo ? { acto_administrativo: acto } : {}),
       ...(obs ? { observaciones: obs } : {}),
     }),
@@ -315,6 +342,19 @@ function TransicionModal({ modal, onClose, onDone, onError }) {
           <Field label="Acto administrativo (decreto / ordenanza) — obligatorio">
             <input className={inputClass} value={acto} onChange={(e) => setActo(e.target.value)} placeholder="ej: Ordenanza 1234/26" />
           </Field>
+        )}
+        {accion.esProrroga && (
+          <>
+            <Field label="Año destino">
+              <input type="number" className={inputClass} value={anioDestino} onChange={(e) => setAnioDestino(e.target.value)} />
+            </Field>
+            <Field label="Crédito inicial del año nuevo (decisión configurable)">
+              <select className={inputClass} value={origenCredito} onChange={(e) => setOrigenCredito(e.target.value)}>
+                <option value="inicial">Inicial del año origen</option>
+                <option value="vigente">Vigente del año origen (con modificaciones)</option>
+              </select>
+            </Field>
+          </>
         )}
         <Field label="Observaciones">
           <input className={inputClass} value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Opcional" />

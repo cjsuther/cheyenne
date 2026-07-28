@@ -163,6 +163,16 @@ def registrar(data: AfectacionIn, db: Session = Depends(get_db),
                 raise HTTPException(status_code=409, detail=msg)
             advertencia = msg
 
+    # fase 2: cuotas de compromiso (tope trimestral acumulado por ámbito)
+    advertencias_cuota = []
+    if data.tipo == "compromiso":
+        from services.cuotas import validar_cuota_compromiso
+        violaciones = validar_cuota_compromiso(db, partida, data.importe)
+        if violaciones:
+            if ejercicio.control_sobregiro == "bloquear":
+                raise HTTPException(status_code=409, detail="; ".join(violaciones))
+            advertencias_cuota = violaciones
+
     a = Afectacion(
         id_partida=partida.id, tipo=data.tipo, importe=data.importe, id_origen=data.id_origen,
         origen_modulo=data.origen_modulo, referencia_tipo=data.referencia_tipo,
@@ -192,6 +202,8 @@ def registrar(data: AfectacionIn, db: Session = Depends(get_db),
     out = _serializar(a)
     if advertencia:
         out["advertencia"] = advertencia
+    if advertencias_cuota:
+        out["advertencias_cuota"] = advertencias_cuota
     return out
 
 

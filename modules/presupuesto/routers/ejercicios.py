@@ -14,6 +14,8 @@ from shared.filters import filtered_query
 from database import get_db
 from config import get_settings
 from models.ejercicio import Ejercicio
+from models.partida import Partida, Movimiento
+from models.recurso import Recurso, RecursoMovimiento
 from pydantic import BaseModel
 
 settings = get_settings()
@@ -131,6 +133,8 @@ def transicionar(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
+    if transicion == "prorrogar":  # la ruta genérica captura primero: despachar explícito
+        return prorrogar(anio, data, db, current_user)
     if transicion not in TRANSICIONES:
         raise HTTPException(status_code=404, detail=f"Transición '{transicion}' inexistente")
     # permisos: reabrir exige admin; el resto, aprobar_ejercicio
@@ -157,3 +161,67 @@ def transicionar(
     _registrar(e, transicion, current_user, data.get("observaciones"))
     db.commit(); db.refresh(e)
     return _serializar(e)
+
+
+@router.post("/{anio}/prorrogar")
+def prorrogar(
+    anio: int,
+    data: dict = Body(default={}),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Prórroga (RN-12): crea el ejercicio destino en formulación copiando partidas y recursos.
+    origen_credito configurable: 'inicial' o 'vigente' del año origen (decisión #3)."""
+    _requiere(current_user, "presupuesto_aprobar_ejercicio")
+    origen_credito = (data.get("origen_credito") or "inicial").lower()
+    if origen_credito not in ("inicial", "vigente"):
+        raise HTTPException(status_code=400, detail="origen_credito debe ser 'inicial' o 'vigente'")
+    destino = int(data.get("anio_destino") or (anio + 1))
+
+    e = db.query(Ejercicio).filter(Ejercicio.anio == anio, Ejercicio.activo == True).first()
+    if not e:
+        raise HTTPException(status_code=404, detail=f"Ejercicio {anio} no encontrado")
+    if e.estado not in ("vigente", "cerrado"):
+        raise HTTPException(status_code=409, detail=f"Solo se prorroga un ejercicio vigente o cerrado (está '{e.estado}')")
+    if db.query(Ejercicio).filter(Ejercicio.anio == destino, Ejercicio.activo == True).first():
+        raise HTTPException(status_code=409, detail=f"El ejercicio {destino} ya existe")
+
+    nuevo = Ejercicio(anio=destino, control_sobregiro=e.control_sobregiro)
+    _registrar(nuevo, f"prorroga desde {anio} (credito {origen_credito})", current_user)
+    db.add(nuevo)
+
+    quien = current_user.get("nombre_apellido") or current_user.get("codigo")
+    partidas = db.query(Partida).filter(Partida.anio == anio, Partida.activo == True).all()
+    creditos = {}
+    if origen_credito == "vigente" and partidas:
+        from services.saldos import saldos_de_partidas
+        saldos = saldos_de_partidas(db, [p.id for p in partidas])
+        creditos = {p.id: saldos[p.id]["vigente"] for p in partidas}
+    copiadas = 0
+    for p in partidas:
+        credito = creditos.get(p.id, p.credito_inicial)
+        np = Partida(anio=destino, id_jurisdiccion=p.id_jurisdiccion, id_estructura=p.id_estructura,
+                     id_objeto_gasto=p.id_objeto_gasto, id_fuente=p.id_fuente,
+                     credito_inicial=credito, descripcion=p.descripcion, etiquetas=p.etiquetas)
+        db.add(np); db.flush()
+        db.add(Movimiento(id_partida=np.id, tipo="inicial", importe=credito, origen="presupuesto",
+                          referencia_tipo="prorroga", referencia=f"{anio}->{destino}",
+                          id_usuario=current_user.get("id"), usuario_nombre=quien,
+                          observaciones=f"Prórroga {anio} (crédito {origen_credito})"))
+        copiadas += 1
+
+    recursos = db.query(Recurso).filter(Recurso.anio == anio, Recurso.activo == True).all()
+    rec_copiados = 0
+    for r in recursos:
+        nr = Recurso(anio=destino, id_jurisdiccion=r.id_jurisdiccion, id_rubro=r.id_rubro,
+                     estimado_inicial=r.estimado_inicial, metodologia=r.metodologia)
+        db.add(nr); db.flush()
+        db.add(RecursoMovimiento(id_recurso=nr.id, tipo="inicial", importe=nr.estimado_inicial,
+                                 referencia=f"prorroga {anio}", usuario_nombre=quien,
+                                 observaciones="Estimado prorrogado"))
+        rec_copiados += 1
+
+    db.commit(); db.refresh(nuevo)
+    out = _serializar(nuevo)
+    out.update(partidas_copiadas=copiadas, recursos_copiados=rec_copiados, origen_credito=origen_credito)
+    return out

@@ -290,6 +290,19 @@ export const presupuestoAPI = {
     movimientos: (id) => api.get(`/presupuesto/recursos/${id}/movimientos`),
   },
   resumen: (params) => api.get('/presupuesto/resumen', { params }),
+  cuotas: {
+    list: (params) => api.get('/presupuesto/cuotas', { params }),
+    bulk: (data) => api.post('/presupuesto/cuotas/bulk', data),
+  },
+  cargos: crud('/presupuesto/cargos'),
+  rrhh: {
+    list: (params) => api.get('/presupuesto/rrhh', { params }),
+    create: (data) => api.post('/presupuesto/rrhh', data),
+    update: (id, data) => api.put(`/presupuesto/rrhh/${id}`, data),
+    delete: (id) => api.delete(`/presupuesto/rrhh/${id}`),
+    resumen: (params) => api.get('/presupuesto/rrhh/resumen', { params }),
+  },
+  reportePdf: (params) => api.get('/presupuesto/reportes/presupuesto-pdf', { params, responseType: 'blob' }),
   modificaciones: {
     list: (params) => api.get('/presupuesto/modificaciones', { params }),
     get: (id) => api.get(`/presupuesto/modificaciones/${id}`),
@@ -302,6 +315,7 @@ export const presupuestoAPI = {
     list: (params) => api.get('/presupuesto/ejercicios', { params }),
     create: (data) => api.post('/presupuesto/ejercicios', data),
     transicionar: (anio, transicion, data) => api.post(`/presupuesto/ejercicios/${anio}/${transicion}`, data || {}),
+    prorrogar: (anio, data) => api.post(`/presupuesto/ejercicios/${anio}/prorrogar`, data),
     configurar: (anio, data) => api.put(`/presupuesto/ejercicios/${anio}/configuracion`, data),
   },
 };

@@ -31,7 +31,13 @@ export default function TableroTab() {
         <select className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm" value={anioSel || ''} onChange={(e) => setAnio(Number(e.target.value))}>
           {ejercicios.map((e) => <option key={e.anio} value={e.anio}>{e.anio} — {e.estado}</option>)}
         </select>
-        <div className="flex gap-1 ml-auto">
+        <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded text-xs font-medium ml-auto"
+          onClick={async () => {
+            const { data: blob } = await presupuestoAPI.reportePdf({ anio: anioSel, por });
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+          }}>Descargar PDF</button>
+        <div className="flex gap-1">
           {[['inciso', 'Por inciso'], ['jurisdiccion', 'Por jurisdicción'], ['fuente', 'Por fuente']].map(([v, l]) => (
             <button key={v} onClick={() => setPor(v)}
               className={`px-3 py-1 rounded text-xs font-medium ${por === v ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600'}`}>{l}</button>
