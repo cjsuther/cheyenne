@@ -13,7 +13,7 @@ from shared.database import Base
 from shared.audit_middleware import AuditMiddleware
 from routers import (
     info_router, jurisdicciones_router, objetos_gasto_router,
-    fuentes_router, rubros_router, estructuras_router, ejercicios_router, partidas_router,
+    fuentes_router, rubros_router, estructuras_router, ejercicios_router, partidas_router, modificaciones_router,
 )
 
 import models  # noqa: F401
@@ -45,6 +45,7 @@ app.include_router(rubros_router)
 app.include_router(estructuras_router)
 app.include_router(ejercicios_router)
 app.include_router(partidas_router)
+app.include_router(modificaciones_router)
 
 
 @app.on_event("startup")

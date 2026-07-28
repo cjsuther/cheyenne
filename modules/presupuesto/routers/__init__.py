@@ -4,3 +4,4 @@ from .nomencladores import (
 )
 from .ejercicios import router as ejercicios_router
 from .partidas import router as partidas_router
+from .modificaciones import router as modificaciones_router

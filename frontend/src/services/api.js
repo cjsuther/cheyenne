@@ -278,6 +278,14 @@ export const presupuestoAPI = {
     importar: (data) => api.post('/presupuesto/partidas/importar', data),
     exportar: (anio) => api.get('/presupuesto/partidas/export', { params: { anio }, responseType: 'blob' }),
   },
+  modificaciones: {
+    list: (params) => api.get('/presupuesto/modificaciones', { params }),
+    get: (id) => api.get(`/presupuesto/modificaciones/${id}`),
+    create: (data) => api.post('/presupuesto/modificaciones', data),
+    delete: (id) => api.delete(`/presupuesto/modificaciones/${id}`),
+    aprobar: (id) => api.post(`/presupuesto/modificaciones/${id}/aprobar`),
+    anular: (id, motivo) => api.post(`/presupuesto/modificaciones/${id}/anular`, { motivo }),
+  },
   ejercicios: {
     list: (params) => api.get('/presupuesto/ejercicios', { params }),
     create: (data) => api.post('/presupuesto/ejercicios', data),
