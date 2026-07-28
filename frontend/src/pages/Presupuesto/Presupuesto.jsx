@@ -6,8 +6,10 @@ import PageHeader from '../../components/common/PageHeader';
 import GroupedTabBar from '../../components/common/GroupedTabBar';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { CrudTab, Modal, Field, inputClass, btnPrimary, btnSecondary } from '../../components/common/CrudComponents';
+import PartidasTab from './PartidasTab';
 
 const TABS = [
+  { key: 'partidas', label: 'Partidas' },
   { key: 'ejercicios', label: 'Ejercicios' },
   { key: 'jurisdicciones', label: 'Jurisdicciones' },
   { key: 'estructuras', label: 'Estructuras Prog.' },
@@ -17,16 +19,17 @@ const TABS = [
 ];
 
 const GRUPOS = [
-  { label: 'Ejercicio', keys: ['ejercicios'] },
+  { label: 'Ejercicio', keys: ['partidas', 'ejercicios'] },
   { label: 'Nomencladores', keys: ['jurisdicciones', 'estructuras', 'objetosGasto', 'fuentes', 'rubros'] },
 ];
 
 export default function Presupuesto() {
-  const [tab, setTab] = useTabParam('ejercicios');
+  const [tab, setTab] = useTabParam('partidas');
   return (
     <div>
       <PageHeader title="Presupuesto" subtitle="Formulación, modificaciones y ejecución del presupuesto municipal" />
       <GroupedTabBar grupos={GRUPOS} tabsMeta={TABS} tab={tab} setTab={setTab} />
+      {tab === 'partidas' && <PartidasTab />}
       {tab === 'ejercicios' && <EjerciciosTab />}
       {tab === 'jurisdicciones' && (
         <NomencladorTab

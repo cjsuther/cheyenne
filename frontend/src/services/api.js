@@ -269,6 +269,15 @@ export const presupuestoAPI = {
   fuentes: { ...crud('/presupuesto/fuentes'), arbol: () => api.get('/presupuesto/fuentes/arbol') },
   rubros: { ...crud('/presupuesto/rubros'), arbol: () => api.get('/presupuesto/rubros/arbol') },
   estructuras: crud('/presupuesto/estructuras'),
+  partidas: {
+    list: (params) => api.get('/presupuesto/partidas', { params }),
+    create: (data) => api.post('/presupuesto/partidas', data),
+    update: (id, data) => api.put(`/presupuesto/partidas/${id}`, data),
+    delete: (id) => api.delete(`/presupuesto/partidas/${id}`),
+    movimientos: (id) => api.get(`/presupuesto/partidas/${id}/movimientos`),
+    importar: (data) => api.post('/presupuesto/partidas/importar', data),
+    exportar: (anio) => api.get('/presupuesto/partidas/export', { params: { anio }, responseType: 'blob' }),
+  },
   ejercicios: {
     list: (params) => api.get('/presupuesto/ejercicios', { params }),
     create: (data) => api.post('/presupuesto/ejercicios', data),

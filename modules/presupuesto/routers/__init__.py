@@ -3,3 +3,4 @@ from .nomencladores import (
     jurisdicciones_router, objetos_gasto_router, fuentes_router, rubros_router, estructuras_router,
 )
 from .ejercicios import router as ejercicios_router
+from .partidas import router as partidas_router
