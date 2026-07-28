@@ -18,7 +18,7 @@ class _NomencladorJerarquico:
 class Jurisdiccion(Base, _NomencladorJerarquico):
     __tablename__ = "presupuesto_jurisdicciones"
     __table_args__ = (UniqueConstraint("codigo", name="uq_presu_juri_codigo"),)
-    tipo = Column(String(10), nullable=True)  # A/U (legacy juri_Tipo)
+    tipo = Column(String(30), nullable=True)  # A/U o etiqueta (legacy juri_Tipo)
 
 
 class ObjetoGasto(Base, _NomencladorJerarquico):

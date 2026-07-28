@@ -228,11 +228,13 @@ def importar_jurisdicciones(
         raise HTTPException(status_code=502, detail=f"No se pudo consultar administracion: {e}")
 
     creadas, existentes = 0, 0
+    vistos = set()
     for f in filas:
-        codigo = (f.get("agrupamiento") or f.get("codigo") or "").strip()
+        codigo = (f.get("codigo") or "").strip()
         nombre = (f.get("nombre") or "").strip()
-        if not codigo or not nombre:
+        if not codigo or not nombre or codigo in vistos:
             continue
+        vistos.add(codigo)
         cod, nivel, id_padre = resolver_jerarquia(db, Jurisdiccion, codigo)
         if db.query(Jurisdiccion).filter(Jurisdiccion.codigo == cod).first():
             existentes += 1
