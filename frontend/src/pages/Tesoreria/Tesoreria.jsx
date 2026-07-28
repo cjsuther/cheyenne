@@ -5,6 +5,7 @@ import { CrudTab as _CrudTab } from '../../components/common/CrudComponents';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tesoreriaAPI } from '../../services/api';
 import PageHeader from '../../components/common/PageHeader';
+import GroupedTabBar from '../../components/common/GroupedTabBar';
 import DataTable from '../../components/common/DataTable';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { CrudTab, Modal, Field, CrudFormModal, inputClass, btnPrimary, btnDanger, btnSecondary } from '../../components/common/CrudComponents';
@@ -201,29 +202,29 @@ const TABS = [
   { key: 'parteEgresos', label: 'Parte de Egresos' },
   { key: 'beneficiarios', label: 'Beneficiarios' },
   { key: 'cuentasBanc', label: 'Cuentas Bancarias' },
+  { key: 'recaudacionLotes', label: 'Recaudación' },
+  { key: 'reciboPubLotes', label: 'Recibos Publicación' },
+  { key: 'pagoRendLotes', label: 'Pagos Rendición' },
+  { key: 'regContLotes', label: 'Registros Contables' },
   { key: 'cajas', label: 'Cajas' },
-  { key: 'dependencias', label: 'Dependencias' },
   { key: 'recaudadoras', label: 'Recaudadoras' },
-  { key: 'recaudacionLotes', label: 'Recaudacion' },
-  { key: 'reciboPubLotes', label: 'Recibos Pub.' },
-  { key: 'pagoRendLotes', label: 'Pagos Rend.' },
-  { key: 'regContLotes', label: 'Reg. Contables' },
+  { key: 'dependencias', label: 'Dependencias' },
   { key: 'entidades', label: 'Entidades' },
   { key: 'listas', label: 'Listas' },
+];
+
+const GRUPOS = [
+  { label: 'Egresos', keys: ['ordenesPago', 'parteEgresos', 'beneficiarios', 'cuentasBanc'] },
+  { label: 'Recaudación', keys: ['recaudacionLotes', 'reciboPubLotes', 'pagoRendLotes', 'regContLotes', 'cajas', 'recaudadoras'] },
+  { label: 'Configuración', keys: ['dependencias', 'entidades', 'listas'] },
 ];
 
 export default function Tesoreria() {
   const [tab, setTab] = useTabParam('ordenesPago');
   return (
     <div>
-      <PageHeader title="Tesoreria" subtitle="Cajas, recaudacion, recibos, pagos y registros contables" />
-      <div className="flex gap-1.5 mb-4 overflow-x-auto pb-2 -mx-1 px-1">
-        {TABS.map((t) => (
-          <button key={t.key} onClick={() => setTab(t.key)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${tab === t.key ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-          >{t.label}</button>
-        ))}
-      </div>
+      <PageHeader title="Tesorería" subtitle="Recaudación, órdenes de pago, egresos y bancos" />
+      <GroupedTabBar grupos={GRUPOS} tabsMeta={TABS} tab={tab} setTab={setTab} />
       {tab === 'ordenesPago' && <OrdenesPagoTab />}
       {tab === 'parteEgresos' && <ParteEgresosTab />}
       {tab === 'beneficiarios' && (

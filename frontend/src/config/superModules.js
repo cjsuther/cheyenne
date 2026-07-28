@@ -1,6 +1,6 @@
 // Registro central de los super-módulos (dashboard) y sus sub-menús.
 import {
-  IconContribuyente360, IconIngresos, IconSeguridad, IconContaduria, IconConfig, IconPresupuesto,
+  IconContribuyente360, IconIngresos, IconSeguridad, IconContaduria, IconConfig, IconPresupuesto, IconTesoreria,
 } from '../components/common/icons';
 
 export const SUPER_MODULES = [
@@ -19,7 +19,6 @@ export const SUPER_MODULES = [
       { path: '/ingresos-publicos', label: 'Padrón y tributos', module: 'ingresos_publicos' },
       { path: '/emisiones', label: 'Emisiones', module: 'emisiones' },
       { path: '/tasas-formulas', label: 'Tasas y Fórmulas', module: 'emisiones' },
-      { path: '/tesoreria', label: 'Tesorería', module: 'tesoreria' },
       { path: '/wav', label: 'WAV — Autogestión', module: 'wav' },
       { path: '/comunicacion', label: 'Comunicación', module: 'comunicacion' },
       { path: '/importacion', label: 'Importación', module: 'importacion' },
@@ -38,6 +37,13 @@ export const SUPER_MODULES = [
     Icon: IconContaduria, chip: 'bg-blue-50 text-blue-700',
     items: [
       { path: '/contaduria', label: 'Ciclo del Gasto', module: 'contaduria' },
+    ],
+  },
+  {
+    key: 'tesoreria', label: 'Tesorería', desc: 'Recaudación, pagos y bancos',
+    Icon: IconTesoreria, chip: 'bg-violet-50 text-violet-700',
+    items: [
+      { path: '/tesoreria', label: 'Tesorería', module: 'tesoreria' },
     ],
   },
   {
