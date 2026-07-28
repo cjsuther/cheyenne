@@ -6,3 +6,4 @@ from .afectacion import Afectacion
 from .recurso import Recurso, RecursoMovimiento
 from .cuota import Cuota
 from .rrhh import Cargo, PlantaRRHH
+from .meta import Meta, Proyecto

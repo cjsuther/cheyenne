@@ -342,6 +342,24 @@ bullet("Prórroga: CONFIGURABLE al momento de prorrogar (origen_credito = inicia
 bullet("Migración de datos: solo datos de PRUEBA por ahora (seed sintético inspirado en los DDL del legacy); los importadores quedan disponibles para producción.")
 bullet("PPG (perspectiva de género): mediante etiquetas libres por partida (configurable; sin estructura formal por ahora).")
 
+
+# ══ 15. Estado de implementación ═════════════════════════════════════
+h1("15. Estado de implementación (actualizado al 2026-07-28)")
+table(["Entrega", "Estado", "Verificación"], [
+    ["E1 Esqueleto + super-módulo", "ENTREGADA", "health OK; 7 permisos en Seguridad; tarjeta en dashboard"],
+    ["E2 Nomencladores + Ejercicios", "ENTREGADA", "árbol jerárquico con re-vinculación; workflow con RN-07; importador desde administracion"],
+    ["E3 Partidas + Ledger", "ENTREGADA", "saldos derivados en vivo; import CSV dry-run con rechazo por fila; RN-01/02"],
+    ["E4 Modificaciones", "ENTREGADA", "Σ=0 validado; no-sobregiro con lock (RN-05); anulación por contra-asiento; MOD-AAAA-NNNN"],
+    ["E5 Afectaciones + Recursos + Tablero", "ENTREGADA", "cadena preventivo→compromiso→devengado→pagado sin doble conteo; idempotencia; tablero cuadra con la grilla"],
+    ["Fase 2 — Prórroga", "ENTREGADA", "RN-12 con origen_credito configurable (inicial|vigente)"],
+    ["Fase 2 — Cuotas de compromiso", "ENTREGADA", "tope trimestral acumulado por jurisdicción/fuente/inciso, validado al comprometer"],
+    ["Fase 2 — RRHH por cargo", "ENTREGADA", "planta (cantidad × costo × meses) + cobertura vs. inciso 1"],
+    ["Fase 2 — Reporte PDF", "ENTREGADA", "resumen F12 por inciso/jurisdicción/fuente (reportlab)"],
+    ["Fase 3 — Metas físicas", "EN CURSO", "metas por estructura programática con avance"],
+    ["Fase 3 — Proyectos de inversión", "EN CURSO", "banco de proyectos simplificado"],
+    ["Integración Contaduría (ciclo del gasto)", "EN CURSO", "expediente de gasto consumiendo la API de afectación por HTTP"],
+], widths=[2.3, 1.0, 3.6], fs=8.5)
+
 out = os.path.join(HERE, "Cheyenne-Presupuesto-Analisis-y-Diseno.docx")
 doc.save(out)
 print("OK ->", out)

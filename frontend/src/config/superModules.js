@@ -34,10 +34,10 @@ export const SUPER_MODULES = [
     ],
   },
   {
-    key: 'contaduria', label: 'Contaduría', desc: 'Contabilidad (próximamente)',
-    Icon: IconContaduria, chip: 'bg-slate-100 text-slate-600',
+    key: 'contaduria', label: 'Contaduría', desc: 'Ciclo del gasto y contabilidad',
+    Icon: IconContaduria, chip: 'bg-blue-50 text-blue-700',
     items: [
-      { path: '/contaduria', label: 'Contaduría', module: null },
+      { path: '/contaduria', label: 'Ciclo del Gasto', module: 'contaduria' },
     ],
   },
   {

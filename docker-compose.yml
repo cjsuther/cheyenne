@@ -115,6 +115,25 @@ services:
     networks:
       - cheyenne-net
 
+  # ─── MÓDULO CONTADURÍA (ciclo del gasto) ──────────────────────────
+  contaduria:
+    build:
+      context: ./modules
+      dockerfile: contaduria/Dockerfile
+    container_name: cheyenne-contaduria
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cheyenne}:${POSTGRES_PASSWORD:-cheyenne123}@postgres:5432/${POSTGRES_DB:-cheyenne}
+      SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+      SEGURIDAD_URL: http://seguridad:8000
+      PRESUPUESTO_URL: http://presupuesto:8000
+    depends_on:
+      - seguridad
+      - presupuesto
+      - contaduria
+    networks:
+      - cheyenne-net
+
   # ─── MÓDULO IMPORTACIÓN ───────────────────────────────────────────
   importacion:
     build:

@@ -49,14 +49,14 @@ export const NAV = [
   // ── Presupuesto ──
   {
     label: 'Presupuesto', path: '/presupuesto', module: 'presupuesto', tabs: [
-      { k: 'partidas', l: 'Partidas' }, { k: 'modificaciones', l: 'Modificaciones Presupuestarias' }, { k: 'recursos', l: 'Recursos (Cálculo)' }, { k: 'cuotas', l: 'Cuotas de Compromiso' }, { k: 'rrhh', l: 'RRHH por Cargo' }, { k: 'cargos', l: 'Cargos (Nomenclador)' }, { k: 'tablero', l: 'Tablero de Ejecución' }, { k: 'ejercicios', l: 'Ejercicios' }, { k: 'jurisdicciones', l: 'Jurisdicciones' },
+      { k: 'partidas', l: 'Partidas' }, { k: 'modificaciones', l: 'Modificaciones Presupuestarias' }, { k: 'recursos', l: 'Recursos (Cálculo)' }, { k: 'cuotas', l: 'Cuotas de Compromiso' }, { k: 'rrhh', l: 'RRHH por Cargo' }, { k: 'metas', l: 'Metas Físicas' }, { k: 'proyectos', l: 'Proyectos de Inversión' }, { k: 'cargos', l: 'Cargos (Nomenclador)' }, { k: 'tablero', l: 'Tablero de Ejecución' }, { k: 'ejercicios', l: 'Ejercicios' }, { k: 'jurisdicciones', l: 'Jurisdicciones' },
       { k: 'estructuras', l: 'Estructuras Programáticas' }, { k: 'objetosGasto', l: 'Objetos del Gasto' },
       { k: 'fuentes', l: 'Fuentes de Financiamiento' }, { k: 'rubros', l: 'Rubros de Recursos' },
     ],
   },
 
   // ── Contaduría ──
-  { label: 'Contaduría', path: '/contaduria', module: null, tabs: [] },
+  { label: 'Contaduría — Ciclo del Gasto', path: '/contaduria', module: 'contaduria', tabs: [] },
 
   // ── Configuración (maestros) ──
   {

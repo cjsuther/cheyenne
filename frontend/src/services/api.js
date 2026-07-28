@@ -263,6 +263,16 @@ export const emisionesAPI = {
     api.get(`/emisiones/emisiones/${idEmision}/recibos-pdf/archivo`, { params: { ambito, archivo }, responseType: 'blob' }),
 };
 
+export const contaduriaAPI = {
+  gastos: {
+    list: (params) => api.get('/contaduria/gastos', { params }),
+    get: (id) => api.get(`/contaduria/gastos/${id}`),
+    create: (data) => api.post('/contaduria/gastos', data),
+    avanzar: (id, data) => api.post(`/contaduria/gastos/${id}/avanzar`, data),
+    anular: (id, motivo) => api.post(`/contaduria/gastos/${id}/anular`, { motivo }),
+  },
+};
+
 export const presupuestoAPI = {
   jurisdicciones: { ...crud('/presupuesto/jurisdicciones'), arbol: () => api.get('/presupuesto/jurisdicciones/arbol'), importar: () => api.post('/presupuesto/jurisdicciones/importar') },
   objetosGasto: { ...crud('/presupuesto/objetos-gasto'), arbol: () => api.get('/presupuesto/objetos-gasto/arbol') },
@@ -303,6 +313,19 @@ export const presupuestoAPI = {
     resumen: (params) => api.get('/presupuesto/rrhh/resumen', { params }),
   },
   reportePdf: (params) => api.get('/presupuesto/reportes/presupuesto-pdf', { params, responseType: 'blob' }),
+  metas: {
+    list: (params) => api.get('/presupuesto/metas', { params }),
+    create: (data) => api.post('/presupuesto/metas', data),
+    update: (id, data) => api.put(`/presupuesto/metas/${id}`, data),
+    delete: (id) => api.delete(`/presupuesto/metas/${id}`),
+    ejecutado: (id, cantidad) => api.post(`/presupuesto/metas/${id}/ejecutado`, { cantidad }),
+  },
+  proyectos: {
+    list: (params) => api.get('/presupuesto/proyectos', { params }),
+    create: (data) => api.post('/presupuesto/proyectos', data),
+    update: (id, data) => api.put(`/presupuesto/proyectos/${id}`, data),
+    delete: (id) => api.delete(`/presupuesto/proyectos/${id}`),
+  },
   modificaciones: {
     list: (params) => api.get('/presupuesto/modificaciones', { params }),
     get: (id) => api.get(`/presupuesto/modificaciones/${id}`),
