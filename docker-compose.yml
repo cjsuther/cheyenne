@@ -130,7 +130,6 @@ services:
     depends_on:
       - seguridad
       - presupuesto
-      - contaduria
     networks:
       - cheyenne-net
 
@@ -262,6 +261,7 @@ services:
       - tesoreria
       - emisiones
       - presupuesto
+      - contaduria
       - wav
     networks:
       - cheyenne-net
