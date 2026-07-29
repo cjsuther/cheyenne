@@ -33,10 +33,11 @@ export const SUPER_MODULES = [
     ],
   },
   {
-    key: 'contaduria', label: 'Contaduría', desc: 'Ciclo del gasto y contabilidad',
+    key: 'contaduria', label: 'Contaduría', desc: 'Ciclo del gasto y contabilidad general',
     Icon: IconContaduria, chip: 'bg-blue-50 text-blue-700',
     items: [
       { path: '/contaduria', label: 'Ciclo del Gasto', module: 'contaduria' },
+      { path: '/contabilidad', label: 'Contabilidad General', module: 'contabilidad' },
     ],
   },
   {
@@ -44,13 +45,6 @@ export const SUPER_MODULES = [
     Icon: IconCompras, chip: 'bg-orange-50 text-orange-700',
     items: [
       { path: '/compras', label: 'Adquisiciones', module: 'compras' },
-    ],
-  },
-  {
-    key: 'contabilidad', label: 'Contabilidad', desc: 'Plan de cuentas, asientos y libros contables',
-    Icon: IconContabilidad, chip: 'bg-teal-50 text-teal-700',
-    items: [
-      { path: '/contabilidad', label: 'Contabilidad general', module: 'contabilidad' },
     ],
   },
   {
