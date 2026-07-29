@@ -18,6 +18,7 @@ from config import get_settings
 from models.compras import (
     Proveedor, Articulo, Pedido, PedidoItem, OrdenCompra, OrdenCompraItem,
     Recepcion, RecepcionItem, Stock,
+    Deposito, StockPorDeposito, MovimientoStock,
 )
 
 settings = get_settings()
@@ -263,13 +264,15 @@ class RecepItemIn(BaseModel):
 
 class RecepIn(BaseModel):
     remito: Optional[str] = None
+    id_deposito: Optional[int] = None   # depósito destino; si falta, entra al central
     items: List[RecepItemIn]
 
 
 @oc_router.post("/{id}/recepciones", status_code=201)
 def recibir(id: int, data: RecepIn, db: Session = Depends(get_db),
             current_user: dict = Depends(get_current_user)):
-    """Recibe mercadería de la OC: descuenta pendientes y suma al stock."""
+    """Recibe mercadería de la OC: descuenta pendientes y suma al stock del depósito indicado."""
+    from routers.depositos import deposito_central, sumar_stock  # import diferido evita ciclos
     _requiere(current_user, "compras_recibir")
     oc = db.query(OrdenCompra).filter(OrdenCompra.id == id, OrdenCompra.activo == True).first()
     if not oc:
@@ -278,7 +281,15 @@ def recibir(id: int, data: RecepIn, db: Session = Depends(get_db),
         raise HTTPException(status_code=409, detail=f"La OC está '{oc.estado}'")
     if not data.items:
         raise HTTPException(status_code=400, detail="Debe recibir al menos un ítem")
-    rec = Recepcion(id_orden_compra=oc.id, remito=data.remito, usuario_nombre=_quien(current_user))
+    # depósito destino
+    if data.id_deposito:
+        dep = db.query(Deposito).filter(Deposito.id == data.id_deposito, Deposito.activo == True).first()
+        if not dep:
+            raise HTTPException(status_code=400, detail="Depósito inexistente")
+    else:
+        dep = deposito_central(db)
+    rec = Recepcion(id_orden_compra=oc.id, id_deposito=dep.id, remito=data.remito,
+                    usuario_nombre=_quien(current_user))
     db.add(rec); db.flush()
     for it in data.items:
         oci = db.query(OrdenCompraItem).filter(
@@ -293,6 +304,13 @@ def recibir(id: int, data: RecepIn, db: Session = Depends(get_db),
         oci.cantidad_recibida = Decimal(str(oci.cantidad_recibida)) + it.cantidad
         db.add(RecepcionItem(id_recepcion=rec.id, id_oc_item=oci.id,
                              id_articulo=oci.id_articulo, cantidad=it.cantidad))
+        # stock por depósito + movimiento de ingreso
+        sumar_stock(db, oci.id_articulo, dep.id, it.cantidad)
+        db.add(MovimientoStock(tipo="ingreso", id_articulo=oci.id_articulo,
+                               id_deposito_destino=dep.id, cantidad=it.cantidad,
+                               motivo=f"Recepción OC-{oc.anio}-{oc.numero:04d}",
+                               usuario_nombre=_quien(current_user)))
+        # stock global (compatibilidad histórica)
         st = db.query(Stock).filter(Stock.id_articulo == oci.id_articulo).first()
         if st:
             st.cantidad = Decimal(str(st.cantidad)) + it.cantidad

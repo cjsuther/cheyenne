@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTabParam } from '../../hooks/useTabParam';
 import { OrdenesPagoTab, ParteEgresosTab } from './EgresosTabs';
 import { ChequesTab, OrdenesBancariasTab, ConciliacionTab } from './BancaTabs';
+import { RetencionesTab, ProgramacionCajaTab, EmbargosPoderesTab } from './RetencionesTabs';
 import { CrudTab as _CrudTab } from '../../components/common/CrudComponents';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tesoreriaAPI } from '../../services/api';
@@ -206,6 +207,9 @@ const TABS = [
   { key: 'conciliacion', label: 'Conciliación' },
   { key: 'beneficiarios', label: 'Beneficiarios' },
   { key: 'cuentasBanc', label: 'Cuentas Bancarias' },
+  { key: 'retenciones', label: 'Retenciones' },
+  { key: 'programacionCaja', label: 'Programación de Caja' },
+  { key: 'embargosPoderes', label: 'Embargos / Poderes' },
   { key: 'recaudacionLotes', label: 'Recaudación' },
   { key: 'reciboPubLotes', label: 'Recibos Publicación' },
   { key: 'pagoRendLotes', label: 'Pagos Rendición' },
@@ -218,7 +222,7 @@ const TABS = [
 ];
 
 const GRUPOS = [
-  { label: 'Egresos', keys: ['ordenesPago', 'parteEgresos', 'cheques', 'ordenesBanc', 'conciliacion', 'beneficiarios', 'cuentasBanc'] },
+  { label: 'Egresos', keys: ['ordenesPago', 'parteEgresos', 'cheques', 'ordenesBanc', 'conciliacion', 'retenciones', 'programacionCaja', 'embargosPoderes', 'beneficiarios', 'cuentasBanc'] },
   { label: 'Recaudación', keys: ['recaudacionLotes', 'reciboPubLotes', 'pagoRendLotes', 'regContLotes', 'cajas', 'recaudadoras'] },
   { label: 'Configuración', keys: ['dependencias', 'entidades', 'listas'] },
 ];
@@ -244,6 +248,9 @@ export default function Tesoreria() {
           columns={[{ key: 'banco', label: 'Banco' }, { key: 'numero', label: 'Número' }, { key: 'tipo', label: 'Tipo' }, { key: 'descripcion', label: 'Descripción' }, { key: 'saldo_inicial', label: 'Saldo inicial' }, { key: 'activo', label: 'Estado', render: (v) => (v ? 'Activa' : 'Baja') }]}
           formFields={[{ key: 'banco', label: 'Banco', required: true }, { key: 'numero', label: 'Número de cuenta', required: true }, { key: 'tipo', label: 'Tipo (cta cte / caja ahorro)' }, { key: 'descripcion', label: 'Descripción' }, { key: 'saldo_inicial', label: 'Saldo inicial', type: 'decimal', defaultValue: 0 }, { key: 'activo', label: 'Activo', type: 'boolean', defaultValue: true }]} />
       )}
+      {tab === 'retenciones' && <RetencionesTab />}
+      {tab === 'programacionCaja' && <ProgramacionCajaTab />}
+      {tab === 'embargosPoderes' && <EmbargosPoderesTab />}
       {tab === 'cajas' && <CajasTab />}
       {tab === 'dependencias' && <DependenciasTab />}
       {tab === 'recaudadoras' && <RecaudadorasTab />}

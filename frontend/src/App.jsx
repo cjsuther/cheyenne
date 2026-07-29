@@ -21,6 +21,7 @@ import Configuracion from './pages/Configuracion/Configuracion';
 import Contaduria from './pages/Contaduria/Contaduria';
 import Presupuesto from './pages/Presupuesto/Presupuesto';
 import Compras from './pages/Compras/Compras';
+import Contabilidad from './pages/Contabilidad/Contabilidad';
 import Perfil from './pages/Perfil/Perfil';
 
 const queryClient = new QueryClient({
@@ -68,6 +69,8 @@ export default function App() {
             <Route path="presupuesto" element={<Presupuesto />} />
             {/* Compras */}
             <Route path="compras" element={<Compras />} />
+            {/* Contabilidad */}
+            <Route path="contabilidad" element={<Contabilidad />} />
             {/* Contaduría */}
             <Route path="contaduria" element={<Contaduria />} />
             {/* Configuración (maestros) */}

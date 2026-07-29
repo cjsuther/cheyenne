@@ -11,7 +11,7 @@ from config import get_settings
 from database import engine
 from shared.database import Base
 from shared.audit_middleware import AuditMiddleware
-from routers import emisiones_router, formulas_router
+from routers import emisiones_router, formulas_router, coeficientes_router
 
 # Import all models so they register with Base.metadata
 import models  # noqa: F401
@@ -38,6 +38,7 @@ app.add_middleware(AuditMiddleware, modulo="emisiones")
 
 app.include_router(emisiones_router)
 app.include_router(formulas_router)
+app.include_router(coeficientes_router)
 
 
 @app.on_event("startup")

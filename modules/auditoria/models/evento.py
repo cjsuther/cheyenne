@@ -21,3 +21,7 @@ class EventoAuditoria(Base):
     ip = Column(String(64), nullable=True)
     duracion_ms = Column(Integer, nullable=True)
     activo = Column(Boolean, nullable=False, default=True)
+    # Integridad: cadena de hash encadenado (blockchain-like). Cada evento
+    # encadena el sha256 del evento anterior; alterar un evento rompe la cadena.
+    hash = Column(String(64), nullable=True, index=True)
+    hash_anterior = Column(String(64), nullable=True)

@@ -11,9 +11,11 @@ class ImportacionLote(Base):
     __tablename__ = "importacion_lotes"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    id_tipo_importacion = Column(BigInteger, nullable=False)
+    id_tipo_importacion = Column(BigInteger, nullable=False, default=0)
+    tipo_importacion = Column(String(50), nullable=False, default="generico")
     nombre_archivo = Column(String(250), nullable=False)
-    path_archivo = Column(String(500), nullable=False)
+    path_archivo = Column(String(500), nullable=True)
+    mapeo = Column(Text, nullable=True)
     id_estado_importacion = Column(BigInteger, nullable=False, default=10)
     casos_total = Column(Integer, nullable=False, default=0)
     casos_procesados = Column(Integer, nullable=False, default=0)

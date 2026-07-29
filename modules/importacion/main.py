@@ -11,7 +11,7 @@ from config import get_settings
 from database import engine
 from shared.database import Base
 from shared.audit_middleware import AuditMiddleware
-from routers import importaciones_router, exportaciones_router, listas_router
+from routers import importaciones_router, exportaciones_router, listas_router, ingesta_router
 
 settings = get_settings()
 
@@ -32,6 +32,7 @@ app.add_middleware(
 
 app.add_middleware(AuditMiddleware, modulo="importacion")
 
+app.include_router(ingesta_router)
 app.include_router(importaciones_router)
 app.include_router(exportaciones_router)
 app.include_router(listas_router)

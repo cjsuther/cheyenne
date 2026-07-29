@@ -1,9 +1,11 @@
 import sys
 import os
 import uuid
+import hashlib
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+import httpx
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
@@ -19,7 +21,12 @@ from shared.security import (
 from models.usuario import Usuario
 from models.acceso import Acceso
 from models.sesion import Sesion
+from models.token_revocado import TokenRevocado
 from config import get_settings
+
+
+def _token_hash(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
 class AuthService:
@@ -42,12 +49,6 @@ class AuthService:
                 detail="Credenciales inválidas",
             )
 
-        if not verify_password(password, acceso.password):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Credenciales inválidas",
-            )
-
         usuario = (
             self.db.query(Usuario)
             .filter(Usuario.id == acceso.id_usuario)
@@ -58,6 +59,33 @@ class AuthService:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Usuario inactivo o no encontrado",
             )
+
+        now = datetime.now(timezone.utc)
+
+        # Bloqueo por intentos fallidos
+        if usuario.bloqueado_hasta is not None:
+            bloqueo = usuario.bloqueado_hasta.replace(tzinfo=timezone.utc) if usuario.bloqueado_hasta.tzinfo is None else usuario.bloqueado_hasta
+            if bloqueo > now:
+                restante = int((bloqueo - now).total_seconds() // 60) + 1
+                raise HTTPException(
+                    status_code=status.HTTP_423_LOCKED,
+                    detail=f"Usuario bloqueado por intentos fallidos. Reintente en {restante} minuto(s).",
+                )
+
+        if not verify_password(password, acceso.password):
+            # Incrementar intentos y bloquear si alcanza el maximo
+            usuario.intentos_fallidos = (usuario.intentos_fallidos or 0) + 1
+            if usuario.intentos_fallidos >= self.settings.max_intentos_fallidos:
+                usuario.bloqueado_hasta = now + timedelta(minutes=self.settings.bloqueo_minutos)
+            self.db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Credenciales inválidas",
+            )
+
+        # Login exitoso: resetear contador y bloqueo
+        usuario.intentos_fallidos = 0
+        usuario.bloqueado_hasta = None
 
         perfiles_ids = [p.id for p in usuario.perfiles]
         permisos = []
@@ -163,9 +191,21 @@ class AuthService:
             "token_type": "bearer",
         }
 
+    def is_revoked(self, token: str) -> bool:
+        return (
+            self.db.query(TokenRevocado)
+            .filter(TokenRevocado.token_hash == _token_hash(token))
+            .first()
+            is not None
+        )
+
     def get_current_user(self, token: str) -> Optional[Usuario]:
         payload = decode_token(token, self.settings.secret_key, self.settings.algorithm)
         if not payload or payload.get("type") != "access":
+            return None
+
+        # Blacklist / revocacion de sesiones
+        if self.is_revoked(token):
             return None
 
         usuario_id = int(payload["sub"])
@@ -189,21 +229,68 @@ class AuthService:
 
         return self.db.query(Usuario).filter(Usuario.id == usuario_id).first()
 
+    def _revocar_token(self, token: str, id_usuario: Optional[int], vencimiento: Optional[datetime]):
+        th = _token_hash(token)
+        existe = self.db.query(TokenRevocado).filter(TokenRevocado.token_hash == th).first()
+        if not existe:
+            self.db.add(TokenRevocado(token_hash=th, id_usuario=id_usuario, expira_en=vencimiento))
+
     def logout(self, token: str):
         sesion = self.db.query(Sesion).filter(Sesion.token == token).first()
+        now = datetime.now(timezone.utc)
         if sesion:
-            sesion.fecha_vencimiento = datetime.now(timezone.utc)
-            self.db.commit()
+            self._revocar_token(token, sesion.id_usuario, sesion.fecha_vencimiento)
+            sesion.fecha_vencimiento = now
+        else:
+            self._revocar_token(token, None, None)
+        self.db.commit()
 
-    def request_password_reset(self, login: str) -> str:
+    def list_sesiones(self, usuario: Usuario, current_token: str) -> list:
+        now = datetime.now(timezone.utc)
+        sesiones = (
+            self.db.query(Sesion)
+            .filter(Sesion.id_usuario == usuario.id)
+            .order_by(Sesion.fecha_creacion.desc())
+            .all()
+        )
+        result = []
+        for s in sesiones:
+            venc = s.fecha_vencimiento.replace(tzinfo=timezone.utc) if s.fecha_vencimiento.tzinfo is None else s.fecha_vencimiento
+            activa = venc > now and not self.is_revoked(s.token)
+            result.append({
+                "id": s.id,
+                "fecha_creacion": s.fecha_creacion,
+                "fecha_vencimiento": s.fecha_vencimiento,
+                "activa": activa,
+                "actual": s.token == current_token,
+            })
+        return result
+
+    def revocar_sesion(self, usuario: Usuario, sesion_id: int):
+        sesion = (
+            self.db.query(Sesion)
+            .filter(Sesion.id == sesion_id, Sesion.id_usuario == usuario.id)
+            .first()
+        )
+        if not sesion:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sesion no encontrada")
+        self._revocar_token(sesion.token, sesion.id_usuario, sesion.fecha_vencimiento)
+        sesion.fecha_vencimiento = datetime.now(timezone.utc)
+        self.db.commit()
+        return {"message": "Sesion revocada"}
+
+    def request_password_reset(self, login: str):
+        """Genera un token de reset y lo envia por email via comunicacion (best-effort).
+
+        NO devuelve el token. Responde siempre 202 generico para no filtrar
+        si el usuario existe o no.
+        """
         from models.verificacion import Verificacion
 
         acceso = self.db.query(Acceso).filter(Acceso.identificador == login).first()
         if not acceso:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Usuario no encontrado",
-            )
+            # Respuesta generica: no revelar existencia del usuario
+            return
 
         token = str(uuid.uuid4())
         verificacion = Verificacion(
@@ -217,10 +304,39 @@ class AuthService:
         )
         self.db.add(verificacion)
         self.db.commit()
-        return token
+
+        usuario = self.db.query(Usuario).filter(Usuario.id == acceso.id_usuario).first()
+        self._enviar_email_reset(usuario, token)
+
+    def _enviar_email_reset(self, usuario: Optional[Usuario], token: str):
+        """POST best-effort a comunicacion. Nunca rompe la request principal."""
+        if not usuario or not usuario.email:
+            return
+        try:
+            payload = {
+                "origen_modulo": "seguridad",
+                "origen_ref": f"pwd_reset_{token}",
+                "destinatario": usuario.email,
+                "asunto": "Restablecimiento de contraseña",
+                "cuerpo": (
+                    f"Hola {usuario.nombre_apellido},\n\n"
+                    f"Use el siguiente token para restablecer su contraseña: {token}\n"
+                    f"El token vence en 24 horas."
+                ),
+                "token": token,
+            }
+            httpx.post(
+                f"{self.settings.comunicacion_url}/mensajes",
+                json=payload,
+                timeout=3.0,
+            )
+        except Exception:
+            # Best-effort: se ignora cualquier fallo de comunicacion
+            pass
 
     def change_password(self, token: str, new_password: str):
         from models.verificacion import Verificacion
+        from services.password_service import PasswordService
 
         verificacion = (
             self.db.query(Verificacion)
@@ -251,7 +367,8 @@ class AuthService:
                 detail="Acceso no encontrado",
             )
 
-        acceso.password = get_password_hash(new_password)
+        pwd_service = PasswordService(self.db)
+        acceso.password = pwd_service.apply_new_password(verificacion.id_usuario, new_password)
         verificacion.id_estado_verificacion = 52  # Usado
         self.db.commit()
 
@@ -279,5 +396,7 @@ class AuthService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Contrasena actual incorrecta",
             )
-        acceso.password = get_password_hash(new_password)
+        from services.password_service import PasswordService
+        pwd_service = PasswordService(self.db)
+        acceso.password = pwd_service.apply_new_password(usuario.id, new_password)
         self.db.commit()

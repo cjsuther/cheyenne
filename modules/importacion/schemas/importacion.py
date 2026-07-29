@@ -4,9 +4,9 @@ from datetime import datetime
 
 
 class ImportacionLoteCreate(BaseModel):
-    id_tipo_importacion: int
+    id_tipo_importacion: int = 0
     nombre_archivo: str
-    path_archivo: str
+    path_archivo: Optional[str] = None
     id_usuario: Optional[int] = None
 
 
@@ -14,7 +14,7 @@ class ImportacionLoteResponse(BaseModel):
     id: int
     id_tipo_importacion: int
     nombre_archivo: str
-    path_archivo: str
+    path_archivo: Optional[str] = None
     id_estado_importacion: int
     casos_total: int
     casos_procesados: int

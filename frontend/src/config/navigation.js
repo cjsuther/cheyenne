@@ -61,6 +61,12 @@ export const NAV = [
     { k: 'pedidos', l: 'Pedidos de área' }, { k: 'oc', l: 'Órdenes de Compra' }, { k: 'stock', l: 'Stock' }, { k: 'proveedores', l: 'Proveedores' }, { k: 'articulos', l: 'Artículos' },
   ] },
 
+  // ── Contabilidad ──
+  { label: 'Contabilidad — Partida Doble', path: '/contabilidad', module: 'contabilidad', tabs: [
+    { k: 'asientos', l: 'Asientos' }, { k: 'diario', l: 'Libro Diario' }, { k: 'mayor', l: 'Libro Mayor' },
+    { k: 'balance', l: 'Balance' }, { k: 'plan', l: 'Plan de Cuentas' }, { k: 'ejercicios', l: 'Ejercicios' },
+  ] },
+
   // ── Contaduría ──
   { label: 'Contaduría — Ciclo del Gasto', path: '/contaduria', module: 'contaduria', tabs: [] },
 

@@ -149,6 +149,22 @@ services:
     networks:
       - cheyenne-net
 
+  # ─── MÓDULO CONTABILIDAD ──────────────────────────────────────────
+  contabilidad:
+    build:
+      context: ./modules
+      dockerfile: contabilidad/Dockerfile
+    container_name: cheyenne-contabilidad
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cheyenne}:${POSTGRES_PASSWORD:-cheyenne123}@postgres:5432/${POSTGRES_DB:-cheyenne}
+      SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+      SEGURIDAD_URL: http://seguridad:8000
+    depends_on:
+      - seguridad
+    networks:
+      - cheyenne-net
+
   # ─── MÓDULO IMPORTACIÓN ───────────────────────────────────────────
   importacion:
     build:
@@ -279,6 +295,7 @@ services:
       - presupuesto
       - contaduria
       - compras
+      - contabilidad
       - wav
     networks:
       - cheyenne-net

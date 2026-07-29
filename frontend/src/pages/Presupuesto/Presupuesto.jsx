@@ -14,6 +14,8 @@ import RRHHTab from './RRHHTab';
 import MetasTab from './MetasTab';
 import ProyectosTab from './ProyectosTab';
 import TableroTab from './TableroTab';
+import EvaluacionTab from './EvaluacionTab';
+import ConsultasTab from './ConsultasTab';
 
 const TABS = [
   { key: 'partidas', label: 'Partidas' },
@@ -24,6 +26,8 @@ const TABS = [
   { key: 'metas', label: 'Metas' },
   { key: 'proyectos', label: 'Proyectos' },
   { key: 'tablero', label: 'Tablero' },
+  { key: 'evaluacion', label: 'Evaluación' },
+  { key: 'consultas', label: 'Consultas' },
   { key: 'ejercicios', label: 'Ejercicios' },
   { key: 'jurisdicciones', label: 'Jurisdicciones' },
   { key: 'estructuras', label: 'Estructuras Prog.' },
@@ -34,7 +38,7 @@ const TABS = [
 ];
 
 const GRUPOS = [
-  { label: 'Ejercicio', keys: ['partidas', 'modificaciones', 'recursos', 'cuotas', 'rrhh', 'metas', 'proyectos', 'tablero', 'ejercicios'] },
+  { label: 'Ejercicio', keys: ['partidas', 'modificaciones', 'recursos', 'cuotas', 'rrhh', 'metas', 'proyectos', 'tablero', 'evaluacion', 'consultas', 'ejercicios'] },
   { label: 'Nomencladores', keys: ['jurisdicciones', 'estructuras', 'objetosGasto', 'fuentes', 'rubros', 'cargos'] },
 ];
 
@@ -52,6 +56,8 @@ export default function Presupuesto() {
       {tab === 'metas' && <MetasTab />}
       {tab === 'proyectos' && <ProyectosTab />}
       {tab === 'tablero' && <TableroTab />}
+      {tab === 'evaluacion' && <EvaluacionTab />}
+      {tab === 'consultas' && <ConsultasTab />}
       {tab === 'ejercicios' && <EjerciciosTab />}
       {tab === 'jurisdicciones' && (
         <NomencladorTab

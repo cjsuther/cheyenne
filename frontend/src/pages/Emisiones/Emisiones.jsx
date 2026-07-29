@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { emisionesAPI } from '../../services/api';
+import { useTabParam } from '../../hooks/useTabParam';
 import PageHeader from '../../components/common/PageHeader';
-import { CrudTab, Modal, Field, inputClass, btnPrimary } from '../../components/common/CrudComponents';
+import GroupedTabBar from '../../components/common/GroupedTabBar';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { CrudTab, Modal, Field, inputClass, btnPrimary, btnSecondary } from '../../components/common/CrudComponents';
 
 const fmtDate = (v) => (v ? new Date(v).toLocaleDateString() : '');
 const fmtDateTime = (v) => (v ? new Date(v).toLocaleString() : '-');
@@ -377,12 +380,34 @@ function WorkflowModal({ emision, onClose }) {
   );
 }
 
+const TABS = [
+  { key: 'emisiones', label: 'Emisiones' },
+  { key: 'ctacte', label: 'Cuenta Corriente / Libro Mayor' },
+  { key: 'coeficientes', label: 'Coeficientes' },
+];
+const GRUPOS = [
+  { label: 'Motor', keys: ['emisiones'] },
+  { label: 'Cobranza', keys: ['ctacte', 'coeficientes'] },
+];
+
 export default function Emisiones() {
+  const [tab, setTab] = useTabParam('emisiones');
+  return (
+    <div>
+      <PageHeader title="Emisiones" subtitle="Motor de cálculo, workflow de aprobación, cuenta corriente y coeficientes" />
+      <GroupedTabBar grupos={GRUPOS} tabsMeta={TABS} tab={tab} setTab={setTab} />
+      {tab === 'emisiones' && <EmisionesTab />}
+      {tab === 'ctacte' && <LibroMayorTab />}
+      {tab === 'coeficientes' && <CoeficientesTab />}
+    </div>
+  );
+}
+
+function EmisionesTab() {
   const [workflowEmision, setWorkflowEmision] = useState(null);
 
   return (
     <div>
-      <PageHeader title="Emisiones" subtitle="Gestion de emisiones tributarias y workflow de aprobacion" />
       <CrudTab queryKey="emi-emisiones" apiFns={emisionesAPI.emisiones} entityName="Emision" wide
         columns={[
           { key: 'id', label: 'ID' },
@@ -416,6 +441,178 @@ export default function Emisiones() {
         ]}
       />
       {workflowEmision && <WorkflowModal emision={workflowEmision} onClose={() => setWorkflowEmision(null)} />}
+    </div>
+  );
+}
+
+// ── Cuenta corriente / Libro mayor del contribuyente ─────────────────────
+function LibroMayorTab() {
+  const [idContribuyente, setIdContribuyente] = useState('');
+  const [buscado, setBuscado] = useState(null);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['emi-libromayor', buscado],
+    queryFn: () => emisionesAPI.ctacte.movimientos(buscado).then((r) => r.data),
+    enabled: buscado != null,
+  });
+
+  const buscar = (e) => { e.preventDefault(); const n = Number(idContribuyente); if (n) setBuscado(n); };
+
+  return (
+    <div>
+      <form onSubmit={buscar} className="mb-4 flex items-end gap-2">
+        <Field label="ID de contribuyente">
+          <input type="number" value={idContribuyente} onChange={(e) => setIdContribuyente(e.target.value)}
+            placeholder="ej: 1024" className={inputClass} />
+        </Field>
+        <button type="submit" className={btnPrimary}>Ver libro mayor</button>
+      </form>
+
+      {buscado == null ? (
+        <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-3">Ingresá un ID de contribuyente para ver su extracto Debe/Haber con saldo corrido.</p>
+      ) : isLoading ? <LoadingSpinner /> : isError ? (
+        <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-3">No se pudo obtener el libro mayor.</p>
+      ) : (
+        <div>
+          <div className="grid grid-cols-3 gap-3 mb-3 bg-gray-50 rounded-lg p-4 text-sm">
+            <div><p className="text-xs text-gray-500">Total Debe</p><p className="font-bold text-gray-800">{fmtMoney(data.total_debe)}</p></div>
+            <div><p className="text-xs text-gray-500">Total Haber</p><p className="font-bold text-gray-800">{fmtMoney(data.total_haber)}</p></div>
+            <div><p className="text-xs text-gray-500">Saldo</p><p className={`font-bold ${Number(data.saldo) > 0 ? 'text-red-600' : 'text-green-600'}`}>{fmtMoney(data.saldo)}</p></div>
+          </div>
+          {data.movimientos?.length > 0 ? (
+            <div className="overflow-x-auto border border-gray-100 rounded-lg">
+              <table className="w-full text-xs">
+                <thead className="bg-gray-50"><tr className="text-left text-gray-500">
+                  <th className="px-3 py-2">Fecha</th><th className="px-3 py-2">Concepto</th>
+                  <th className="px-3 py-2">Comprobante</th><th className="px-3 py-2">Tributo</th>
+                  <th className="px-3 py-2 text-right">Debe</th><th className="px-3 py-2 text-right">Haber</th>
+                  <th className="px-3 py-2 text-right">Saldo</th>
+                </tr></thead>
+                <tbody>{data.movimientos.map((m) => (
+                  <tr key={m.id} className="border-t border-gray-50">
+                    <td className="px-3 py-1.5 whitespace-nowrap">{fmtDate(m.fecha)}</td>
+                    <td className="px-3 py-1.5"><span className="capitalize">{m.concepto}</span>{m.descripcion ? <span className="text-gray-400"> · {m.descripcion}</span> : null}</td>
+                    <td className="px-3 py-1.5 font-mono text-gray-500">{m.comprobante || '—'}</td>
+                    <td className="px-3 py-1.5 capitalize">{m.tipo_tributo || '—'}</td>
+                    <td className="px-3 py-1.5 text-right">{m.debe ? fmtMoney(m.debe) : ''}</td>
+                    <td className="px-3 py-1.5 text-right">{m.haber ? fmtMoney(m.haber) : ''}</td>
+                    <td className="px-3 py-1.5 text-right font-medium">{fmtMoney(m.saldo)}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-3">Este contribuyente no tiene movimientos.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── ABM de coeficientes (curva temporal de recargos) ─────────────────────
+const emptyCoef = { tipo_tributo: '', fecha_desde: '', fecha_hasta: '', tipo: 'mensual', valor: '', descripcion: '' };
+
+function CoeficientesTab() {
+  const qc = useQueryClient();
+  const [modal, setModal] = useState(null); // { data } o null
+  const [form, setForm] = useState(emptyCoef);
+  const [err, setErr] = useState('');
+
+  const { data: coefs, isLoading } = useQuery({
+    queryKey: ['emi-coeficientes'],
+    queryFn: () => emisionesAPI.coeficientes.list({ limit: 200 }).then((r) => r.data),
+  });
+  const refetch = () => qc.invalidateQueries({ queryKey: ['emi-coeficientes'] });
+
+  const save = useMutation({
+    mutationFn: (payload) => (payload.id
+      ? emisionesAPI.coeficientes.update(payload.id, payload)
+      : emisionesAPI.coeficientes.create(payload)),
+    onSuccess: () => { setModal(null); setErr(''); refetch(); },
+    onError: (e) => setErr(e.response?.data?.detail || 'No se pudo guardar'),
+  });
+  const del = useMutation({
+    mutationFn: (id) => emisionesAPI.coeficientes.remove(id),
+    onSuccess: refetch,
+  });
+
+  const abrir = (row) => {
+    if (row) setForm({ ...emptyCoef, ...row, fecha_desde: (row.fecha_desde || '').slice(0, 10), fecha_hasta: (row.fecha_hasta || '').slice(0, 10) });
+    else setForm(emptyCoef);
+    setErr(''); setModal({ id: row?.id });
+  };
+  const setF = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
+  const submit = (e) => {
+    e.preventDefault();
+    const payload = { ...form, id: modal.id,
+      tipo_tributo: form.tipo_tributo || null,
+      fecha_hasta: form.fecha_hasta || null,
+      valor: Number(form.valor) };
+    save.mutate(payload);
+  };
+
+  return (
+    <div>
+      <div className="mb-3 flex justify-between items-center">
+        <p className="text-sm text-gray-500">Curva de recargos por mora: la mora se calcula recorriendo estos tramos según la fecha de corte (no un % plano a hoy).</p>
+        <button className={btnPrimary} onClick={() => abrir(null)}>Nuevo coeficiente</button>
+      </div>
+      {isLoading ? <LoadingSpinner /> : (
+        <div className="overflow-x-auto border border-gray-100 rounded-lg">
+          <table className="w-full text-xs">
+            <thead className="bg-gray-50"><tr className="text-left text-gray-500">
+              <th className="px-3 py-2">Tributo</th><th className="px-3 py-2">Desde</th><th className="px-3 py-2">Hasta</th>
+              <th className="px-3 py-2">Tipo</th><th className="px-3 py-2 text-right">Valor %</th>
+              <th className="px-3 py-2">Descripción</th><th className="px-3 py-2"></th>
+            </tr></thead>
+            <tbody>{(coefs || []).map((c) => (
+              <tr key={c.id} className="border-t border-gray-50">
+                <td className="px-3 py-1.5 capitalize">{c.tipo_tributo || 'Todos'}</td>
+                <td className="px-3 py-1.5">{fmtDate(c.fecha_desde)}</td>
+                <td className="px-3 py-1.5">{c.fecha_hasta ? fmtDate(c.fecha_hasta) : '∞'}</td>
+                <td className="px-3 py-1.5 capitalize">{c.tipo}</td>
+                <td className="px-3 py-1.5 text-right font-medium">{Number(c.valor || 0)}</td>
+                <td className="px-3 py-1.5 text-gray-500">{c.descripcion}</td>
+                <td className="px-3 py-1.5 text-right whitespace-nowrap">
+                  <button className="text-primary-600 hover:underline mr-3" onClick={() => abrir(c)}>Editar</button>
+                  <button className="text-red-500 hover:underline" onClick={() => { if (confirm('¿Desactivar coeficiente?')) del.mutate(c.id); }}>Baja</button>
+                </td>
+              </tr>
+            ))}</tbody>
+          </table>
+          {(coefs || []).length === 0 && <p className="text-sm text-gray-500 px-3 py-3">Sin coeficientes cargados. Se usa el % plano configurado como fallback.</p>}
+        </div>
+      )}
+
+      {modal && (
+        <Modal title={modal.id ? 'Editar coeficiente' : 'Nuevo coeficiente'} onClose={() => setModal(null)}>
+          <form onSubmit={submit} className="space-y-3">
+            {err && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-3 py-2">{err}</div>}
+            <Field label="Tipo de tributo (vacío = aplica a todos)">
+              <input type="text" value={form.tipo_tributo} onChange={setF('tipo_tributo')} placeholder="ej: inmuebles" className={inputClass} />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Fecha desde"><input type="date" required value={form.fecha_desde} onChange={setF('fecha_desde')} className={inputClass} /></Field>
+              <Field label="Fecha hasta (opcional)"><input type="date" value={form.fecha_hasta} onChange={setF('fecha_hasta')} className={inputClass} /></Field>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Tipo">
+                <select value={form.tipo} onChange={setF('tipo')} className={inputClass}>
+                  <option value="mensual">Mensual (por 30 días)</option>
+                  <option value="diario">Diario (por día)</option>
+                </select>
+              </Field>
+              <Field label="Valor % del tramo"><input type="number" step="0.000001" required value={form.valor} onChange={setF('valor')} placeholder="ej: 3.0" className={inputClass} /></Field>
+            </div>
+            <Field label="Descripción"><input type="text" value={form.descripcion} onChange={setF('descripcion')} className={inputClass} /></Field>
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" className={btnSecondary} onClick={() => setModal(null)}>Cancelar</button>
+              <button type="submit" className={btnPrimary} disabled={save.isPending}>{save.isPending ? 'Guardando...' : 'Guardar'}</button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 }

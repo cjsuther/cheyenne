@@ -11,6 +11,12 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379"
     environment: str = "development"
     debug: bool = True
+    comunicacion_url: str = "http://comunicacion:8000"
+    max_intentos_fallidos: int = 5
+    bloqueo_minutos: int = 15
+    password_min_length: int = 8
+    password_dias_expiracion: int = 90
+    password_historial_size: int = 5
 
     class Config:
         env_file = ".env"

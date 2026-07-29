@@ -1,12 +1,14 @@
 from typing import List
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from database import get_db
-from dependencies import get_current_user
+from dependencies import get_current_user, require_permission
 from services.usuario_service import UsuarioService
 from services.perfil_service import PerfilService
+from services.permiso_efectivo_service import PermisoEfectivoService
 from schemas.usuario import (
     UsuarioCreate,
     UsuarioUpdate,
@@ -15,6 +17,11 @@ from schemas.usuario import (
     BindPerfilesRequest,
 )
 from models.usuario import Usuario
+
+
+class OverridePermisoRequest(BaseModel):
+    id_permiso: int
+    tipo: str  # 'grant' | 'deny'
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
@@ -117,3 +124,47 @@ def list_perfiles_for_usuario(
     usuario = usuario_service.find_by_id(id)
     perfil_service = PerfilService(db)
     return perfil_service.list_by_usuario(usuario.perfiles)
+
+
+# ── Bloqueo por intentos fallidos ────────────────────────────────────
+@router.post("/{id}/desbloquear", response_model=UsuarioResponse)
+def desbloquear_usuario(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_permission("seguridad_desbloquear")),
+):
+    service = UsuarioService(db)
+    return service.desbloquear(id)
+
+
+# ── Permisos a nivel usuario (grant/deny) ────────────────────────────
+@router.get("/{id}/permisos-override")
+def list_permisos_override(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_permission("seguridad_permisos_usuario")),
+):
+    UsuarioService(db).find_by_id(id)
+    return PermisoEfectivoService(db).list_overrides(id)
+
+
+@router.put("/{id}/permisos-override")
+def set_permiso_override(
+    id: int,
+    data: OverridePermisoRequest,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_permission("seguridad_permisos_usuario")),
+):
+    row = PermisoEfectivoService(db).set_override(id, data.id_permiso, data.tipo)
+    return {"id": row.id, "id_usuario": row.id_usuario, "id_permiso": row.id_permiso, "tipo": row.tipo}
+
+
+@router.delete("/{id}/permisos-override/{id_permiso}")
+def clear_permiso_override(
+    id: int,
+    id_permiso: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_permission("seguridad_permisos_usuario")),
+):
+    PermisoEfectivoService(db).clear_override(id, id_permiso)
+    return {"message": "Override eliminado"}

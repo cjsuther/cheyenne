@@ -18,3 +18,6 @@ from .multas import router as multas_router
 from .tasas import router as tasas_router
 from .sub_tasas import router as sub_tasas_router
 from .personas import router as personas_router
+from .exenciones import router as exenciones_router
+from .titulares import router as titulares_router
+from .regimenes_moratoria import router as regimenes_moratoria_router

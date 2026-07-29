@@ -9,6 +9,18 @@ const inputCls = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm foc
 const btn = 'bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50';
 const btnSec = 'bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded text-xs font-medium';
 
+// Descarga el recibo PDF autenticado (blob) y lo abre en una pestaña.
+const descargarReciboPdf = async (idPago) => {
+  try {
+    const resp = await wavAPI.recibos.pagoContadoPdf(idPago);
+    const url = URL.createObjectURL(new Blob([resp.data], { type: 'application/pdf' }));
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch {
+    alert('No se pudo generar el recibo PDF.');
+  }
+};
+
 export default function Wav() {
   const [q, setQ] = useState('');
   const [dq, setDq] = useState('');
@@ -98,9 +110,173 @@ export default function Wav() {
             ) : <p className="text-sm text-gray-500">Sin cuentas. Creá una con "+ Nueva cuenta".</p>)}
           </div>
 
+          {/* Deuda / cuenta corriente del contribuyente (emisiones) */}
+          <DeudaPanel contribuyente={selected} />
+
           {cuentaSel && <CuentaPanel cuenta={cuentaSel} />}
         </div>
       )}
+    </div>
+  );
+}
+
+function DeudaPanel({ contribuyente }) {
+  const qc = useQueryClient();
+  const [pagando, setPagando] = useState(null); // concepto de deuda a pagar
+  const { data: deuda, isLoading } = useQuery({
+    queryKey: ['wav-deuda', contribuyente.id],
+    queryFn: () => wavAPI.deuda.byContribuyente(contribuyente.id, true).then((r) => r.data),
+    enabled: !!contribuyente,
+  });
+
+  const totalDeuda = (deuda || []).reduce((s, d) => s + Number(d.total_a_pagar ?? d.saldo ?? 0), 0);
+
+  const abrirRecibo = (id_cc) => {
+    // Los recibos oficiales de deuda pagada los genera emisiones; abrimos el listado del contribuyente
+    wavAPI.recibos.emisionesByContribuyente(contribuyente.id).then((r) => {
+      const rec = (r.data || []).find((x) => x.id_cuenta_corriente === id_cc) || (r.data || [])[0];
+      if (rec?.url) window.open(rec.url, '_blank');
+      else alert('El recibo aún no está disponible para descargar.');
+    });
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-gray-700">Deuda / cuenta corriente</h3>
+        <span className="text-sm">Total: <b className={totalDeuda > 0 ? 'text-red-600' : 'text-green-600'}>{fmtMoney(totalDeuda)}</b></span>
+      </div>
+      {isLoading ? <LoadingSpinner /> : (deuda?.length ? (
+        <div className="space-y-1.5">
+          {deuda.map((d) => (
+            <div key={d.id} className="bg-gray-50 rounded-lg px-3 py-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="font-medium">{d.tipo_tributo} {d.periodo || ''}{d.cuota ? ` · cuota ${d.cuota}` : ''}</span>
+                <span className="text-xs text-gray-500">{d.concepto || d.numero_comprobante || `CC #${d.id}`}</span>
+              </div>
+              <div className="flex items-center justify-between mt-1 text-xs text-gray-600">
+                <span>
+                  Saldo {fmtMoney(d.saldo)}
+                  {Number(d.recargo) > 0 && <> · recargo {fmtMoney(d.recargo)} ({d.dias_mora}d)</>}
+                  {' · '}<b>a pagar {fmtMoney(d.total_a_pagar ?? d.saldo)}</b>
+                </span>
+                <span className="flex gap-2">
+                  <button className={btnSec} onClick={() => setPagando(d)}>Pagar</button>
+                  <button className={btnSec} onClick={() => abrirRecibo(d.id)}>Recibo</button>
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : <p className="text-sm text-gray-400">Sin deuda registrada en emisiones.</p>)}
+
+      {pagando && (
+        <PagarDeudaModal
+          concepto={pagando}
+          onClose={() => setPagando(null)}
+          onDone={() => { setPagando(null); qc.invalidateQueries({ queryKey: ['wav-deuda', contribuyente.id] }); }}
+        />
+      )}
+
+      <DebitoAutomatico contribuyente={contribuyente} />
+    </div>
+  );
+}
+
+function PagarDeudaModal({ concepto, onClose, onDone }) {
+  const aPagar = Number(concepto.total_a_pagar ?? concepto.saldo ?? 0);
+  const [importe, setImporte] = useState(String(aPagar));
+  const pagar = useMutation({
+    mutationFn: () => wavAPI.deuda.pagar(concepto.id, { importe: Number(importe) }),
+    onSuccess: onDone,
+  });
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+        <div className="px-5 py-3 border-b flex items-center justify-between">
+          <h3 className="font-semibold text-gray-800">Pagar deuda — {concepto.tipo_tributo} {concepto.periodo || ''}</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+        </div>
+        <div className="p-5 space-y-3">
+          <p className="text-sm text-gray-500">Total a pagar: <b>{fmtMoney(aPagar)}</b></p>
+          <label className="text-xs text-gray-500">Importe</label>
+          <input className={inputCls} type="number" value={importe} onChange={(e) => setImporte(e.target.value)} />
+          <p className="text-xs text-gray-400">Baja el saldo de la cuenta corriente en emisiones.</p>
+          <button className={`${btn} w-full`} disabled={pagar.isPending || Number(importe) <= 0} onClick={() => pagar.mutate()}>
+            {pagar.isPending ? 'Procesando...' : 'Confirmar pago'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DebitoAutomatico({ contribuyente }) {
+  const qc = useQueryClient();
+  const { data: cuentas } = useQuery({
+    queryKey: ['wav-cuentas', contribuyente?.id],
+    queryFn: () => wavAPI.cuentas.byContribuyente(contribuyente.id).then((r) => r.data),
+    enabled: !!contribuyente,
+  });
+  const cuentaIds = (cuentas || []).map((c) => c.id);
+  const [medio, setMedio] = useState('cbu');
+  const [datos, setDatos] = useState('');
+  const [titular, setTitular] = useState('');
+  const [idCuenta, setIdCuenta] = useState('');
+
+  const { data: adhesiones } = useQuery({
+    queryKey: ['wav-adhesiones', cuentaIds.join(',')],
+    queryFn: async () => {
+      const all = await Promise.all(cuentaIds.map((id) => wavAPI.debito.byCuenta(id).then((r) => r.data)));
+      return all.flat();
+    },
+    enabled: cuentaIds.length > 0,
+  });
+
+  const adherir = useMutation({
+    mutationFn: () => wavAPI.debito.create({ id_cuenta: Number(idCuenta), medio, datos, titular }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['wav-adhesiones'] }); setDatos(''); setTitular(''); },
+  });
+  const bajar = useMutation({
+    mutationFn: (id) => wavAPI.debito.delete(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['wav-adhesiones'] }),
+  });
+
+  return (
+    <div className="mt-5 pt-4 border-t border-gray-100">
+      <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Débito automático</h4>
+      <div className="space-y-1 mb-3">
+        {adhesiones?.length ? adhesiones.map((a) => (
+          <div key={a.id} className="flex items-center justify-between text-sm bg-emerald-50 rounded px-3 py-1.5">
+            <span>Cuenta #{a.id_cuenta} · {a.medio.toUpperCase()} · {a.titular || a.datos || '—'}</span>
+            <button className={btnSec} onClick={() => bajar.mutate(a.id)}>Dar de baja</button>
+          </div>
+        )) : <p className="text-sm text-gray-400">Sin adhesiones a débito automático.</p>}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
+        <div>
+          <label className="text-xs text-gray-500">Cuenta</label>
+          <select className={inputCls} value={idCuenta} onChange={(e) => setIdCuenta(e.target.value)}>
+            <option value="">Elegir...</option>
+            {(cuentas || []).map((c) => <option key={c.id} value={c.id}>{c.numero_cuenta}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-gray-500">Medio</label>
+          <select className={inputCls} value={medio} onChange={(e) => setMedio(e.target.value)}>
+            <option value="cbu">CBU</option>
+            <option value="tarjeta">Tarjeta</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-gray-500">{medio === 'cbu' ? 'CBU' : 'Nro. tarjeta'}</label>
+          <input className={inputCls} value={datos} onChange={(e) => setDatos(e.target.value)} placeholder={medio === 'cbu' ? '22 dígitos' : '****' } />
+        </div>
+        <button className={btn} disabled={adherir.isPending || !idCuenta || !datos} onClick={() => adherir.mutate()}>
+          {adherir.isPending ? 'Adhiriendo...' : 'Adherir'}
+        </button>
+      </div>
+      <input className={`${inputCls} mt-2`} value={titular} onChange={(e) => setTitular(e.target.value)} placeholder="Titular (opcional)" />
     </div>
   );
 }
@@ -207,7 +383,10 @@ function CuentaPanel({ cuenta }) {
           {pagos?.pagos_contado?.length ? pagos.pagos_contado.map((p) => (
             <div key={p.id} className="flex items-center justify-between text-sm bg-gray-50 rounded px-3 py-1.5">
               <span>Pago #{p.id} · {p.fecha_pago ? new Date(p.fecha_pago).toLocaleDateString() : ''}</span>
-              <span className="font-medium">{fmtMoney(p.importe)}</span>
+              <span className="flex items-center gap-2">
+                <span className="font-medium">{fmtMoney(p.importe)}</span>
+                <button className={btnSec} onClick={() => descargarReciboPdf(p.id)}>Recibo PDF</button>
+              </span>
             </div>
           )) : <p className="text-sm text-gray-400">Sin pagos.</p>}
           {pagos?.planes_pago?.map((pl) => (

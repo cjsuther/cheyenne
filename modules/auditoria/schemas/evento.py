@@ -18,6 +18,8 @@ class EventoCreate(BaseModel):
 class EventoResponse(EventoCreate):
     id: int
     fecha: datetime
+    hash: Optional[str] = None
+    hash_anterior: Optional[str] = None
 
     class Config:
         from_attributes = True

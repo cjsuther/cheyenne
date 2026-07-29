@@ -48,17 +48,23 @@ class UsuarioService:
                 detail=f"Ya existe un usuario con código {usuario_data['codigo']}",
             )
 
+        from services.password_service import PasswordService
+        pwd_service = PasswordService(self.db)
+        pwd_service.validate_policy(password)
+
         usuario = Usuario(**usuario_data)
         self.db.add(usuario)
         self.db.flush()
 
+        password_hash = get_password_hash(password)
         acceso = Acceso(
             id_usuario=usuario.id,
             id_tipo_acceso=10,
             identificador=usuario.codigo,
-            password=get_password_hash(password),
+            password=password_hash,
         )
         self.db.add(acceso)
+        pwd_service.record(usuario.id, password_hash)
         self.db.commit()
         self.db.refresh(usuario)
         return usuario
@@ -78,7 +84,9 @@ class UsuarioService:
                 .first()
             )
             if acceso:
-                acceso.password = get_password_hash(password)
+                from services.password_service import PasswordService
+                pwd_service = PasswordService(self.db)
+                acceso.password = pwd_service.apply_new_password(id, password)
 
         self.db.commit()
         self.db.refresh(usuario)
@@ -88,6 +96,14 @@ class UsuarioService:
         usuario = self.find_by_id(id)
         self.db.delete(usuario)
         self.db.commit()
+
+    def desbloquear(self, id: int) -> Usuario:
+        usuario = self.find_by_id(id)
+        usuario.intentos_fallidos = 0
+        usuario.bloqueado_hasta = None
+        self.db.commit()
+        self.db.refresh(usuario)
+        return usuario
 
     def bind_perfiles(self, id: int, perfil_ids: List[int]) -> Usuario:
         usuario = self.find_by_id(id)

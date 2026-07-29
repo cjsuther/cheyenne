@@ -120,6 +120,16 @@ export const IconCompras = (p) => (
   </Svg>
 );
 
+export const IconContabilidad = (p) => (
+  <Svg {...p}>
+    <path d="M12 3v18" />
+    <path d="M5 7h14" />
+    <path d="M5 7l-2.5 5a2.5 2.5 0 0 0 5 0L5 7Z" />
+    <path d="M19 7l-2.5 5a2.5 2.5 0 0 0 5 0L19 7Z" />
+    <path d="M7 21h10" />
+  </Svg>
+);
+
 export const IconContaduria = (p) => (
   <Svg {...p}>
     <rect x="4" y="3" width="16" height="18" rx="2" />

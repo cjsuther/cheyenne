@@ -370,7 +370,36 @@ def pagar_por_comprobante(
             fecha = None
     else:
         fecha = None
-    return CuentaCorrienteService(db).pagar_por_comprobante(numero, importe, fecha)
+    return CuentaCorrienteService(db).pagar_por_comprobante(
+        numero, importe, fecha,
+        origen_modulo=data.get("origen_modulo"),
+        origen_ref=data.get("origen_ref"),
+    )
+
+
+@router.get("/cuenta-corriente/by-contribuyente/{id_contribuyente}/movimientos")
+def get_libro_mayor(
+    id_contribuyente: int,
+    id_cuenta_corriente: Optional[int] = Query(None, description="Filtra un solo concepto/cuenta"),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Libro mayor (extracto Debe/Haber) inmutable del contribuyente, con saldo corrido.
+
+    El saldo se DERIVA de los movimientos (no es un campo mutable)."""
+    return CuentaCorrienteService(db).movimientos_de_contribuyente(
+        id_contribuyente, id_cuenta_corriente
+    )
+
+
+@router.get("/cuenta-corriente/{id_cc}/saldo")
+def get_saldo_cuenta(
+    id_cc: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Saldo derivado del libro mayor para un concepto de cuenta corriente."""
+    return {"id_cuenta_corriente": id_cc, "saldo": float(CuentaCorrienteService(db).saldo_por_cuenta(id_cc))}
 
 
 @router.get("/pagos/by-contribuyente/{id_contribuyente}", response_model=List[ReciboResponse])

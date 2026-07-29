@@ -55,6 +55,9 @@ class UsuarioResponse(BaseModel):
     superuser: int = 0
     fecha_alta: datetime
     fecha_baja: Optional[datetime] = None
+    intentos_fallidos: int = 0
+    bloqueado_hasta: Optional[datetime] = None
+    password_actualizado_en: Optional[datetime] = None
     perfiles: List[PerfilResumen] = []
 
     class Config:
@@ -70,6 +73,8 @@ class UsuarioListResponse(BaseModel):
     id_estado_usuario: int
     fecha_alta: datetime
     fecha_baja: Optional[datetime] = None
+    intentos_fallidos: int = 0
+    bloqueado_hasta: Optional[datetime] = None
 
     class Config:
         from_attributes = True

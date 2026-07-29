@@ -70,6 +70,42 @@ def _presupuesto(metodo: str, path: str, token: str, json_body: dict = None):
     return resp.json()
 
 
+def _asiento_automatico(g: GastoExpediente, etapa: str, importe, token: str):
+    """POST best-effort a Contabilidad para generar el asiento del ciclo del gasto.
+    DEVENGADO: Debe 5.1.01 (gasto) / Haber 2.1.01 (deuda a pagar).
+    PAGADO:    Debe 2.1.01 (deuda a pagar) / Haber 1.1.01 (banco/caja).
+    Idempotente por origen_ref. NUNCA rompe el flujo si contabilidad no responde."""
+    referencia = f"GEX-{g.anio}-{g.numero:04d}"
+    if etapa == "devengar":
+        origen_ref = f"devengado-{g.id}"
+        lineas = [
+            {"cuenta": "5.1.01", "debe": float(importe), "haber": 0},
+            {"cuenta": "2.1.01", "debe": 0, "haber": float(importe)},
+        ]
+        glosa = f"Devengado {referencia} — {g.descripcion}"
+    elif etapa == "pagar":
+        origen_ref = f"pagado-{g.id}"
+        lineas = [
+            {"cuenta": "2.1.01", "debe": float(importe), "haber": 0},
+            {"cuenta": "1.1.01", "debe": 0, "haber": float(importe)},
+        ]
+        glosa = f"Pagado {referencia} — {g.descripcion}"
+    else:
+        return None
+    try:
+        with httpx.Client(timeout=8) as client:
+            resp = client.post(
+                f"{settings.contabilidad_url}/asientos/automatico",
+                json={"origen_modulo": "contaduria", "origen_ref": origen_ref,
+                      "fecha": None, "glosa": glosa, "importe": float(importe), "lineas": lineas},
+                headers={"Authorization": token} if token else {})
+        if resp.status_code >= 400:
+            return f"Contabilidad no generó el asiento: HTTP {resp.status_code}"
+    except Exception as e:
+        return f"No se pudo generar el asiento en Contabilidad: {e}"
+    return None
+
+
 def _registrar(g: GastoExpediente, etapa: str, cu: dict, referencia: str = None,
                importe=None, id_afectacion=None):
     hist = list(g.historial or [])
@@ -251,6 +287,11 @@ def avanzar(id: int, request: Request, data: dict = Body(default={}),
         except Exception as e:
             tes_msg = f"No se pudo generar la OP en Tesorería: {e}"
 
+    # cierre del ciclo contable: asiento automático best-effort (devengar/pagar)
+    asiento_msg = None
+    if etapa in ("devengar", "pagar"):
+        asiento_msg = _asiento_automatico(g, etapa, importe, token)
+
     db.commit(); db.refresh(g)
     out = _serializar(g)
     for k in ("advertencia", "advertencias_cuota"):
@@ -258,6 +299,8 @@ def avanzar(id: int, request: Request, data: dict = Body(default={}),
             out[k] = afect[k]
     if tes_msg:
         out["tesoreria_aviso"] = tes_msg
+    if asiento_msg:
+        out["contabilidad_aviso"] = asiento_msg
     return out
 
 

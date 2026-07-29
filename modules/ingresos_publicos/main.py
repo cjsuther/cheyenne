@@ -32,6 +32,9 @@ from routers import (
     tasas_router,
     sub_tasas_router,
     personas_router,
+    exenciones_router,
+    titulares_router,
+    regimenes_moratoria_router,
 )
 
 # Import all models so they register with Base.metadata
@@ -76,6 +79,9 @@ app.include_router(multas_router)
 app.include_router(tasas_router)
 app.include_router(sub_tasas_router)
 app.include_router(personas_router)
+app.include_router(exenciones_router)
+app.include_router(titulares_router)
+app.include_router(regimenes_moratoria_router)
 
 
 @app.on_event("startup")

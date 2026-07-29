@@ -3,7 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { contaduriaAPI, presupuestoAPI, comprasAPI } from '../../services/api';
 import PageHeader from '../../components/common/PageHeader';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import { Modal, Field, inputClass, btnPrimary, btnSecondary } from '../../components/common/CrudComponents';
+import GroupedTabBar from '../../components/common/GroupedTabBar';
+import { useTabParam } from '../../hooks/useTabParam';
+import { CrudTab, Modal, Field, inputClass, btnPrimary, btnSecondary } from '../../components/common/CrudComponents';
 
 const fmt = (v) => new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2 }).format(Number(v || 0));
 
@@ -19,7 +21,39 @@ const ACCION = {
   devengado: { label: 'Pagar', doc: 'N° de orden de pago' },
 };
 
+const TABS_META = [
+  { key: 'gastos', label: 'Ciclo del Gasto' },
+  { key: 'retenciones', label: 'Retenciones' },
+  { key: 'tiposRetencion', label: 'Tipos de Retención' },
+  { key: 'rendicion', label: 'Rendición' },
+  { key: 'deudaFlotante', label: 'Deuda Flotante' },
+  { key: 'extracontables', label: 'Fondos de Terceros' },
+];
+const GRUPOS = [
+  { label: 'Gasto', keys: ['gastos'] },
+  { label: 'Retenciones', keys: ['retenciones', 'tiposRetencion'] },
+  { label: 'Reportes', keys: ['rendicion', 'deudaFlotante'] },
+  { label: 'Extracontable', keys: ['extracontables'] },
+];
+
 export default function Contaduria() {
+  const [tab, setTab] = useTabParam('gastos');
+  return (
+    <div>
+      <PageHeader title="Contaduría" subtitle="Ciclo del gasto, retenciones, rendición de cuentas y fondos de terceros" />
+      <GroupedTabBar grupos={GRUPOS} tabsMeta={TABS_META} tab={tab} setTab={setTab} />
+      {tab === 'gastos' && <GastosTab />}
+      {tab === 'retenciones' && <RetencionesTab />}
+      {tab === 'tiposRetencion' && <TiposRetencionTab />}
+      {tab === 'rendicion' && <RendicionTab />}
+      {tab === 'deudaFlotante' && <DeudaFlotanteTab />}
+      {tab === 'extracontables' && <ExtracontablesTab />}
+    </div>
+  );
+}
+
+// ── Ciclo del gasto ─────────────────────────────────────────────────
+function GastosTab() {
   const qc = useQueryClient();
   const [modal, setModal] = useState(null); // 'nuevo' | {avanzar: g} | {anular: g}
   const [error, setError] = useState('');
@@ -36,7 +70,6 @@ export default function Contaduria() {
 
   return (
     <div>
-      <PageHeader title="Contaduría — Ciclo del Gasto" subtitle="Preventivo → Compromiso → Devengado → Pagado, afectando el presupuesto en línea" />
       {error && (
         <div className="mb-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-2 flex items-center justify-between">
           <span>⚠ {error}</span><button onClick={() => setError('')} className="text-red-500">✕</button>
@@ -69,6 +102,9 @@ export default function Contaduria() {
                   {ACCION[g.estado] && (
                     <button className={btnPrimary.replace('px-4 py-2', 'px-3 py-1.5')} onClick={() => setModal({ avanzar: g })}>{ACCION[g.estado].label}</button>
                   )}
+                  {['devengado', 'pagado'].includes(g.estado) && (
+                    <button className={btnSecondary} onClick={() => setModal({ retener: g })}>Retenciones</button>
+                  )}
                   {['preventivado', 'comprometido'].includes(g.estado) && (
                     <button className={btnSecondary} onClick={() => setModal({ anular: g })}>Anular</button>
                   )}
@@ -90,7 +126,7 @@ export default function Contaduria() {
               </div>
               {g.historial?.length > 0 && (
                 <p className="text-[10px] text-gray-400 mt-2">
-                  {g.historial.map((h, i) => `${h.etapa} · ${h.usuario} · ${h.fecha ? new Date(h.fecha).toLocaleString() : ''}`).join('  →  ')}
+                  {g.historial.map((h) => `${h.etapa} · ${h.usuario} · ${h.fecha ? new Date(h.fecha).toLocaleString() : ''}`).join('  →  ')}
                 </p>
               )}
             </div>
@@ -100,7 +136,10 @@ export default function Contaduria() {
 
       {modal === 'nuevo' && <NuevoGastoModal onClose={() => setModal(null)} onDone={(r) => { setModal(null); refetch(); if (r?.advertencia) setAdv(r.advertencia); }} />}
       {modal?.avanzar && <AvanzarModal gasto={modal.avanzar} onClose={() => setModal(null)}
-        onDone={(r) => { setModal(null); refetch(); const a = r?.advertencia || (r?.advertencias_cuota || []).join('; '); if (a) setAdv(a); }}
+        onDone={(r) => { setModal(null); refetch(); const a = r?.advertencia || (r?.advertencias_cuota || []).join('; ') || r?.contabilidad_aviso; if (a) setAdv(a); }}
+        onError={(m) => { setError(m); setModal(null); }} />}
+      {modal?.retener && <RetenerModal gasto={modal.retener} onClose={() => setModal(null)}
+        onDone={() => { setModal(null); qc.invalidateQueries({ queryKey: ['conta-retenciones'] }); }}
         onError={(m) => { setError(m); setModal(null); }} />}
       {modal?.anular && <AnularModal gasto={modal.anular} onClose={() => setModal(null)}
         onDone={() => { setModal(null); refetch(); }} onError={(m) => { setError(m); setModal(null); }} />}
@@ -170,23 +209,50 @@ function NuevoGastoModal({ onClose, onDone }) {
 function AvanzarModal({ gasto, onClose, onDone, onError }) {
   const acc = ACCION[gasto.estado];
   const esCompromiso = gasto.estado === 'preventivado';
+  const esDevengar = gasto.estado === 'comprometido';
+  const esPagar = gasto.estado === 'devengado';
   const [documento, setDocumento] = useState('');
   const [importe, setImporte] = useState(String(gasto.importe));
   const [idOc, setIdOc] = useState('');
+  // retenciones opcionales en el paso de devengar/pagar
+  const [retSel, setRetSel] = useState([]); // ids de tipo elegidos
+  const { data: tipos } = useQuery({
+    queryKey: ['conta-tipos-retencion'],
+    queryFn: () => contaduriaAPI.tiposRetencion.list({ limit: 200 }).then((r) => r.data),
+    enabled: esDevengar || esPagar,
+  });
   const { data: ocs } = useQuery({
     queryKey: ['conta-ocs-comprometibles'],
     queryFn: () => comprasAPI.ordenesCompra.list({ solo_comprometibles: true, limit: 100 }).then((r) => r.data),
     enabled: esCompromiso,
   });
   const ocSel = ocs?.find((o) => String(o.id) === String(idOc));
+  const baseRet = Number(importe) || Number(gasto.importe) || 0;
+  const previa = (tipos || []).filter((t) => retSel.includes(t.id)).map((t) => {
+    const bajoMin = t.minimo_no_imponible != null && baseRet < Number(t.minimo_no_imponible);
+    const imp = bajoMin ? 0 : Math.round((baseRet * Number(t.alicuota)) / 100 * 100) / 100;
+    return { t, imp };
+  });
+  const totalRet = previa.reduce((a, p) => a + p.imp, 0);
+
   const m = useMutation({
-    mutationFn: () => contaduriaAPI.gastos.avanzar(gasto.id, idOc ? { id_oc_compras: Number(idOc) } : { documento, importe: Number(importe) }),
+    mutationFn: async () => {
+      const r = await contaduriaAPI.gastos.avanzar(gasto.id, idOc ? { id_oc_compras: Number(idOc) } : { documento, importe: Number(importe) });
+      if (retSel.length) {
+        await contaduriaAPI.gastos.aplicarRetenciones(gasto.id, {
+          retenciones: retSel.map((id) => ({ id_tipo_retencion: id })),
+          comprobante: documento || undefined,
+        }).catch(() => {});
+      }
+      return r;
+    },
     onSuccess: (r) => onDone(r.data),
     onError: (e) => onError(e.response?.data?.detail || 'Error'),
   });
   const listo = idOc || (documento.trim() && Number(importe) > 0);
+  const toggle = (id) => setRetSel((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]);
   return (
-    <Modal title={`${acc.label} — ${gasto.expediente}`} onClose={onClose}>
+    <Modal title={`${acc.label} — ${gasto.expediente}`} onClose={onClose} wide={esDevengar || esPagar}>
       <div className="space-y-3">
         <p className="text-sm text-gray-500">{gasto.descripcion} · {fmt(gasto.importe)}</p>
         {esCompromiso && (
@@ -205,8 +271,89 @@ function AvanzarModal({ gasto, onClose, onDone, onError }) {
             <Field label="Importe de la etapa"><input type="number" className={inputClass} value={importe} onChange={(e) => setImporte(e.target.value)} /></Field>
           </>
         )}
+        {(esDevengar || esPagar) && (
+          <div className="border-t pt-3">
+            <p className="text-sm font-medium text-gray-700 mb-2">Retenciones a aplicar (opcional)</p>
+            {tipos?.length ? (
+              <div className="space-y-1 max-h-40 overflow-y-auto">
+                {tipos.map((t) => {
+                  const p = previa.find((x) => x.t.id === t.id);
+                  return (
+                    <label key={t.id} className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={retSel.includes(t.id)} onChange={() => toggle(t.id)} className="w-4 h-4 rounded" />
+                      <span className="flex-1">{t.codigo} · {t.nombre} <span className="text-gray-400">({t.regimen} {Number(t.alicuota)}% s/{t.base})</span></span>
+                      {p && <span className="text-xs font-semibold text-orange-600">{fmt(p.imp)}</span>}
+                    </label>
+                  );
+                })}
+              </div>
+            ) : <p className="text-xs text-gray-400">No hay tipos de retención cargados.</p>}
+            {retSel.length > 0 && <p className="text-xs text-gray-600 mt-2">Total a retener: <b>{fmt(totalRet)}</b> (neto a pagar aprox. {fmt(baseRet - totalRet)})</p>}
+          </div>
+        )}
         <button className={`${btnPrimary} w-full`} disabled={m.isPending || !listo} onClick={() => m.mutate()}>
           {m.isPending ? 'Registrando en presupuesto...' : `Confirmar: ${acc.label}`}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+// Modal para aplicar retenciones a un gasto ya devengado/pagado
+function RetenerModal({ gasto, onClose, onDone, onError }) {
+  const [retSel, setRetSel] = useState([]);
+  const [comprobante, setComprobante] = useState(gasto.factura_numero || '');
+  const [cuit, setCuit] = useState('');
+  const { data: tipos } = useQuery({
+    queryKey: ['conta-tipos-retencion'],
+    queryFn: () => contaduriaAPI.tiposRetencion.list({ limit: 200 }).then((r) => r.data),
+  });
+  const { data: aplicadas } = useQuery({
+    queryKey: ['conta-ret-gasto', gasto.id],
+    queryFn: () => contaduriaAPI.gastos.retenciones(gasto.id).then((r) => r.data),
+  });
+  const base = Number(gasto.importe) || 0;
+  const previa = (tipos || []).filter((t) => retSel.includes(t.id)).map((t) => {
+    const bajoMin = t.minimo_no_imponible != null && base < Number(t.minimo_no_imponible);
+    return { t, imp: bajoMin ? 0 : Math.round((base * Number(t.alicuota)) / 100 * 100) / 100 };
+  });
+  const m = useMutation({
+    mutationFn: () => contaduriaAPI.gastos.aplicarRetenciones(gasto.id, {
+      retenciones: retSel.map((id) => ({ id_tipo_retencion: id })),
+      comprobante: comprobante || undefined, cuit_beneficiario: cuit || undefined,
+    }),
+    onSuccess: onDone,
+    onError: (e) => onError(e.response?.data?.detail || 'Error'),
+  });
+  const toggle = (id) => setRetSel((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]);
+  return (
+    <Modal title={`Retenciones — ${gasto.expediente}`} onClose={onClose} wide>
+      <div className="space-y-3">
+        <p className="text-sm text-gray-500">{gasto.descripcion} · base {fmt(base)}{gasto.proveedor ? ` · ${gasto.proveedor}` : ''}</p>
+        {aplicadas?.length > 0 && (
+          <div className="bg-gray-50 rounded-lg p-2 text-xs text-gray-600">
+            Ya aplicadas: {aplicadas.map((r) => `${r.tipo_codigo} ${fmt(r.importe)}`).join(' · ')}
+          </div>
+        )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Comprobante"><input className={inputClass} value={comprobante} onChange={(e) => setComprobante(e.target.value)} /></Field>
+          <Field label="CUIT beneficiario (para TXT AFIP/ARBA)"><input className={inputClass} value={cuit} onChange={(e) => setCuit(e.target.value)} placeholder="20-12345678-9" /></Field>
+        </div>
+        <div>
+          <p className="text-sm font-medium text-gray-700 mb-2">Tipos a aplicar</p>
+          {tipos?.length ? tipos.map((t) => {
+            const p = previa.find((x) => x.t.id === t.id);
+            return (
+              <label key={t.id} className="flex items-center gap-2 text-sm py-0.5">
+                <input type="checkbox" checked={retSel.includes(t.id)} onChange={() => toggle(t.id)} className="w-4 h-4 rounded" />
+                <span className="flex-1">{t.codigo} · {t.nombre} <span className="text-gray-400">({t.regimen} {Number(t.alicuota)}% s/{t.base})</span></span>
+                {p && <span className="text-xs font-semibold text-orange-600">{fmt(p.imp)}</span>}
+              </label>
+            );
+          }) : <p className="text-xs text-gray-400">No hay tipos de retención cargados.</p>}
+        </div>
+        <button className={`${btnPrimary} w-full`} disabled={m.isPending || !retSel.length} onClick={() => m.mutate()}>
+          {m.isPending ? 'Registrando...' : 'Registrar retenciones'}
         </button>
       </div>
     </Modal>
@@ -230,5 +377,254 @@ function AnularModal({ gasto, onClose, onDone, onError }) {
         </button>
       </div>
     </Modal>
+  );
+}
+
+// ── Retenciones aplicadas (listado + export TXT) ────────────────────
+const REGIMENES = ['iibb', 'ganancias', 'iva', 'sijp', 'otros'];
+
+function RetencionesTab() {
+  const [regimen, setRegimen] = useState('');
+  const [periodo, setPeriodo] = useState('');
+  const { data, isLoading } = useQuery({
+    queryKey: ['conta-retenciones', regimen, periodo],
+    queryFn: () => contaduriaAPI.retenciones.list({
+      limit: 200, ...(regimen ? { regimen } : {}), ...(periodo ? { periodo } : {}),
+    }).then((r) => r.data),
+  });
+  const exportar = async () => {
+    const r = await contaduriaAPI.retenciones.exportTxt({ ...(regimen ? { regimen } : {}), ...(periodo ? { periodo } : {}) });
+    const blob = new Blob([r.data], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `retenciones_${regimen || 'todos'}_${periodo || 'todo'}.txt`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+  return (
+    <div>
+      <div className="mb-3 flex flex-wrap gap-2 items-end justify-between">
+        <div className="flex gap-2">
+          <label className="text-sm">Régimen
+            <select className={inputClass} value={regimen} onChange={(e) => setRegimen(e.target.value)}>
+              <option value="">Todos</option>
+              {REGIMENES.map((r) => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </label>
+          <label className="text-sm">Período (AAAAMM)
+            <input className={inputClass} value={periodo} onChange={(e) => setPeriodo(e.target.value)} placeholder="202606" />
+          </label>
+        </div>
+        <button className={btnPrimary} onClick={exportar}>Exportar TXT (AFIP/ARBA)</button>
+      </div>
+      {isLoading ? <LoadingSpinner /> : (
+        <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-gray-600 text-xs">
+              <tr><th className="text-left px-3 py-2">Gasto</th><th className="text-left px-3 py-2">Tipo</th><th className="text-left px-3 py-2">Régimen</th><th className="text-left px-3 py-2">Período</th><th className="text-right px-3 py-2">Base</th><th className="text-right px-3 py-2">Alíc.</th><th className="text-right px-3 py-2">Retenido</th><th className="text-left px-3 py-2">Beneficiario</th></tr>
+            </thead>
+            <tbody>
+              {data?.length ? data.map((r) => (
+                <tr key={r.id} className="border-t border-gray-100">
+                  <td className="px-3 py-2">#{r.id_gasto}</td>
+                  <td className="px-3 py-2">{r.tipo_codigo}</td>
+                  <td className="px-3 py-2">{r.regimen}</td>
+                  <td className="px-3 py-2">{r.periodo}</td>
+                  <td className="px-3 py-2 text-right">{fmt(r.base_calculo)}</td>
+                  <td className="px-3 py-2 text-right">{Number(r.alicuota || 0)}%</td>
+                  <td className="px-3 py-2 text-right font-semibold text-orange-600">{fmt(r.importe)}</td>
+                  <td className="px-3 py-2">{r.beneficiario || r.cuit_beneficiario || '—'}</td>
+                </tr>
+              )) : <tr><td colSpan={8} className="px-3 py-8 text-center text-gray-500">Sin retenciones registradas.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Tipos de retención (CRUD) ───────────────────────────────────────
+function TiposRetencionTab() {
+  return (
+    <CrudTab
+      queryKey="conta-tipos-retencion"
+      entityName="tipo de retención"
+      apiFns={contaduriaAPI.tiposRetencion}
+      wide
+      columns={[
+        { key: 'codigo', label: 'Código' },
+        { key: 'nombre', label: 'Nombre' },
+        { key: 'regimen', label: 'Régimen' },
+        { key: 'alicuota', label: 'Alícuota %', render: (v) => Number(v) },
+        { key: 'base', label: 'Base' },
+        { key: 'minimo_no_imponible', label: 'Mín. no imp.', render: (v) => v != null ? fmt(v) : '—' },
+      ]}
+      formFields={[
+        { key: 'codigo', label: 'Código', required: true },
+        { key: 'nombre', label: 'Nombre', required: true },
+        { key: 'regimen', label: 'Régimen', type: 'select', required: true, defaultValue: 'otros',
+          options: REGIMENES.map((r) => ({ value: r, label: r })) },
+        { key: 'alicuota', label: 'Alícuota (%)', type: 'decimal', required: true, defaultValue: 0 },
+        { key: 'base', label: 'Base', type: 'select', required: true, defaultValue: 'neto',
+          options: [{ value: 'neto', label: 'neto' }, { value: 'total', label: 'total' }] },
+        { key: 'minimo_no_imponible', label: 'Mínimo no imponible', type: 'decimal' },
+        { key: 'activo', label: 'Activo', type: 'boolean', defaultValue: true },
+      ]}
+    />
+  );
+}
+
+// ── Rendición de cuentas ────────────────────────────────────────────
+function RendicionTab() {
+  const anioActual = new Date().getFullYear();
+  const [anio, setAnio] = useState(anioActual);
+  const [trimestre, setTrimestre] = useState('');
+  const { data, isLoading, refetch, isFetching } = useQuery({
+    queryKey: ['conta-rendicion', anio, trimestre],
+    queryFn: () => contaduriaAPI.rendicion({ anio, ...(trimestre ? { trimestre } : {}) }).then((r) => r.data),
+    enabled: false,
+  });
+  return (
+    <div>
+      <div className="mb-3 flex flex-wrap gap-2 items-end">
+        <label className="text-sm">Año<input type="number" className={inputClass} value={anio} onChange={(e) => setAnio(Number(e.target.value))} /></label>
+        <label className="text-sm">Trimestre
+          <select className={inputClass} value={trimestre} onChange={(e) => setTrimestre(e.target.value)}>
+            <option value="">Anual</option>{[1, 2, 3, 4].map((t) => <option key={t} value={t}>{t}°</option>)}
+          </select>
+        </label>
+        <button className={btnPrimary} onClick={() => refetch()}>Generar</button>
+      </div>
+      {isLoading || isFetching ? <LoadingSpinner /> : data ? (
+        <div className="space-y-4">
+          {data.aviso && <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-lg px-3 py-2">⚠ {data.aviso}</div>}
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <p className="text-sm font-semibold text-gray-700 mb-2">Ejecución por etapa ({data.expedientes} expedientes)</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {ETAPAS.map((e) => (
+                <div key={e} className="rounded-lg bg-gray-50 p-3">
+                  <p className="text-[11px] text-gray-500 uppercase">{e}</p>
+                  <p className="text-sm font-bold text-gray-800">{fmt(data.por_etapa?.[e])}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <RendicionTabla titulo="Por objeto del gasto" keyName="objeto" rows={data.por_objeto_gasto} />
+          <RendicionTabla titulo="Por jurisdicción" keyName="jurisdiccion" rows={data.por_jurisdiccion} />
+        </div>
+      ) : <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">Elegí año y presioná Generar.</div>}
+    </div>
+  );
+}
+
+function RendicionTabla({ titulo, keyName, rows }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+      <p className="text-sm font-semibold text-gray-700 px-4 pt-3">{titulo}</p>
+      <table className="w-full text-sm mt-2">
+        <thead className="bg-gray-50 text-gray-600 text-xs">
+          <tr><th className="text-left px-3 py-2">{titulo.replace('Por ', '')}</th>{ETAPAS.map((e) => <th key={e} className="text-right px-3 py-2">{e}</th>)}</tr>
+        </thead>
+        <tbody>
+          {rows?.length ? rows.map((r, i) => (
+            <tr key={i} className="border-t border-gray-100">
+              <td className="px-3 py-2">{r[keyName]}</td>
+              {ETAPAS.map((e) => <td key={e} className="px-3 py-2 text-right">{fmt(r[e])}</td>)}
+            </tr>
+          )) : <tr><td colSpan={5} className="px-3 py-6 text-center text-gray-400">Sin datos.</td></tr>}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── Deuda flotante ──────────────────────────────────────────────────
+function DeudaFlotanteTab() {
+  const [anio, setAnio] = useState(new Date().getFullYear());
+  const { data, isLoading, refetch, isFetching } = useQuery({
+    queryKey: ['conta-deuda-flotante', anio],
+    queryFn: () => contaduriaAPI.deudaFlotante({ anio }).then((r) => r.data),
+    enabled: false,
+  });
+  return (
+    <div>
+      <div className="mb-3 flex gap-2 items-end">
+        <label className="text-sm">Año<input type="number" className={inputClass} value={anio} onChange={(e) => setAnio(Number(e.target.value))} /></label>
+        <button className={btnPrimary} onClick={() => refetch()}>Consultar</button>
+      </div>
+      {isLoading || isFetching ? <LoadingSpinner /> : data ? (
+        <div>
+          <div className="mb-3 bg-white rounded-xl border border-gray-200 p-4 flex justify-between">
+            <span className="text-sm text-gray-500">{data.cantidad} gastos devengados impagos al cierre {data.anio}</span>
+            <span className="text-lg font-bold text-orange-600">{fmt(data.total)}</span>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-gray-600 text-xs">
+                <tr><th className="text-left px-3 py-2">Expediente</th><th className="text-left px-3 py-2">Descripción</th><th className="text-left px-3 py-2">Proveedor</th><th className="text-left px-3 py-2">Factura</th><th className="text-right px-3 py-2">Importe</th></tr>
+              </thead>
+              <tbody>
+                {data.items?.length ? data.items.map((g) => (
+                  <tr key={g.id} className="border-t border-gray-100">
+                    <td className="px-3 py-2">{g.expediente}</td>
+                    <td className="px-3 py-2">{g.descripcion}</td>
+                    <td className="px-3 py-2">{g.proveedor || '—'}</td>
+                    <td className="px-3 py-2">{g.factura_numero || '—'}</td>
+                    <td className="px-3 py-2 text-right font-semibold">{fmt(g.importe)}</td>
+                  </tr>
+                )) : <tr><td colSpan={5} className="px-3 py-8 text-center text-gray-500">Sin deuda flotante.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">Elegí año y consultá.</div>}
+    </div>
+  );
+}
+
+// ── Fondos de terceros / extracontables ─────────────────────────────
+function ExtracontablesTab() {
+  const { data: saldos } = useQuery({
+    queryKey: ['conta-extra-saldos'],
+    queryFn: () => contaduriaAPI.extracontables.saldos().then((r) => r.data),
+  });
+  return (
+    <div>
+      {saldos?.length > 0 && (
+        <div className="mb-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {saldos.map((s) => (
+            <div key={s.concepto} className="bg-white rounded-xl border border-gray-200 p-3">
+              <p className="text-[11px] text-gray-500 truncate">{s.concepto}</p>
+              <p className={`text-sm font-bold ${s.saldo < 0 ? 'text-red-600' : 'text-gray-800'}`}>{fmt(s.saldo)}</p>
+              <p className="text-[10px] text-gray-400">{s.movimientos} mov.</p>
+            </div>
+          ))}
+        </div>
+      )}
+      <CrudTab
+        queryKey="conta-extracontables"
+        entityName="movimiento"
+        apiFns={contaduriaAPI.extracontables}
+        wide
+        columns={[
+          { key: 'concepto', label: 'Concepto' },
+          { key: 'tipo', label: 'Tipo' },
+          { key: 'importe', label: 'Importe', render: (v) => fmt(v) },
+          { key: 'beneficiario', label: 'Beneficiario' },
+          { key: 'referencia', label: 'Referencia' },
+          { key: 'fecha', label: 'Fecha' },
+        ]}
+        formFields={[
+          { key: 'concepto', label: 'Concepto', required: true },
+          { key: 'tipo', label: 'Tipo', type: 'select', required: true, defaultValue: 'ingreso',
+            options: [{ value: 'ingreso', label: 'ingreso' }, { value: 'egreso', label: 'egreso' }] },
+          { key: 'importe', label: 'Importe', type: 'decimal', required: true },
+          { key: 'beneficiario', label: 'Beneficiario' },
+          { key: 'referencia', label: 'Referencia' },
+          { key: 'fecha', label: 'Fecha', type: 'date' },
+          { key: 'observaciones', label: 'Observaciones', type: 'textarea' },
+        ]}
+      />
+    </div>
   );
 }

@@ -11,7 +11,10 @@ from config import get_settings
 from database import engine
 from shared.database import Base
 from shared.audit_middleware import AuditMiddleware
-from routers import gastos_router
+from routers import (
+    gastos_router, tipos_router, retenciones_router, gasto_ret_router,
+    extracontables_router, reportes_router,
+)
 
 import models  # noqa: F401
 
@@ -35,6 +38,11 @@ app.add_middleware(
 app.add_middleware(AuditMiddleware, modulo="contaduria")
 
 app.include_router(gastos_router)
+app.include_router(tipos_router)
+app.include_router(retenciones_router)
+app.include_router(gasto_ret_router)
+app.include_router(extracontables_router)
+app.include_router(reportes_router)
 
 
 @app.on_event("startup")

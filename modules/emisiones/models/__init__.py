@@ -7,3 +7,6 @@ from .paso_workflow import PasoWorkflow
 from .formula_tasa import FormulaTasa, FormulaTasaAcumulador
 from .comprobante import Comprobante
 from .pago_recibo import PagoRecibo
+from .movimiento_ctacte import MovimientoCtaCte
+from .coeficiente import Coeficiente
+from .vencimiento_comprobante import VencimientoComprobante

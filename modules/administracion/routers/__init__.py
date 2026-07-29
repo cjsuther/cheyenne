@@ -16,3 +16,7 @@ from .localidades import router as localidades_router
 from .cuentas_contables import router as cuentas_contables_router
 from .jurisdicciones import router as jurisdicciones_router
 from .recursos_por_rubro import router as recursos_por_rubro_router
+from .numeradores import router as numeradores_router
+from .parametros import router as parametros_router
+from .feriados import router as feriados_router
+from .funcionarios import router as funcionarios_router

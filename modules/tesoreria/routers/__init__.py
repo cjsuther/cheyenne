@@ -13,3 +13,6 @@ from .egresos import beneficiarios_router, cuentas_router, op_router, egresos_ro
 from .banca import (
     cheques_router, chequeras_router, ob_router, conc_router,
 )
+from .retenciones import (
+    retenciones_router, op_pago_router, prog_router, embargos_router, poderes_router,
+)

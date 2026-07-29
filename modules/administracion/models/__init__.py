@@ -17,3 +17,7 @@ from .pais import Pais
 from .provincia import Provincia
 from .localidad import Localidad
 from .recurso_por_rubro import RecursoPorRubro
+from .numerador import Numerador
+from .parametro import Parametro
+from .feriado import Feriado
+from .funcionario import Funcionario

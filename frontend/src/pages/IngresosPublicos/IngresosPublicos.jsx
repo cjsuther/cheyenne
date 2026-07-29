@@ -77,7 +77,12 @@ const TABS = [
   { key: 'simularPlan', label: 'Simular Plan' },
   { key: 'cuotasPlan', label: 'Cuotas Plan' },
   { key: 'planPagoDef', label: 'Def. Planes' },
+  { key: 'regimenes', label: 'Reg. Moratoria' },
+  { key: 'simMoratoria', label: 'Simular Moratoria' },
   { key: 'certificados', label: 'Certificados' },
+  { key: 'libreDeuda', label: 'Libre Deuda' },
+  { key: 'exenciones', label: 'Exenciones' },
+  { key: 'titulares', label: 'Titulares' },
   { key: 'multas', label: 'Multas' },
   { key: 'tasas', label: 'Tasas' },
   { key: 'subTasas', label: 'Sub-Tasas' },
@@ -90,8 +95,8 @@ const GRUPOS = [
   { label: 'Comercios', keys: ['comercios', 'comercioRubros', 'comercioDdjj'] },
   { label: 'Vehículos', keys: ['vehiculos', 'vehiculoVal'] },
   { label: 'Emisiones', keys: ['emisiones', 'emisionDef'] },
-  { label: 'Planes de pago', keys: ['planesPago', 'simularPlan', 'cuotasPlan', 'planPagoDef'] },
-  { label: 'Tributos', keys: ['tasas', 'subTasas', 'certificados', 'multas'] },
+  { label: 'Planes de pago', keys: ['planesPago', 'simularPlan', 'cuotasPlan', 'planPagoDef', 'regimenes', 'simMoratoria'] },
+  { label: 'Tributos', keys: ['tasas', 'subTasas', 'certificados', 'libreDeuda', 'exenciones', 'titulares', 'multas'] },
   { label: 'Configuración', keys: ['listas'] },
 ];
 
@@ -118,7 +123,12 @@ export default function IngresosPublicos() {
       {tab === 'simularPlan' && <SimularPlanTab />}
       {tab === 'cuotasPlan' && <CuotasPlanTab />}
       {tab === 'planPagoDef' && <PlanPagoDefinicionesTab />}
+      {tab === 'regimenes' && <RegimenesMoratoriaTab />}
+      {tab === 'simMoratoria' && <SimularMoratoriaTab />}
       {tab === 'certificados' && <CertificadosTab />}
+      {tab === 'libreDeuda' && <LibreDeudaTab />}
+      {tab === 'exenciones' && <ExencionesTab />}
+      {tab === 'titulares' && <TitularesTab />}
       {tab === 'multas' && <MultasTab />}
       {tab === 'tasas' && <TasasTab />}
       {tab === 'subTasas' && <SubTasasTab />}
@@ -623,6 +633,209 @@ function CuotasPlanTab() {
       </div>
       {msg && <div className="bg-primary-50 text-primary-700 text-sm rounded-lg px-4 py-3">{msg}</div>}
       {planId && (isFetching ? <LoadingSpinner /> : <DataTable columns={cols} data={cuotas} />)}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Exenciones tributarias (total/parcial) — las consume emisiones al liquidar
+function ExencionesTab() {
+  return <CrudTab queryKey="ip-exenciones" apiFns={ingresosPublicosAPI.exenciones} entityName="Exención" wide
+    columns={[
+      { key: 'id', label: 'ID' }, { key: 'id_cuenta', label: 'Cuenta' }, { key: 'id_contribuyente', label: 'Contribuyente' },
+      { key: 'id_tasa', label: 'Tasa' }, { key: 'porcentaje', label: '%' }, { key: 'motivo', label: 'Motivo' },
+      { key: 'vigencia_desde', label: 'Desde' }, { key: 'vigencia_hasta', label: 'Hasta' },
+      { key: 'activo', label: 'Estado', render: (v) => v ? 'Activa' : 'Baja' },
+    ]}
+    formFields={[
+      { key: 'id_cuenta', label: 'Cuenta', ...cuentaSearchField },
+      { key: 'id_contribuyente', label: 'Contribuyente', type: 'remote_select', queryKey: 'sel-ip-contribuyentes', queryFn: contribuyenteQuery, optionLabel: '_label' },
+      { key: 'id_tasa', label: 'Tasa (opcional, vacío = todas)', type: 'remote_select', queryKey: 'sel-ip-tasas', queryFn: allQuery(ingresosPublicosAPI.tasas), optionLabel: 'descripcion' },
+      { key: 'porcentaje', label: '% Exención (100 = total)', type: 'decimal', defaultValue: 100, required: true },
+      { key: 'motivo', label: 'Motivo' },
+      { key: 'vigencia_desde', label: 'Vigencia Desde', type: 'date' },
+      { key: 'vigencia_hasta', label: 'Vigencia Hasta', type: 'date' },
+      { key: 'acto_administrativo', label: 'Acto Administrativo' },
+      { key: 'activo', label: 'Activa', type: 'boolean', defaultValue: true },
+    ]}
+  />;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Titulares / condominio de una cuenta (varios con % y vigencia)
+function TitularesTab() {
+  return <CrudTab queryKey="ip-titulares" apiFns={ingresosPublicosAPI.titulares} entityName="Titular" wide
+    columns={[
+      { key: 'id', label: 'ID' }, { key: 'id_cuenta', label: 'Cuenta' }, { key: 'id_contribuyente', label: 'Contribuyente' },
+      { key: 'porcentaje', label: '%' }, { key: 'tipo', label: 'Tipo' },
+      { key: 'vigencia_desde', label: 'Desde' }, { key: 'vigencia_hasta', label: 'Hasta' },
+      { key: 'activo', label: 'Estado', render: (v) => v ? 'Activo' : 'Baja' },
+    ]}
+    formFields={[
+      { key: 'id_cuenta', label: 'Cuenta', ...cuentaSearchField, required: true },
+      { key: 'id_contribuyente', label: 'Contribuyente', type: 'remote_select', queryKey: 'sel-ip-contribuyentes', queryFn: contribuyenteQuery, optionLabel: '_label', required: true },
+      { key: 'porcentaje', label: '% Participación', type: 'decimal', defaultValue: 100, required: true },
+      { key: 'tipo', label: 'Tipo', type: 'select', options: [{ value: 'titular', label: 'Titular' }, { value: 'condomino', label: 'Condómino' }, { value: 'poseedor', label: 'Poseedor' }], defaultValue: 'titular' },
+      { key: 'vigencia_desde', label: 'Vigencia Desde', type: 'date' },
+      { key: 'vigencia_hasta', label: 'Vigencia Hasta', type: 'date' },
+      { key: 'activo', label: 'Activo', type: 'boolean', defaultValue: true },
+    ]}
+  />;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Regímenes de moratoria (parámetros de campaña de regularización)
+function RegimenesMoratoriaTab() {
+  return <CrudTab queryKey="ip-regimenes" apiFns={ingresosPublicosAPI.regimenesMoratoria} entityName="Régimen" wide
+    columns={[
+      { key: 'id', label: 'ID' }, { key: 'nombre', label: 'Nombre' },
+      { key: 'quita_intereses_pct', label: '% Quita int.' }, { key: 'anticipo_pct', label: '% Anticipo' },
+      { key: 'cuotas_max', label: 'Cuotas máx.' }, { key: 'tasa_financiacion', label: 'Tasa fin.' },
+      { key: 'activo', label: 'Estado', render: (v) => v ? 'Activo' : 'Baja' },
+    ]}
+    formFields={[
+      { key: 'nombre', label: 'Nombre', required: true },
+      { key: 'quita_intereses_pct', label: '% Quita de intereses', type: 'decimal', defaultValue: 0 },
+      { key: 'anticipo_pct', label: '% Anticipo', type: 'decimal', defaultValue: 0 },
+      { key: 'cuotas_max', label: 'Cuotas máximas', type: 'int', defaultValue: 12 },
+      { key: 'tasa_financiacion', label: 'Tasa financiación mensual (%)', type: 'decimal', defaultValue: 0 },
+      { key: 'vigencia_desde', label: 'Vigencia Desde', type: 'date' },
+      { key: 'vigencia_hasta', label: 'Vigencia Hasta', type: 'date' },
+      { key: 'activo', label: 'Activo', type: 'boolean', defaultValue: true },
+    ]}
+  />;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Simulador de moratoria (régimen + deuda -> plan con quita)
+function SimularMoratoriaTab() {
+  const [form, setForm] = useState({ id_regimen: '', deuda_capital: '', deuda_intereses: 0, cantidad_cuotas: '' });
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const { data: regimenes } = useQuery({
+    queryKey: ['ip-regimenes-sel'],
+    queryFn: () => ingresosPublicosAPI.regimenesMoratoria.list({ skip: 0, limit: 200, activo: true }).then((r) => r.data),
+  });
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setLoading(true); setError(null);
+    try {
+      const { data } = await ingresosPublicosAPI.planesPago.simularMoratoria({
+        id_regimen: Number(form.id_regimen),
+        deuda_capital: Number(form.deuda_capital || 0),
+        deuda_intereses: Number(form.deuda_intereses || 0),
+        cantidad_cuotas: form.cantidad_cuotas ? Number(form.cantidad_cuotas) : null,
+      });
+      setResult(data);
+    } catch (err) {
+      setError(err?.response?.data?.detail || 'No se pudo simular la moratoria');
+      setResult(null);
+    } finally { setLoading(false); }
+  };
+
+  const cuotaCols = [
+    { key: 'numero', label: 'Cuota' }, { key: 'capital', label: 'Capital', render: fmtMoney },
+    { key: 'interes', label: 'Interés', render: fmtMoney }, { key: 'importe', label: 'Importe', render: fmtMoney },
+    { key: 'saldo', label: 'Saldo', render: fmtMoney },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <form onSubmit={submit} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+        <Field label="Régimen">
+          <select className={inputClass} value={form.id_regimen} onChange={set('id_regimen')} required>
+            <option value="">Seleccionar...</option>
+            {regimenes?.map((r) => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+          </select>
+        </Field>
+        <Field label="Deuda capital"><input className={inputClass} type="number" step="0.01" value={form.deuda_capital} onChange={set('deuda_capital')} required /></Field>
+        <Field label="Deuda intereses"><input className={inputClass} type="number" step="0.01" value={form.deuda_intereses} onChange={set('deuda_intereses')} /></Field>
+        <Field label="Cuotas (opcional)"><input className={inputClass} type="number" min="1" value={form.cantidad_cuotas} onChange={set('cantidad_cuotas')} /></Field>
+        <button className={btnPrimary} type="submit" disabled={loading}>{loading ? 'Calculando...' : 'Simular'}</button>
+      </form>
+
+      {error && <div className="bg-red-50 text-red-700 text-sm rounded-lg px-4 py-3">{error}</div>}
+
+      {result && (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Stat label="Quita intereses" value={fmtMoney(result.quita_intereses)} />
+            <Stat label="Anticipo" value={fmtMoney(result.anticipo)} />
+            <Stat label="Financiado" value={fmtMoney(result.monto_financiado)} />
+            <Stat label="Total a pagar" value={fmtMoney(result.total_a_pagar)} highlight />
+          </div>
+          <DataTable columns={cuotaCols} data={result.cuotas} />
+        </>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Emisión de libre deuda REAL (consulta la deuda a emisiones por HTTP)
+function LibreDeudaTab() {
+  const [modo, setModo] = useState('cuenta');
+  const [id, setId] = useState('');
+  const [dias, setDias] = useState(30);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setLoading(true); setError(null); setResult(null);
+    try {
+      const payload = { dias_validez: Number(dias || 30) };
+      if (modo === 'cuenta') payload.id_cuenta = Number(id);
+      else payload.id_contribuyente = Number(id);
+      const { data } = await ingresosPublicosAPI.certificados.libreDeuda(payload);
+      setResult(data);
+    } catch (err) {
+      setError(err?.response?.data?.detail || 'No se pudo emitir el libre deuda');
+    } finally { setLoading(false); }
+  };
+
+  const deudaCols = [
+    { key: 'concepto', label: 'Concepto' }, { key: 'tipo_tributo', label: 'Tributo' },
+    { key: 'periodo', label: 'Período' }, { key: 'cuota', label: 'Cuota' },
+    { key: 'saldo', label: 'Saldo', render: fmtMoney }, { key: 'recargo', label: 'Recargo', render: fmtMoney },
+    { key: 'total_a_pagar', label: 'Total', render: fmtMoney },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <form onSubmit={submit} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+        <Field label="Buscar por">
+          <select className={inputClass} value={modo} onChange={(e) => { setModo(e.target.value); setId(''); }}>
+            <option value="cuenta">Cuenta</option>
+            <option value="contribuyente">Contribuyente</option>
+          </select>
+        </Field>
+        <Field label={modo === 'cuenta' ? 'ID Cuenta' : 'ID Contribuyente'}><input className={inputClass} type="number" value={id} onChange={(e) => setId(e.target.value)} required /></Field>
+        <Field label="Días de validez"><input className={inputClass} type="number" min="1" value={dias} onChange={(e) => setDias(e.target.value)} /></Field>
+        <button className={btnPrimary} type="submit" disabled={loading || !id}>{loading ? 'Consultando...' : 'Emitir libre deuda'}</button>
+      </form>
+
+      {error && <div className="bg-red-50 text-red-700 text-sm rounded-lg px-4 py-3">{error}</div>}
+
+      {result && result.emitido && (
+        <div className="bg-green-50 border border-green-100 rounded-xl p-5">
+          <p className="text-green-800 font-semibold">✓ Libre deuda emitido</p>
+          <p className="text-sm text-gray-700 mt-1">N° {result.numero_certificado} · vence {result.fecha_vencimiento} · certificado #{result.id_certificado}</p>
+        </div>
+      )}
+      {result && !result.emitido && (
+        <div className="space-y-3">
+          <div className="bg-amber-50 border border-amber-100 rounded-xl p-5">
+            <p className="text-amber-800 font-semibold">No se emite: hay deuda impaga</p>
+            <p className="text-sm text-gray-700 mt-1">{result.motivo} · Total deuda: {fmtMoney(result.total_deuda)} en {result.cantidad_conceptos} conceptos</p>
+          </div>
+          <DataTable columns={deudaCols} data={result.detalle} />
+        </div>
+      )}
     </div>
   );
 }

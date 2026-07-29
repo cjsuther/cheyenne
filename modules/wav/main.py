@@ -11,7 +11,15 @@ from config import get_settings
 from database import engine
 from shared.database import Base
 from shared.audit_middleware import AuditMiddleware
-from routers import cuentas_router, declaraciones_router, pagos_router, listas_router
+from routers import (
+    cuentas_router,
+    declaraciones_router,
+    pagos_router,
+    listas_router,
+    deuda_router,
+    recibos_router,
+    planes_router,
+)
 
 settings = get_settings()
 
@@ -36,6 +44,9 @@ app.include_router(cuentas_router)
 app.include_router(declaraciones_router)
 app.include_router(pagos_router)
 app.include_router(listas_router)
+app.include_router(deuda_router)
+app.include_router(recibos_router)
+app.include_router(planes_router)
 
 
 @app.on_event("startup")

@@ -1,6 +1,6 @@
 // Registro central de los super-módulos (dashboard) y sus sub-menús.
 import {
-  IconContribuyente360, IconIngresos, IconSeguridad, IconContaduria, IconConfig, IconPresupuesto, IconTesoreria, IconCompras,
+  IconContribuyente360, IconIngresos, IconSeguridad, IconContaduria, IconConfig, IconPresupuesto, IconTesoreria, IconCompras, IconContabilidad,
 } from '../components/common/icons';
 
 export const SUPER_MODULES = [
@@ -44,6 +44,13 @@ export const SUPER_MODULES = [
     Icon: IconCompras, chip: 'bg-orange-50 text-orange-700',
     items: [
       { path: '/compras', label: 'Adquisiciones', module: 'compras' },
+    ],
+  },
+  {
+    key: 'contabilidad', label: 'Contabilidad', desc: 'Plan de cuentas, asientos y libros contables',
+    Icon: IconContabilidad, chip: 'bg-teal-50 text-teal-700',
+    items: [
+      { path: '/contabilidad', label: 'Contabilidad general', module: 'contabilidad' },
     ],
   },
   {

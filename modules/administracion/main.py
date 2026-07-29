@@ -30,6 +30,10 @@ from routers import (
     cuentas_contables_router,
     jurisdicciones_router,
     recursos_por_rubro_router,
+    numeradores_router,
+    parametros_router,
+    feriados_router,
+    funcionarios_router,
 )
 
 # Import all models so they register with Base.metadata
@@ -73,6 +77,10 @@ app.include_router(localidades_router)
 app.include_router(cuentas_contables_router)
 app.include_router(jurisdicciones_router)
 app.include_router(recursos_por_rubro_router)
+app.include_router(numeradores_router)
+app.include_router(parametros_router)
+app.include_router(feriados_router)
+app.include_router(funcionarios_router)
 
 
 @app.on_event("startup")

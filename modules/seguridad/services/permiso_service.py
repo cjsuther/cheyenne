@@ -64,11 +64,10 @@ class PermisoService:
             return False
         if usuario.superuser:
             return True
-        for perfil in usuario.perfiles:
-            for permiso in perfil.permisos:
-                if permiso.codigo == codigo_permiso:
-                    return True
-        return False
+        # Permisos efectivos = perfil + grants - denies
+        from services.permiso_efectivo_service import PermisoEfectivoService
+        efectivos = PermisoEfectivoService(self.db).permisos_efectivos(usuario)
+        return any(p.codigo == codigo_permiso for p in efectivos)
 
     def add(self, permiso_data: dict) -> Permiso:
         existing = self.db.query(Permiso).filter(Permiso.codigo == permiso_data["codigo"]).first()

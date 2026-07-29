@@ -3,10 +3,13 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
+from decimal import Decimal
+
 from models.plan_pago import PlanPago
 from models.plan_pago_definicion import PlanPagoDefinicion
 from models.plan_pago_cuota import PlanPagoCuota
-from services.plan_calculo import calcular_plan, resultado_a_cuotas
+from models.regimen_moratoria import RegimenMoratoria
+from services.plan_calculo import calcular_plan, resultado_a_cuotas, calcular_anticipo
 
 
 class PlanPagoService:
@@ -45,6 +48,107 @@ class PlanPagoService:
                  "importe": c.importe, "saldo": c.saldo}
                 for c in r.cuotas
             ],
+        }
+
+    # ---------------------------------------------- moratoria (régimen + motor francés)
+    def _find_regimen(self, id_regimen: int) -> RegimenMoratoria:
+        r = self.db.query(RegimenMoratoria).filter(RegimenMoratoria.id == id_regimen).first()
+        if not r:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Regimen de moratoria {id_regimen} no encontrado")
+        return r
+
+    def _consolidar_deuda(self, regimen: RegimenMoratoria, deuda_capital, deuda_intereses):
+        """Aplica la quita de intereses del régimen y devuelve (monto_financiable, quita)."""
+        capital = Decimal(str(deuda_capital or 0))
+        intereses = Decimal(str(deuda_intereses or 0))
+        quita_pct = Decimal(str(regimen.quita_intereses_pct or 0))
+        intereses_netos = intereses * (Decimal("1") - quita_pct / 100)
+        quita = intereses - intereses_netos
+        return capital + intereses_netos, quita
+
+    def simular_moratoria(self, id_regimen: int, deuda_capital, deuda_intereses=0,
+                          cantidad_cuotas: Optional[int] = None) -> dict:
+        """Simula un plan bajo un régimen de moratoria (quita de intereses + anticipo + francés).
+
+        `deuda_capital`/`deuda_intereses`: componentes de la deuda a regularizar.
+        `cantidad_cuotas`: si excede el tope del régimen se recorta al máximo.
+        """
+        regimen = self._find_regimen(id_regimen)
+        cuotas = cantidad_cuotas or regimen.cuotas_max
+        if cuotas < 1:
+            raise HTTPException(status_code=400, detail="cantidad_cuotas debe ser >= 1")
+        if cuotas > regimen.cuotas_max:
+            cuotas = regimen.cuotas_max
+
+        monto_financiable, quita = self._consolidar_deuda(regimen, deuda_capital, deuda_intereses)
+        anticipo = calcular_anticipo(
+            monto_financiable, cuotas,
+            porcentaje=(regimen.anticipo_pct if regimen.anticipo_pct else None),
+        )
+        r = calcular_plan(
+            monto_total=monto_financiable, cantidad_cuotas=cuotas,
+            tasa_interes_pct=(regimen.tasa_financiacion or 0), anticipo=anticipo,
+        )
+        return {
+            "id_regimen": regimen.id,
+            "regimen": regimen.nombre,
+            "deuda_capital": float(Decimal(str(deuda_capital or 0))),
+            "deuda_intereses": float(Decimal(str(deuda_intereses or 0))),
+            "quita_intereses": float(quita),
+            "monto_total": float(r.monto_total),
+            "anticipo": float(r.anticipo),
+            "monto_financiado": float(r.monto_financiado),
+            "cantidad_cuotas": r.cantidad_cuotas,
+            "tasa_financiacion_pct": float(regimen.tasa_financiacion or 0),
+            "total_intereses_financiacion": float(r.total_intereses),
+            "total_a_pagar": float(r.total_a_pagar),
+            "cuotas": [
+                {"numero": c.numero, "capital": float(c.capital), "interes": float(c.interes),
+                 "importe": float(c.importe), "saldo": float(c.saldo)}
+                for c in r.cuotas
+            ],
+        }
+
+    def generar_desde_deuda(self, id_regimen: int, deuda_capital, deuda_intereses=0,
+                            cantidad_cuotas: Optional[int] = None, id_cuenta: Optional[int] = None,
+                            id_contribuyente: Optional[int] = None,
+                            id_plan_pago_definicion: Optional[int] = None,
+                            primer_vencimiento=None, periodicidad_meses: int = 1) -> dict:
+        """Consolida la deuda en un plan bajo el régimen: crea el PlanPago y sus cuotas."""
+        regimen = self._find_regimen(id_regimen)
+        sim = self.simular_moratoria(id_regimen, deuda_capital, deuda_intereses, cantidad_cuotas)
+
+        plan = PlanPago(
+            id_plan_pago_definicion=id_plan_pago_definicion,
+            id_cuenta=id_cuenta,
+            id_contribuyente=id_contribuyente,
+            cantidad_cuotas=sim["cantidad_cuotas"],
+            importe_total=Decimal(str(sim["monto_total"])),
+            importe_anticipo=Decimal(str(sim["anticipo"])),
+            importe_cuota=Decimal(str(sim["cuotas"][0]["importe"])) if sim["cuotas"] else Decimal("0"),
+            id_estado_plan=10,
+        )
+        self.db.add(plan)
+        self.db.flush()  # obtener plan.id
+
+        r = calcular_plan(
+            monto_total=Decimal(str(sim["monto_total"])),
+            cantidad_cuotas=sim["cantidad_cuotas"],
+            tasa_interes_pct=(regimen.tasa_financiacion or 0),
+            anticipo=Decimal(str(sim["anticipo"])),
+        )
+        for kw in resultado_a_cuotas(plan.id, r, primer_vencimiento, periodicidad_meses):
+            self.db.add(PlanPagoCuota(**kw))
+        self.db.commit()
+        self.db.refresh(plan)
+        return {
+            "id_plan": plan.id,
+            "id_regimen": regimen.id,
+            "cuotas_generadas": len(r.cuotas),
+            "anticipo": float(sim["anticipo"]),
+            "quita_intereses": sim["quita_intereses"],
+            "total_a_pagar": sim["total_a_pagar"],
         }
 
     def generar_cuotas(self, id_plan: int, primer_vencimiento=None, periodicidad_meses: int = 1) -> dict:

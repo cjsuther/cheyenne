@@ -29,6 +29,10 @@ const TABS = [
   { key: 'archivos', label: 'Archivos' },
   { key: 'observaciones', label: 'Observaciones' },
   { key: 'etiquetas', label: 'Etiquetas' },
+  { key: 'numeradores', label: 'Numeradores' },
+  { key: 'parametros', label: 'Parametros' },
+  { key: 'feriados', label: 'Feriados' },
+  { key: 'funcionarios', label: 'Funcionarios' },
 ];
 
 const GRUPOS = [
@@ -38,6 +42,7 @@ const GRUPOS = [
   { label: 'Contable', keys: ['cuentasContables', 'recursosPorRubro', 'mediosPago'] },
   { label: 'Contacto', keys: ['direcciones', 'contactos'] },
   { label: 'Otros', keys: ['entidades', 'observaciones', 'etiquetas', 'listas'] },
+  { label: 'Configuracion', keys: ['numeradores', 'parametros', 'feriados', 'funcionarios'] },
 ];
 
 export default function Administracion({
@@ -70,6 +75,10 @@ export default function Administracion({
       {tab === 'archivos' && <ArchivosTab />}
       {tab === 'observaciones' && <ObservacionesTab />}
       {tab === 'etiquetas' && <EtiquetasTab />}
+      {tab === 'numeradores' && <NumeradoresTab />}
+      {tab === 'parametros' && <ParametrosTab />}
+      {tab === 'feriados' && <FeriadosTab />}
+      {tab === 'funcionarios' && <FuncionariosTab />}
     </div>
   );
 }
@@ -261,5 +270,85 @@ function EtiquetasTab() {
   return <CrudTab queryKey="etiquetas" apiFns={administracionAPI.etiquetas} entityName="Etiqueta"
     columns={[ { key: 'id', label: 'ID' }, { key: 'entidad', label: 'Entidad' }, { key: 'id_entidad', label: 'ID Entidad' }, { key: 'codigo', label: 'Codigo' } ]}
     formFields={[ { key: 'entidad', label: 'Entidad', required: true }, { key: 'id_entidad', label: 'ID Entidad', type: 'int', required: true }, { key: 'codigo', label: 'Codigo', required: true } ]}
+  />;
+}
+
+// ── Configuracion del sistema ────────────────────────────────────────
+function NumeradoresTab() {
+  return <CrudTab queryKey="numeradores" apiFns={administracionAPI.numeradores} entityName="Numerador" wide
+    columns={[
+      { key: 'id', label: 'ID' }, { key: 'clave', label: 'Clave' }, { key: 'descripcion', label: 'Descripcion' },
+      { key: 'anio', label: 'Anio' }, { key: 'prefijo', label: 'Prefijo' }, { key: 'padding', label: 'Padding' },
+      { key: 'proximo', label: 'Proximo' }, { key: 'activo', label: 'Estado', render: (v) => v ? 'Activo' : 'Inactivo' },
+    ]}
+    formFields={[
+      { key: 'clave', label: 'Clave', required: true, placeholder: 'recibo / orden_pago / expediente' },
+      { key: 'descripcion', label: 'Descripcion' },
+      { key: 'anio', label: 'Anio', type: 'int' },
+      { key: 'proximo', label: 'Proximo', type: 'int', defaultValue: 1 },
+      { key: 'prefijo', label: 'Prefijo' },
+      { key: 'padding', label: 'Padding (ceros)', type: 'int', defaultValue: 0 },
+      { key: 'activo', label: 'Activo', type: 'boolean', defaultValue: true },
+    ]}
+  />;
+}
+
+function ParametrosTab() {
+  return <CrudTab queryKey="parametros" apiFns={administracionAPI.parametros} entityName="Parametro" wide
+    columns={[
+      { key: 'id', label: 'ID' }, { key: 'clave', label: 'Clave' }, { key: 'valor', label: 'Valor' },
+      { key: 'tipo', label: 'Tipo' }, { key: 'grupo', label: 'Grupo' }, { key: 'descripcion', label: 'Descripcion' },
+    ]}
+    formFields={[
+      { key: 'clave', label: 'Clave', required: true },
+      { key: 'valor', label: 'Valor' },
+      { key: 'tipo', label: 'Tipo', type: 'select', required: true, defaultValue: 'texto', options: [
+        { value: 'texto', label: 'Texto' }, { value: 'numero', label: 'Numero' },
+        { value: 'booleano', label: 'Booleano' }, { value: 'fecha', label: 'Fecha' },
+      ] },
+      { key: 'grupo', label: 'Grupo' },
+      { key: 'descripcion', label: 'Descripcion' },
+      { key: 'activo', label: 'Activo', type: 'boolean', defaultValue: true },
+    ]}
+  />;
+}
+
+function FeriadosTab() {
+  return <CrudTab queryKey="feriados" apiFns={administracionAPI.feriados} entityName="Feriado"
+    columns={[
+      { key: 'id', label: 'ID' }, { key: 'fecha', label: 'Fecha', render: (v) => v ? new Date(v).toLocaleDateString() : '' },
+      { key: 'descripcion', label: 'Descripcion' }, { key: 'tipo', label: 'Tipo' },
+      { key: 'activo', label: 'Estado', render: (v) => v ? 'Activo' : 'Inactivo' },
+    ]}
+    formFields={[
+      { key: 'fecha', label: 'Fecha', type: 'date', required: true },
+      { key: 'descripcion', label: 'Descripcion' },
+      { key: 'tipo', label: 'Tipo', type: 'select', required: true, defaultValue: 'nacional', options: [
+        { value: 'nacional', label: 'Nacional' }, { value: 'provincial', label: 'Provincial' },
+        { value: 'municipal', label: 'Municipal' },
+      ] },
+      { key: 'activo', label: 'Activo', type: 'boolean', defaultValue: true },
+    ]}
+  />;
+}
+
+function FuncionariosTab() {
+  return <CrudTab queryKey="funcionarios" apiFns={administracionAPI.funcionarios} entityName="Funcionario" wide
+    columns={[
+      { key: 'id', label: 'ID' }, { key: 'codigo', label: 'Codigo' }, { key: 'nombre', label: 'Nombre' },
+      { key: 'cargo', label: 'Cargo' }, { key: 'firma_para', label: 'Firma Para' },
+      { key: 'activo', label: 'Estado', render: (v) => v ? 'Activo' : 'Inactivo' },
+    ]}
+    formFields={[
+      { key: 'codigo', label: 'Codigo', required: true },
+      { key: 'nombre', label: 'Nombre', required: true },
+      { key: 'cargo', label: 'Cargo' },
+      { key: 'id_dependencia', label: 'ID Dependencia', type: 'int' },
+      { key: 'firma_para', label: 'Firma Para', type: 'select', required: true, defaultValue: 'varios', options: [
+        { value: 'ordenes', label: 'Ordenes' }, { value: 'pagos', label: 'Pagos' },
+        { value: 'resoluciones', label: 'Resoluciones' }, { value: 'varios', label: 'Varios' },
+      ] },
+      { key: 'activo', label: 'Activo', type: 'boolean', defaultValue: true },
+    ]}
   />;
 }

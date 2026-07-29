@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, String, DateTime, Table, ForeignKey
+from sqlalchemy import Column, BigInteger, Integer, String, DateTime, Table, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -27,6 +27,13 @@ class Usuario(Base):
     superuser = Column(BigInteger, nullable=False, default=0)
     fecha_alta = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     fecha_baja = Column(DateTime(timezone=True), nullable=True)
+
+    # Bloqueo por intentos fallidos
+    intentos_fallidos = Column(Integer, nullable=False, default=0, server_default="0")
+    bloqueado_hasta = Column(DateTime(timezone=True), nullable=True)
+
+    # Politica de contrasena
+    password_actualizado_en = Column(DateTime(timezone=True), nullable=True)
 
     perfiles = relationship("Perfil", secondary=usuario_perfil, back_populates="usuarios", lazy="selectin")
     accesos = relationship("Acceso", back_populates="usuario", lazy="selectin", cascade="all, delete-orphan")

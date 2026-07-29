@@ -1,7 +1,7 @@
 import sys
 import os
 from typing import List, Optional
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, Query, HTTPException, status
@@ -15,11 +15,28 @@ from shared.filters import filtered_query
 from database import get_db
 from config import get_settings
 from models.certificado import Certificado
+from models.cuenta import Cuenta
+from services.deuda_client import deuda_por_contribuyente, resumen_deuda
 
 settings = get_settings()
 get_current_user = create_auth_dependency(settings.seguridad_url)
 
 router = APIRouter(prefix="/certificados", tags=["Certificados"])
+
+TIPO_CERT_LIBRE_DEUDA = 20  # tipo de certificado "libre deuda"
+
+
+def _requiere(cu, permiso):
+    if cu.get("superuser"):
+        return
+    if permiso not in [p["codigo"] for p in cu.get("permisos", [])]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"No tiene el permiso '{permiso}'")
+
+
+class LibreDeudaRequest(BaseModel):
+    id_cuenta: Optional[int] = None
+    id_contribuyente: Optional[int] = None
+    dias_validez: int = 30
 
 
 class CertificadoCreate(BaseModel):
@@ -55,6 +72,72 @@ class CertificadoResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+@router.post("/libre-deuda")
+def emitir_libre_deuda(
+    data: LibreDeudaRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Certificado de libre deuda REAL.
+
+    Resuelve el contribuyente (por cuenta o directo), consulta la deuda a `emisiones` por
+    HTTP (reenviando el token) y:
+      - si hay saldo impago -> NO emite y devuelve el detalle de la deuda (409).
+      - si está al día -> emite el certificado (número + validez) y lo persiste.
+    """
+    _requiere(current_user, "ingresos_certificados")
+
+    id_cuenta = data.id_cuenta
+    id_contribuyente = data.id_contribuyente
+    if id_cuenta is None and id_contribuyente is None:
+        raise HTTPException(status_code=400, detail="Indique id_cuenta o id_contribuyente")
+
+    if id_contribuyente is None:
+        cuenta = db.query(Cuenta).filter(Cuenta.id == id_cuenta).first()
+        if not cuenta:
+            raise HTTPException(status_code=404, detail=f"Cuenta {id_cuenta} inexistente")
+        id_contribuyente = cuenta.id_contribuyente
+        if id_contribuyente is None:
+            raise HTTPException(status_code=400, detail="La cuenta no tiene contribuyente asociado")
+
+    token = request.headers.get("authorization")
+    items = deuda_por_contribuyente(id_contribuyente, token)
+    resumen = resumen_deuda(items)
+
+    if resumen["total_deuda"] > 0:
+        return {
+            "emitido": False,
+            "motivo": "El contribuyente/cuenta registra deuda impaga",
+            "id_cuenta": id_cuenta,
+            "id_contribuyente": id_contribuyente,
+            **resumen,
+        }
+
+    hoy = date.today()
+    numero = f"LD-{hoy.strftime('%Y%m%d')}-{id_contribuyente}"
+    cert = Certificado(
+        id_cuenta=id_cuenta,
+        id_tipo_certificado=TIPO_CERT_LIBRE_DEUDA,
+        numero_certificado=numero,
+        fecha_vencimiento=hoy + timedelta(days=max(1, data.dias_validez)),
+        id_estado_certificado=10,
+        detalle=f"Libre deuda del contribuyente {id_contribuyente} (sin deuda a la fecha)",
+        id_usuario=current_user.get("id"),
+    )
+    db.add(cert); db.commit(); db.refresh(cert)
+    return {
+        "emitido": True,
+        "id_certificado": cert.id,
+        "numero_certificado": cert.numero_certificado,
+        "fecha_emision": cert.fecha_emision,
+        "fecha_vencimiento": cert.fecha_vencimiento,
+        "id_cuenta": id_cuenta,
+        "id_contribuyente": id_contribuyente,
+        "total_deuda": 0.0,
+    }
 
 
 @router.get("", response_model=List[CertificadoResponse])

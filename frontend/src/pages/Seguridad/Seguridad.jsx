@@ -13,7 +13,7 @@ export default function Seguridad() {
     <div>
       <PageHeader title="Seguridad" subtitle="Gestion de usuarios, perfiles y permisos" />
       <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-        {['usuarios', 'perfiles', 'permisos'].map((t) => (
+        {['usuarios', 'perfiles', 'permisos', 'sesiones'].map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -28,6 +28,7 @@ export default function Seguridad() {
       {tab === 'usuarios' && <UsuariosTab />}
       {tab === 'perfiles' && <PerfilesTab />}
       {tab === 'permisos' && <PermisosTab />}
+      {tab === 'sesiones' && <SesionesTab />}
     </div>
   );
 }
@@ -99,12 +100,27 @@ function UsuariosTab() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['usuarios'] }),
   });
 
+  const desbloquearMutation = useMutation({
+    mutationFn: (id) => seguridadAPI.desbloquearUsuario(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['usuarios'] }),
+    onError: (e) => alert(e.response?.data?.detail || 'Error al desbloquear'),
+  });
+
+  const isBloqueado = (row) => row.bloqueado_hasta && new Date(row.bloqueado_hasta) > new Date();
+
   const columns = [
     { key: 'id', label: 'ID' },
     { key: 'codigo', label: 'Codigo' },
     { key: 'nombre_apellido', label: 'Nombre' },
     { key: 'email', label: 'Email' },
-    { key: 'id_estado_usuario', label: 'Estado', render: (v) => (v === 10 ? 'Activo' : 'Inactivo') },
+    {
+      key: 'id_estado_usuario',
+      label: 'Estado',
+      render: (v, row) =>
+        isBloqueado(row) ? (
+          <span className="text-red-600 font-medium">Bloqueado</span>
+        ) : v === 10 ? 'Activo' : 'Inactivo',
+    },
     {
       key: '_actions',
       label: 'Acciones',
@@ -112,6 +128,10 @@ function UsuariosTab() {
         <div className="flex gap-2">
           <button className={btnSecondary} onClick={() => setModal({ mode: 'edit', usuario: row })}>Editar</button>
           <button className={btnSecondary} onClick={() => setModal({ mode: 'perfiles', usuario: row })}>Perfiles</button>
+          <button className={btnSecondary} onClick={() => setModal({ mode: 'permisos', usuario: row })}>Permisos</button>
+          {isBloqueado(row) && (
+            <button className={btnSecondary} onClick={() => { if (confirm('Desbloquear usuario?')) desbloquearMutation.mutate(row.id); }}>Desbloquear</button>
+          )}
           <button className={btnDanger} onClick={() => { if (confirm('Eliminar usuario?')) deleteMutation.mutate(row.id); }}>Eliminar</button>
         </div>
       ),
@@ -144,6 +164,126 @@ function UsuariosTab() {
       {modal === 'create' && <UsuarioFormModal onClose={() => setModal(null)} />}
       {modal?.mode === 'edit' && <UsuarioFormModal usuario={modal.usuario} onClose={() => setModal(null)} />}
       {modal?.mode === 'perfiles' && <UsuarioPerfilesModal usuario={modal.usuario} onClose={() => setModal(null)} />}
+      {modal?.mode === 'permisos' && <UsuarioPermisosModal usuario={modal.usuario} onClose={() => setModal(null)} />}
+    </>
+  );
+}
+
+// ── Modal: grant/deny de permisos por usuario ──────────────────────────
+function UsuarioPermisosModal({ usuario, onClose }) {
+  const queryClient = useQueryClient();
+  const { data: permisos, isLoading } = useQuery({
+    queryKey: ['usuario-permisos-override', usuario.id],
+    queryFn: () => seguridadAPI.usuarioPermisosOverride(usuario.id).then((r) => r.data),
+  });
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['usuario-permisos-override', usuario.id] });
+
+  const setMutation = useMutation({
+    mutationFn: ({ id, id_permiso, tipo }) => seguridadAPI.setUsuarioPermisoOverride(id, id_permiso, tipo),
+    onSuccess: invalidate,
+  });
+  const clearMutation = useMutation({
+    mutationFn: ({ id, id_permiso }) => seguridadAPI.clearUsuarioPermisoOverride(id, id_permiso),
+    onSuccess: invalidate,
+  });
+
+  // Estado efectivo mostrado: 'grant' | 'deny' | (por_perfil ? 'perfil' : 'ninguno')
+  const estado = (p) => p.override || (p.por_perfil ? 'perfil' : 'ninguno');
+
+  const grouped = {};
+  permisos?.forEach((p) => { (grouped[p.sistema] ??= []).push(p); });
+
+  return (
+    <Modal title={`Permisos de ${usuario.nombre_apellido}`} onClose={onClose}>
+      <p className="text-xs text-gray-500 mb-3">
+        Efectivo = permisos por perfil + grants - denies. Un <b>grant</b> agrega un permiso;
+        un <b>deny</b> lo quita aunque venga del perfil.
+      </p>
+      {isLoading ? (
+        <LoadingSpinner />
+      ) : (
+        <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+          {Object.entries(grouped).map(([sistema, items]) => (
+            <div key={sistema}>
+              <h4 className="text-sm font-semibold text-gray-600 uppercase mb-1">{sistema || 'General'}</h4>
+              <div className="space-y-1">
+                {items.map((p) => {
+                  const st = estado(p);
+                  return (
+                    <div key={p.id} className="flex items-center justify-between gap-2 p-1.5 rounded hover:bg-gray-50">
+                      <div className="min-w-0">
+                        <span className="text-sm text-gray-800">{p.nombre}</span>
+                        <span className="text-xs text-gray-400 ml-2">{p.codigo}</span>
+                        {p.por_perfil && <span className="text-[10px] text-gray-400 ml-2">(perfil)</span>}
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <button
+                          className={`px-2 py-1 rounded text-xs font-medium ${st === 'grant' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                          onClick={() => setMutation.mutate({ id: usuario.id, id_permiso: p.id, tipo: 'grant' })}
+                        >Grant</button>
+                        <button
+                          className={`px-2 py-1 rounded text-xs font-medium ${st === 'deny' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                          onClick={() => setMutation.mutate({ id: usuario.id, id_permiso: p.id, tipo: 'deny' })}
+                        >Deny</button>
+                        {p.override && (
+                          <button
+                            className="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200"
+                            onClick={() => clearMutation.mutate({ id: usuario.id, id_permiso: p.id })}
+                          >Limpiar</button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// SESIONES TAB (sesiones propias + revocar)
+// ═══════════════════════════════════════════════════════════════════════
+function SesionesTab() {
+  const queryClient = useQueryClient();
+  const { data: sesiones, isLoading } = useQuery({
+    queryKey: ['mis-sesiones'],
+    queryFn: () => seguridadAPI.sesiones().then((r) => r.data),
+  });
+
+  const revocarMutation = useMutation({
+    mutationFn: (id) => seguridadAPI.revocarSesion(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['mis-sesiones'] }),
+    onError: (e) => alert(e.response?.data?.detail || 'Error al revocar'),
+  });
+
+  const columns = [
+    { key: 'id', label: 'ID' },
+    { key: 'fecha_creacion', label: 'Inicio', render: (v) => v ? new Date(v).toLocaleString() : '' },
+    { key: 'fecha_vencimiento', label: 'Vence', render: (v) => v ? new Date(v).toLocaleString() : '' },
+    { key: 'activa', label: 'Estado', render: (v) => (v ? <span className="text-green-600">Activa</span> : <span className="text-gray-400">Cerrada</span>) },
+    {
+      key: '_actions',
+      label: 'Acciones',
+      render: (_, row) => (
+        <div className="flex gap-2 items-center">
+          {row.actual && <span className="text-xs text-gray-400">(actual)</span>}
+          {row.activa && !row.actual && (
+            <button className={btnDanger} onClick={() => { if (confirm('Revocar esta sesion?')) revocarMutation.mutate(row.id); }}>Revocar</button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <>
+      <p className="text-sm text-gray-500 mb-3">Sesiones activas de tu cuenta. Podes revocar las que no reconozcas.</p>
+      {isLoading ? <LoadingSpinner /> : <DataTable columns={columns} data={sesiones} />}
     </>
   );
 }

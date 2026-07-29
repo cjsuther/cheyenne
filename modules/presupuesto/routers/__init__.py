@@ -12,3 +12,4 @@ from .cuotas import router as cuotas_router
 from .rrhh import cargos_router, rrhh_router
 from .reportes import router as reportes_router
 from .metas import metas_router, proyectos_router
+from .evaluacion import router as evaluacion_router

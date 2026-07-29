@@ -10,7 +10,10 @@ class ExportacionLote(Base):
     __tablename__ = "importacion_exportacion_lotes"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    id_tipo_exportacion = Column(BigInteger, nullable=False)
+    id_tipo_exportacion = Column(BigInteger, nullable=False, default=0)
+    tipo_exportacion = Column(String(50), nullable=False, default="generico")
+    formato = Column(String(10), nullable=False, default="csv")
+    origen_lote_id = Column(BigInteger, nullable=True)
     nombre_archivo = Column(String(250), nullable=False)
     path_archivo = Column(String(500), nullable=True)
     id_estado_exportacion = Column(BigInteger, nullable=False, default=10)

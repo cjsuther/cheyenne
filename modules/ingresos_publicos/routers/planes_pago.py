@@ -1,8 +1,11 @@
 import sys
 import os
 from typing import List, Optional
+from datetime import date
+from decimal import Decimal
 
-from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
+from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
 from starlette.requests import Request
 
@@ -27,6 +30,60 @@ settings = get_settings()
 get_current_user = create_auth_dependency(settings.seguridad_url)
 
 router = APIRouter(prefix="/planes-pago", tags=["Planes de Pago"])
+
+
+def _requiere(cu, permiso):
+    if cu.get("superuser"):
+        return
+    if permiso not in [p["codigo"] for p in cu.get("permisos", [])]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"No tiene el permiso '{permiso}'")
+
+
+class SimularMoratoriaRequest(BaseModel):
+    id_regimen: int
+    deuda_capital: Decimal
+    deuda_intereses: Decimal = Decimal("0")
+    cantidad_cuotas: Optional[int] = None
+
+
+class GenerarMoratoriaRequest(SimularMoratoriaRequest):
+    id_cuenta: Optional[int] = None
+    id_contribuyente: Optional[int] = None
+    id_plan_pago_definicion: Optional[int] = None
+    primer_vencimiento: Optional[date] = None
+    periodicidad_meses: int = 1
+
+
+# ── Moratoria (motor de cuota + régimen) — ANTES de /{id} ────────────
+
+@router.post("/simular-moratoria")
+def simular_moratoria(
+    data: SimularMoratoriaRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Simula un plan bajo un régimen de moratoria (quita de intereses + anticipo + francés)."""
+    return PlanPagoService(db).simular_moratoria(
+        id_regimen=data.id_regimen, deuda_capital=data.deuda_capital,
+        deuda_intereses=data.deuda_intereses, cantidad_cuotas=data.cantidad_cuotas,
+    )
+
+
+@router.post("/generar", status_code=201)
+def generar_plan_moratoria(
+    data: GenerarMoratoriaRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Consolida la deuda en un plan bajo el régimen: crea el PlanPago y persiste sus cuotas."""
+    _requiere(current_user, "ingresos_planes")
+    return PlanPagoService(db).generar_desde_deuda(
+        id_regimen=data.id_regimen, deuda_capital=data.deuda_capital,
+        deuda_intereses=data.deuda_intereses, cantidad_cuotas=data.cantidad_cuotas,
+        id_cuenta=data.id_cuenta, id_contribuyente=data.id_contribuyente,
+        id_plan_pago_definicion=data.id_plan_pago_definicion,
+        primer_vencimiento=data.primer_vencimiento, periodicidad_meses=data.periodicidad_meses,
+    )
 
 
 # ── Cálculo de plan (ANTES de /{id}) ─────────────────────────────────

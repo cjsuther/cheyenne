@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     presupuesto_url: str = "http://presupuesto:8000"
     tesoreria_url: str = "http://tesoreria:8000"
     compras_url: str = "http://compras:8000"
+    contabilidad_url: str = "http://contabilidad:8000"
     environment: str = "development"
     debug: bool = True
 

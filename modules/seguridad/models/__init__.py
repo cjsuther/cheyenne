@@ -5,3 +5,6 @@ from .acceso import Acceso
 from .sesion import Sesion
 from .lista import Lista
 from .verificacion import Verificacion
+from .password_historial import PasswordHistorial
+from .token_revocado import TokenRevocado
+from .usuario_permiso import UsuarioPermiso

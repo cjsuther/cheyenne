@@ -28,3 +28,7 @@ from .banca import (
     Chequera, Cheque, OrdenBancaria, OrdenBancariaItem,
     ExtractoBancario, ExtractoMovimiento,
 )
+from .retenciones import (
+    RetencionPago, ProgramacionCaja, EmbargoBeneficiario, Poder,
+    TIPOS_PROG, TIPOS_EMBARGO,
+)

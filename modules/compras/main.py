@@ -9,7 +9,10 @@ from config import get_settings
 from database import engine
 from shared.database import Base
 from shared.audit_middleware import AuditMiddleware
-from routers import proveedores_router, articulos_router, pedidos_router, oc_router, stock_router
+from routers import (
+    proveedores_router, articulos_router, pedidos_router, oc_router, stock_router,
+    licitaciones_router, facturas_router, depositos_router, movimientos_router,
+)
 import models  # noqa: F401
 
 settings = get_settings()
@@ -19,7 +22,8 @@ app = FastAPI(title="Cheyenne - Módulo Compras",
 app.add_middleware(CORSMiddleware, allow_origins=["*"] if settings.environment == "development" else [],
                    allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 app.add_middleware(AuditMiddleware, modulo="compras")
-for r in (proveedores_router, articulos_router, pedidos_router, oc_router, stock_router):
+for r in (proveedores_router, articulos_router, pedidos_router, oc_router, stock_router,
+          licitaciones_router, facturas_router, depositos_router, movimientos_router):
     app.include_router(r)
 
 

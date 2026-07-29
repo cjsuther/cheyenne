@@ -25,6 +25,7 @@ from routers import (
     archivos_router,
     observaciones_router,
     cheques_router, chequeras_router, ob_router, conc_router,
+    retenciones_router, op_pago_router, prog_router, embargos_router, poderes_router,
 )
 
 # Ensure all models are imported so Base.metadata knows about them
@@ -68,6 +69,11 @@ app.include_router(chequeras_router)
 app.include_router(cheques_router)
 app.include_router(ob_router)
 app.include_router(conc_router)
+app.include_router(retenciones_router)
+app.include_router(op_pago_router)
+app.include_router(prog_router)
+app.include_router(embargos_router)
+app.include_router(poderes_router)
 
 
 @app.on_event("startup")

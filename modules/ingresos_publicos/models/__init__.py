@@ -20,3 +20,6 @@ from .plan_pago_cuota import PlanPagoCuota
 from .persona import Persona
 from .certificado import Certificado
 from .multa import Multa
+from .exencion import Exencion
+from .regimen_moratoria import RegimenMoratoria
+from .titular_cuenta import TitularCuenta
