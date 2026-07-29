@@ -12,6 +12,7 @@ export function TransaccionesTab() {
   const qc = useQueryClient();
   const [filtro, setFiltro] = useState('');
   const [sel, setSel] = useState(null);
+  const [definir, setDefinir] = useState(null);   // transacción para la que se define el asiento
   const [error, setError] = useState('');
   const { data: txs, isLoading } = useQuery({
     queryKey: ['cont-tx', filtro],
@@ -46,7 +47,10 @@ export function TransaccionesTab() {
                   <td className="px-3 py-2 text-right">{fmt(t.importe)}</td>
                   <td className="px-3 py-2"><span className={`px-2 py-0.5 rounded text-xs font-medium ${EST_TX[t.estado]}`}>{t.estado}</span></td>
                   <td className="px-3 py-2 text-gray-500">{t.id_asiento ? <button className="text-primary-600 hover:underline" onClick={() => setSel(t)}>ver asiento</button> : (t.motivo || '')}</td>
-                  <td className="px-3 py-2">{['sin_regla', 'error'].includes(t.estado) && <button className="text-primary-600 hover:underline" onClick={() => reprocesar(t.id)}>reprocesar</button>}</td>
+                  <td className="px-3 py-2 whitespace-nowrap">
+                    {t.estado === 'sin_regla' && <button className="text-primary-600 font-medium hover:underline mr-2" onClick={() => setDefinir(t)}>Definir asiento</button>}
+                    {['sin_regla', 'error'].includes(t.estado) && <button className="text-gray-500 hover:underline" onClick={() => reprocesar(t.id)}>reprocesar</button>}
+                  </td>
                 </tr>
               )) : <tr><td colSpan={7} className="px-3 py-8 text-center text-gray-400">Sin transacciones.</td></tr>}
             </tbody>
@@ -54,6 +58,19 @@ export function TransaccionesTab() {
         </div>
       )}
       {sel && <TxDetalle id={sel.id} onClose={() => setSel(null)} />}
+      {definir && (
+        <ReglaModal
+          initialTipo={definir.tipo}
+          tx={definir}
+          onClose={() => setDefinir(null)}
+          onDone={() => {
+            // creada la regla, imputamos esta transacción (y refrescamos la bandeja)
+            contabilidadAPI.transacciones.reprocesar(definir.id)
+              .catch(() => {})
+              .finally(() => { setDefinir(null); refetch(); });
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -117,8 +134,9 @@ export function ReglasTab() {
   );
 }
 
-function ReglaModal({ regla, onClose, onDone }) {
-  const [f, setF] = useState({ tipo: regla?.tipo || '', descripcion: regla?.descripcion || '', activo: regla?.activo ?? true });
+function ReglaModal({ regla, initialTipo, tx, onClose, onDone }) {
+  const tipoLock = !!(regla || initialTipo);
+  const [f, setF] = useState({ tipo: regla?.tipo || initialTipo || '', descripcion: regla?.descripcion || '', activo: regla?.activo ?? true });
   const [lineas, setLineas] = useState(regla?.lineas?.length ? regla.lineas.map((l) => ({ ...l })) : [
     { orden: 1, lado: 'debe', origen_cuenta: 'fija', cuenta_codigo: '', dimension: '', importe_campo: 'importe' },
     { orden: 2, lado: 'haber', origen_cuenta: 'fija', cuenta_codigo: '', dimension: '', importe_campo: 'importe' },
@@ -133,9 +151,16 @@ function ReglaModal({ regla, onClose, onDone }) {
     onSuccess: onDone, onError: (e) => setMsg(e.response?.data?.detail || 'Error'),
   });
   return (
-    <Modal title={regla ? `Editar regla ${regla.tipo}` : 'Nueva regla de imputación'} onClose={onClose} wide>
+    <Modal title={regla ? `Editar regla ${regla.tipo}` : initialTipo ? `Definir asiento para "${initialTipo}"` : 'Nueva regla de imputación'} onClose={onClose} wide>
+      {tx && (
+        <div className="mb-3 bg-blue-50 border border-blue-200 rounded-lg p-2 text-xs text-blue-800">
+          Transacción de <b>{tx.origen_modulo}</b> · importe <b>{fmt(tx.importe)}</b>.
+          Dimensiones disponibles para derivar cuentas: {Object.keys(tx.contexto || {}).length ? Object.keys(tx.contexto).map((k) => <code key={k} className="bg-white rounded px-1 mx-0.5">{k}</code>) : <span className="italic">ninguna</span>}.
+          Al guardar la regla, esta transacción se imputa automáticamente.
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3 mb-3">
-        <Field label="Tipo de transacción"><input className={inputClass} value={f.tipo} onChange={(e) => setF({ ...f, tipo: e.target.value })} placeholder="ej: gasto.devengado" disabled={!!regla} /></Field>
+        <Field label="Tipo de transacción"><input className={inputClass} value={f.tipo} onChange={(e) => setF({ ...f, tipo: e.target.value })} placeholder="ej: gasto.devengado" disabled={tipoLock} /></Field>
         <Field label="Descripción"><input className={inputClass} value={f.descripcion} onChange={(e) => setF({ ...f, descripcion: e.target.value })} /></Field>
       </div>
       <p className="text-xs text-gray-500 mb-1">Líneas del asiento (debe = haber):</p>
