@@ -282,6 +282,24 @@ export const contaduriaAPI = {
   },
 };
 
+export const comprasAPI = {
+  proveedores: crud('/compras/proveedores'),
+  articulos: crud('/compras/articulos'),
+  pedidos: {
+    list: (params) => api.get('/compras/pedidos', { params }),
+    create: (data) => api.post('/compras/pedidos', data),
+    anular: (id) => api.delete(`/compras/pedidos/${id}`),
+  },
+  ordenesCompra: {
+    list: (params) => api.get('/compras/ordenes-compra', { params }),
+    get: (id) => api.get(`/compras/ordenes-compra/${id}`),
+    create: (data) => api.post('/compras/ordenes-compra', data),
+    anular: (id) => api.post(`/compras/ordenes-compra/${id}/anular`, {}),
+    recibir: (id, data) => api.post(`/compras/ordenes-compra/${id}/recepciones`, data),
+  },
+  stock: () => api.get('/compras/stock'),
+};
+
 export const presupuestoAPI = {
   jurisdicciones: { ...crud('/presupuesto/jurisdicciones'), arbol: () => api.get('/presupuesto/jurisdicciones/arbol'), importar: () => api.post('/presupuesto/jurisdicciones/importar') },
   objetosGasto: { ...crud('/presupuesto/objetos-gasto'), arbol: () => api.get('/presupuesto/objetos-gasto/arbol') },

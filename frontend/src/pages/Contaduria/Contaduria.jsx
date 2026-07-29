@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { contaduriaAPI, presupuestoAPI } from '../../services/api';
+import { contaduriaAPI, presupuestoAPI, comprasAPI } from '../../services/api';
 import PageHeader from '../../components/common/PageHeader';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { Modal, Field, inputClass, btnPrimary, btnSecondary } from '../../components/common/CrudComponents';
@@ -169,20 +169,43 @@ function NuevoGastoModal({ onClose, onDone }) {
 
 function AvanzarModal({ gasto, onClose, onDone, onError }) {
   const acc = ACCION[gasto.estado];
+  const esCompromiso = gasto.estado === 'preventivado';
   const [documento, setDocumento] = useState('');
   const [importe, setImporte] = useState(String(gasto.importe));
+  const [idOc, setIdOc] = useState('');
+  const { data: ocs } = useQuery({
+    queryKey: ['conta-ocs-comprometibles'],
+    queryFn: () => comprasAPI.ordenesCompra.list({ solo_comprometibles: true, limit: 100 }).then((r) => r.data),
+    enabled: esCompromiso,
+  });
+  const ocSel = ocs?.find((o) => String(o.id) === String(idOc));
   const m = useMutation({
-    mutationFn: () => contaduriaAPI.gastos.avanzar(gasto.id, { documento, importe: Number(importe) }),
+    mutationFn: () => contaduriaAPI.gastos.avanzar(gasto.id, idOc ? { id_oc_compras: Number(idOc) } : { documento, importe: Number(importe) }),
     onSuccess: (r) => onDone(r.data),
     onError: (e) => onError(e.response?.data?.detail || 'Error'),
   });
+  const listo = idOc || (documento.trim() && Number(importe) > 0);
   return (
     <Modal title={`${acc.label} — ${gasto.expediente}`} onClose={onClose}>
       <div className="space-y-3">
         <p className="text-sm text-gray-500">{gasto.descripcion} · {fmt(gasto.importe)}</p>
-        <Field label={acc.doc}><input className={inputClass} value={documento} onChange={(e) => setDocumento(e.target.value)} /></Field>
-        <Field label="Importe de la etapa"><input type="number" className={inputClass} value={importe} onChange={(e) => setImporte(e.target.value)} /></Field>
-        <button className={`${btnPrimary} w-full`} disabled={m.isPending || !documento.trim() || !(Number(importe) > 0)} onClick={() => m.mutate()}>
+        {esCompromiso && (
+          <Field label="Orden de compra (de Compras) — autocompleta nro. e importe">
+            <select className={inputClass} value={idOc} onChange={(e) => setIdOc(e.target.value)}>
+              <option value="">— cargar manualmente —</option>
+              {ocs?.filter((o) => !o.comprometida).map((o) => <option key={o.id} value={o.id}>{o.orden_compra} · {o.proveedor?.nombre} · {fmt(o.total)}</option>)}
+            </select>
+          </Field>
+        )}
+        {ocSel ? (
+          <p className="text-xs text-blue-600">Se comprometerá {fmt(ocSel.total)} con {ocSel.orden_compra}</p>
+        ) : (
+          <>
+            <Field label={acc.doc}><input className={inputClass} value={documento} onChange={(e) => setDocumento(e.target.value)} /></Field>
+            <Field label="Importe de la etapa"><input type="number" className={inputClass} value={importe} onChange={(e) => setImporte(e.target.value)} /></Field>
+          </>
+        )}
+        <button className={`${btnPrimary} w-full`} disabled={m.isPending || !listo} onClick={() => m.mutate()}>
           {m.isPending ? 'Registrando en presupuesto...' : `Confirmar: ${acc.label}`}
         </button>
       </div>

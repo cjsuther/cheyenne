@@ -177,16 +177,36 @@ def avanzar(id: int, request: Request, data: dict = Body(default={}),
     etapa, tipo_afectacion, permiso = SIGUIENTE[g.estado]
     _requiere(current_user, permiso)
 
+    token = request.headers.get("authorization")
     documento = (data.get("documento") or "").strip()
+    importe = Decimal(str(data.get("importe") or g.importe))
+
+    # integración Compras: comprometer contra una OC real (autocompleta nro e importe)
+    oc_compras = None
+    if etapa == "comprometer" and data.get("id_oc_compras"):
+        try:
+            with httpx.Client(timeout=10) as client:
+                r = client.get(f"{settings.compras_url}/ordenes-compra/{int(data['id_oc_compras'])}",
+                               headers={"Authorization": token} if token else {})
+            if r.status_code >= 400:
+                raise HTTPException(status_code=409, detail=f"Compras: {r.json().get('detail', r.text[:150])}")
+            oc_compras = r.json()
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"No se pudo consultar Compras: {e}")
+        if oc_compras.get("estado") == "anulada":
+            raise HTTPException(status_code=409, detail="La OC está anulada")
+        documento = oc_compras["orden_compra"]
+        importe = Decimal(str(oc_compras["total"]))
+
     if not documento:
-        etiquetas = {"comprometer": "el número de orden de compra",
+        etiquetas = {"comprometer": "el número de orden de compra (o elegir una de Compras)",
                      "devengar": "el número de factura", "pagar": "el número de orden de pago"}
         raise HTTPException(status_code=400, detail=f"Debe indicar {etiquetas[etapa]} (documento)")
-    importe = Decimal(str(data.get("importe") or g.importe))
     if importe <= 0:
         raise HTTPException(status_code=400, detail="El importe debe ser mayor a cero")
 
-    token = request.headers.get("authorization")
     referencia = f"GEX-{g.anio}-{g.numero:04d}"
     afect = _presupuesto("POST", "/afectaciones", token, {
         "tipo": tipo_afectacion, "importe": float(importe), "id_partida": g.id_partida,
@@ -204,6 +224,15 @@ def avanzar(id: int, request: Request, data: dict = Body(default={}),
     else:
         g.estado, g.op_numero = "pagado", documento
     _registrar(g, tipo_afectacion, current_user, documento, importe, afect["id"])
+
+    # marcar la OC como comprometida en Compras (best-effort)
+    if oc_compras:
+        try:
+            with httpx.Client(timeout=8) as client:
+                client.post(f"{settings.compras_url}/ordenes-compra/{oc_compras['id']}/marcar-comprometida",
+                            headers={"Authorization": token} if token else {})
+        except Exception:
+            pass
 
     # integración: al PAGAR, generar la orden de pago en Tesorería (best-effort, idempotente)
     tes_msg = None

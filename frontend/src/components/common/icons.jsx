@@ -113,6 +113,13 @@ export const IconPresupuesto = (p) => (
   </Svg>
 );
 
+export const IconCompras = (p) => (
+  <Svg {...p}>
+    <circle cx="9" cy="20" r="1.5" /><circle cx="18" cy="20" r="1.5" />
+    <path d="M2 3h3l2.4 12.4a1.5 1.5 0 0 0 1.5 1.1h8.6a1.5 1.5 0 0 0 1.5-1.2L22 7H6" />
+  </Svg>
+);
+
 export const IconContaduria = (p) => (
   <Svg {...p}>
     <rect x="4" y="3" width="16" height="18" rx="2" />

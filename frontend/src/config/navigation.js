@@ -56,6 +56,11 @@ export const NAV = [
     ],
   },
 
+  // ── Compras ──
+  { label: 'Compras — Adquisiciones', path: '/compras', module: 'compras', tabs: [
+    { k: 'pedidos', l: 'Pedidos de área' }, { k: 'oc', l: 'Órdenes de Compra' }, { k: 'stock', l: 'Stock' }, { k: 'proveedores', l: 'Proveedores' }, { k: 'articulos', l: 'Artículos' },
+  ] },
+
   // ── Contaduría ──
   { label: 'Contaduría — Ciclo del Gasto', path: '/contaduria', module: 'contaduria', tabs: [] },
 
