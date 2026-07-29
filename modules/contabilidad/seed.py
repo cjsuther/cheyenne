@@ -8,34 +8,89 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from shared.database import Base
 from database import engine, SessionLocal
 from models.contabilidad import PlanCuenta, EjercicioContable
-from models.transacciones import ReglaImputacion, ReglaLinea
+from models.transacciones import ReglaImputacion, ReglaLinea, MapeoCuenta
 import models  # noqa: F401
 
 
-# (codigo, nombre, tipo, imputable, codigo_padre, nivel)
+# (codigo, nombre, tipo, imputable, codigo_padre, nivel) — plan de cuentas municipal base
 PLAN = [
-    # Rubros de agrupación (no imputables)
+    # ── ACTIVO ────────────────────────────────────────────────────────
     ("1",      "Activo",                         "activo",      False, None,  1),
     ("1.1",    "Activo corriente",               "activo",      False, "1",   2),
-    ("2",      "Pasivo",                         "pasivo",      False, None,  1),
-    ("2.1",    "Pasivo corriente",               "pasivo",      False, "2",   2),
-    ("2.2",    "Fondos de terceros",             "pasivo",      False, "2",   2),
-    ("3",      "Patrimonio",                     "patrimonio",  False, None,  1),
-    ("3.9",    "Resultados",                     "patrimonio",  False, "3",   2),
-    ("4",      "Recursos",                       "recurso",     False, None,  1),
-    ("4.1",    "Recursos corrientes",            "recurso",     False, "4",   2),
-    ("5",      "Gastos",                         "gasto",       False, None,  1),
-    ("5.1",    "Gastos corrientes",              "gasto",       False, "5",   2),
-    # Cuentas imputables (contrato del asiento automático)
-    ("1.1.01", "Banco",                          "activo",      True,  "1.1", 3),
+    ("1.1.01", "Banco cuenta corriente",         "activo",      True,  "1.1", 3),
     ("1.1.02", "Caja",                           "activo",      True,  "1.1", 3),
     ("1.1.03", "Recaudación a depositar",        "activo",      True,  "1.1", 3),
+    ("1.1.04", "Fondos fijos",                   "activo",      True,  "1.1", 3),
+    ("1.1.05", "Banco cuentas especiales",       "activo",      True,  "1.1", 3),
+    ("1.1.06", "Inversiones / plazos fijos",     "activo",      True,  "1.1", 3),
     ("1.1.20", "Deudores por tributos",          "activo",      True,  "1.1", 3),
+    ("1.1.21", "Deudores en gestión judicial",   "activo",      True,  "1.1", 3),
+    ("1.1.22", "Deudores por planes de pago",    "activo",      True,  "1.1", 3),
+    ("1.2",    "Activo no corriente",            "activo",      False, "1",   2),
+    ("1.2.01", "Bienes de uso",                  "activo",      True,  "1.2", 3),
+    ("1.2.02", "Bienes de dominio público",      "activo",      True,  "1.2", 3),
+    # ── PASIVO ────────────────────────────────────────────────────────
+    ("2",      "Pasivo",                         "pasivo",      False, None,  1),
+    ("2.1",    "Pasivo corriente",               "pasivo",      False, "2",   2),
     ("2.1.01", "Proveedores / Deuda a pagar",    "pasivo",      True,  "2.1", 3),
+    ("2.1.02", "Sueldos a pagar",                "pasivo",      True,  "2.1", 3),
+    ("2.1.03", "Retenciones impositivas a depositar", "pasivo", True,  "2.1", 3),
+    ("2.1.04", "Contribuciones patronales a pagar",   "pasivo", True,  "2.1", 3),
+    ("2.1.05", "Deuda flotante",                 "pasivo",      True,  "2.1", 3),
+    ("2.2",    "Fondos de terceros y garantías", "pasivo",      False, "2",   2),
     ("2.2.01", "Fondos de terceros",             "pasivo",      True,  "2.2", 3),
+    ("2.2.02", "Garantías recibidas",            "pasivo",      True,  "2.2", 3),
+    ("2.2.03", "Embargos retenidos",             "pasivo",      True,  "2.2", 3),
+    ("2.3",    "Pasivo no corriente",            "pasivo",      False, "2",   2),
+    ("2.3.01", "Deuda pública / empréstitos",    "pasivo",      True,  "2.3", 3),
+    # ── PATRIMONIO ────────────────────────────────────────────────────
+    ("3",      "Patrimonio",                     "patrimonio",  False, None,  1),
+    ("3.1",    "Patrimonio municipal",           "patrimonio",  False, "3",   2),
+    ("3.1.01", "Patrimonio municipal",           "patrimonio",  True,  "3.1", 3),
+    ("3.9",    "Resultados",                     "patrimonio",  False, "3",   2),
     ("3.9.99", "Resultado del ejercicio",        "patrimonio",  True,  "3.9", 3),
+    # ── RECURSOS ── (4.1.01 se mantiene genérico: lo usan las reglas base) ──
+    ("4",      "Recursos",                       "recurso",     False, None,  1),
+    ("4.1",    "Recursos corrientes",            "recurso",     False, "4",   2),
     ("4.1.01", "Recursos tributarios",           "recurso",     True,  "4.1", 3),
+    ("4.1.02", "Tasa general (TSG)",             "recurso",     True,  "4.1", 3),
+    ("4.1.03", "Tasa de seguridad e higiene",    "recurso",     True,  "4.1", 3),
+    ("4.1.04", "Patente automotor",              "recurso",     True,  "4.1", 3),
+    ("4.1.05", "Tasas de cementerio",            "recurso",     True,  "4.1", 3),
+    ("4.1.06", "Contribución por mejoras",       "recurso",     True,  "4.1", 3),
+    ("4.1.07", "Derechos de construcción",       "recurso",     True,  "4.1", 3),
+    ("4.1.08", "Multas y recargos",              "recurso",     True,  "4.1", 3),
+    ("4.1.09", "Otros recursos corrientes",      "recurso",     True,  "4.1", 3),
+    ("4.2",    "Recursos de capital",            "recurso",     False, "4",   2),
+    ("4.2.01", "Recursos de capital",            "recurso",     True,  "4.2", 3),
+    ("4.3",    "Coparticipación y transferencias","recurso",    False, "4",   2),
+    ("4.3.01", "Coparticipación provincial",     "recurso",     True,  "4.3", 3),
+    # ── GASTOS ── (5.1.01 se mantiene genérico: lo usan las reglas base) ──
+    ("5",      "Gastos",                         "gasto",       False, None,  1),
+    ("5.1",    "Gastos corrientes",              "gasto",       False, "5",   2),
     ("5.1.01", "Gastos de funcionamiento",       "gasto",       True,  "5.1", 3),
+    ("5.1.02", "Gastos en personal",             "gasto",       True,  "5.1", 3),
+    ("5.1.03", "Bienes de consumo",              "gasto",       True,  "5.1", 3),
+    ("5.1.04", "Servicios no personales",        "gasto",       True,  "5.1", 3),
+    ("5.1.05", "Transferencias",                 "gasto",       True,  "5.1", 3),
+    ("5.1.09", "Otros gastos de funcionamiento", "gasto",       True,  "5.1", 3),
+    ("5.2",    "Gastos de capital",              "gasto",       False, "5",   2),
+    ("5.2.01", "Bienes de capital / obras",      "gasto",       True,  "5.2", 3),
+]
+
+# Mapeo de derivación de cuentas: (dimensión, clave) -> código de cuenta.
+# Permite que una regla "derivada" impute según el objeto del gasto / tributo.
+MAPEOS = [
+    ("objeto_gasto", "1", "5.1.02"),   # Personal
+    ("objeto_gasto", "2", "5.1.03"),   # Bienes de consumo
+    ("objeto_gasto", "3", "5.1.04"),   # Servicios no personales
+    ("objeto_gasto", "4", "5.2.01"),   # Bienes de uso / capital
+    ("objeto_gasto", "5", "5.1.05"),   # Transferencias
+    ("tributo", "TSG", "4.1.02"),
+    ("tributo", "TSH", "4.1.03"),
+    ("tributo", "AUTO", "4.1.04"),
+    ("tributo", "CEM", "4.1.05"),
+    ("tributo", "CONST", "4.1.07"),
 ]
 
 
@@ -92,8 +147,12 @@ def run():
             db.add(EjercicioContable(anio=2026, estado="abierto", fecha_apertura=date(2026, 1, 1)))
 
         _seed_reglas(db)
+        for dimension, clave, codigo in MAPEOS:
+            if not db.query(MapeoCuenta).filter(
+                    MapeoCuenta.dimension == dimension, MapeoCuenta.clave == clave).first():
+                db.add(MapeoCuenta(dimension=dimension, clave=clave, cuenta_codigo=codigo, activo=True))
         db.commit()
-        print("Seed contabilidad OK: plan de cuentas + ejercicio 2026 + reglas de imputación base")
+        print("Seed contabilidad OK: plan de cuentas municipal + ejercicio 2026 + reglas + mapeos")
     finally:
         db.close()
 
