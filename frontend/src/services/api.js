@@ -910,3 +910,22 @@ dmerge(reportesAPI, {
   rendicionCsv: (params) => api.get('/reportes/rendicion', { params: { ...params, formato: 'csv' }, responseType: 'text' }),
   ejecucionCsv: (anio) => api.get('/reportes/ejecucion-presupuestaria', { params: { anio, formato: 'csv' }, responseType: 'text' }),
 });
+
+dmerge(ingresosPublicosAPI, {
+  valorTierra: {
+    list: (params) => api.get('/ingresos-publicos/valor-tierra', { params }),
+    create: (data) => api.post('/ingresos-publicos/valor-tierra', data),
+    delete: (id) => api.delete(`/ingresos-publicos/valor-tierra/${id}`),
+  },
+  alicuotaRubro: {
+    list: (params) => api.get('/ingresos-publicos/alicuota-rubro', { params }),
+    create: (data) => api.post('/ingresos-publicos/alicuota-rubro', data),
+    delete: (id) => api.delete(`/ingresos-publicos/alicuota-rubro/${id}`),
+  },
+  motorValuacion: {
+    valuarInmueble: (id, ejercicio, zona) => api.post(`/ingresos-publicos/valuacion/inmueble/${id}`, null, { params: { ejercicio, zona } }),
+    valuarInmueblesMasiva: (ejercicio, zona) => api.post('/ingresos-publicos/valuacion/inmuebles/masiva', null, { params: { ejercicio, zona } }),
+    valuarVehiculo: (id, ejercicio) => api.get(`/ingresos-publicos/valuacion/vehiculo/${id}`, { params: { ejercicio } }),
+    liquidarDdjj: (id) => api.post(`/ingresos-publicos/valuacion/comercio-ddjj/${id}/liquidar`, {}),
+  },
+});

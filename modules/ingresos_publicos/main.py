@@ -39,6 +39,9 @@ from routers import (
     servicios_medidos_router,
     puestos_mercado_router,
     derechos_construccion_router,
+    valor_tierra_router,
+    alicuota_router,
+    motor_router,
 )
 
 # Import all models so they register with Base.metadata
@@ -90,6 +93,9 @@ app.include_router(fondeaderos_router)
 app.include_router(servicios_medidos_router)
 app.include_router(puestos_mercado_router)
 app.include_router(derechos_construccion_router)
+app.include_router(valor_tierra_router)
+app.include_router(alicuota_router)
+app.include_router(motor_router)
 
 
 @app.on_event("startup")

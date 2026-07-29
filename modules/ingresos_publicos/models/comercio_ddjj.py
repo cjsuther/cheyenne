@@ -24,6 +24,7 @@ class ComercioDDJJ(Base):
     periodo = Column(Integer, nullable=False)
     mes = Column(Integer, nullable=True)
     ingresos_declarados = Column(Numeric(18, 2), nullable=False, default=0)
+    importe_liquidado = Column(Numeric(18, 2), nullable=True)
     fecha_presentacion = Column(Date, nullable=True)
     fecha_alta = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     activo = Column(Boolean, nullable=False, default=True)

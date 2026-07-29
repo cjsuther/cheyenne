@@ -25,3 +25,4 @@ from .fondeaderos import router as fondeaderos_router
 from .servicios_medidos import router as servicios_medidos_router
 from .puestos_mercado import router as puestos_mercado_router
 from .derechos_construccion import router as derechos_construccion_router
+from .valuacion_motor import valor_tierra_router, alicuota_router, motor_router
