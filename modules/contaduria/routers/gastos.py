@@ -14,6 +14,7 @@ from pydantic import BaseModel
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from shared.base_module import create_auth_dependency
 from shared.filters import filtered_query
+from shared.http import request_retry
 
 from database import get_db
 from config import get_settings
@@ -67,11 +68,13 @@ def _numero_central(clave, anio, minimo, prefijo, padding, token):
 
 
 def _presupuesto(metodo: str, path: str, token: str, json_body: dict = None):
-    """Llama al módulo presupuesto reenviando el token del usuario. Propaga errores de negocio."""
+    """Llama al módulo presupuesto reenviando el token del usuario. Propaga errores de negocio.
+    Reintenta ante errores de conexión (destino reiniciando) sin arriesgar dobles afectaciones:
+    los timeouts de escritura NO se reintentan."""
     try:
-        with httpx.Client(timeout=20) as client:
-            resp = client.request(metodo, f"{settings.presupuesto_url}{path}",
-                                  json=json_body, headers={"Authorization": token} if token else {})
+        resp = request_retry(metodo, f"{settings.presupuesto_url}{path}", json=json_body,
+                             headers={"Authorization": token} if token else {},
+                             timeout=20, retries=2, retry_on_timeout=False)
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"No se pudo contactar a presupuesto: {e}")
     if resp.status_code >= 400:
