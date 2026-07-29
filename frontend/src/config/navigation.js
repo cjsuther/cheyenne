@@ -8,7 +8,7 @@ export const NAV = [
   { label: 'Contribuyente 360', path: '/contribuyente-360', module: 'ingresos_publicos', tabs: [] },
   {
     label: 'Personas', path: '/contribuyente/personas', module: 'administracion', tabs: [
-      { k: 'personasFisicas', l: 'Personas Físicas' }, { k: 'personasJuridicas', l: 'Personas Jurídicas' },
+      { k: 'personasFisicas', l: 'Personas Físicas' }, { k: 'personasJuridicas', l: 'Personas Jurídicas' }, { k: 'ficha360', l: 'Ficha 360' },
     ],
   },
 

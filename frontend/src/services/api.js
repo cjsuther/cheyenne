@@ -929,3 +929,9 @@ dmerge(ingresosPublicosAPI, {
     liquidarDdjj: (id) => api.post(`/ingresos-publicos/valuacion/comercio-ddjj/${id}/liquidar`, {}),
   },
 });
+
+dmerge(administracionAPI, {
+  personas: {
+    ficha360: (tipo, id) => api.get(`/administracion/personas/${tipo}/${id}/ficha-360`),
+  },
+});

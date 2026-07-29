@@ -10,9 +10,12 @@ const listaQuery = (tipo) => () => administracionAPI.listas.list({ tipo }).then(
 const allQuery = (apiFn) => () => apiFn.list({ skip: 0, limit: 100 }).then((r) => r.data);
 
 // ═══════════════════════════════════════════════════════════════════════
+import Persona360Tab from './Persona360Tab';
+
 const TABS = [
   { key: 'personasFisicas', label: 'Personas Fis.' },
   { key: 'personasJuridicas', label: 'Personas Jur.' },
+  { key: 'ficha360', label: 'Ficha 360' },
   { key: 'expedientes', label: 'Expedientes' },
   { key: 'entidades', label: 'Entidades' },
   { key: 'listas', label: 'Listas' },
@@ -36,7 +39,7 @@ const TABS = [
 ];
 
 const GRUPOS = [
-  { label: 'Personas', keys: ['personasFisicas', 'personasJuridicas'] },
+  { label: 'Personas', keys: ['personasFisicas', 'personasJuridicas', 'ficha360'] },
   { label: 'Expedientes', keys: ['expedientes', 'documentos', 'archivos'] },
   { label: 'Ubicaciones', keys: ['paises', 'provincias', 'localidades', 'jurisdicciones'] },
   { label: 'Contable', keys: ['cuentasContables', 'recursosPorRubro', 'mediosPago'] },
@@ -59,6 +62,7 @@ export default function Administracion({
       <GroupedTabBar grupos={grupos} tabsMeta={TABS} tab={tab} setTab={setTab} />
       {tab === 'personasFisicas' && <PersonasFisicasTab />}
       {tab === 'personasJuridicas' && <PersonasJuridicasTab />}
+      {tab === 'ficha360' && <Persona360Tab />}
       {tab === 'expedientes' && <ExpedientesTab />}
       {tab === 'entidades' && <EntidadesTab />}
       {tab === 'listas' && <ListasTab />}
