@@ -52,9 +52,6 @@ export default function Dashboard() {
                   {sm.visibles.length > 6 && (
                     <span className="text-[11px] text-gray-400 px-1">+{sm.visibles.length - 6}</span>
                   )}
-                  {sm.key === 'contaduria' && (
-                    <span className="text-[11px] text-slate-400 px-1 italic">próximamente</span>
-                  )}
                 </div>
               </Link>
             );
