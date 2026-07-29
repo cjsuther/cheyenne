@@ -4,6 +4,7 @@ Each module follows this pattern for consistency.
 """
 import sys
 import os
+import asyncio
 from typing import Optional
 
 from fastapi import Depends, HTTPException, status
@@ -13,32 +14,45 @@ import httpx
 
 security_scheme = HTTPBearer()
 
+# Reintentos para la verificación de token contra seguridad (camino caliente de TODOS los módulos).
+# Solo se reintenta ante fallos transitorios (red/5xx); un 401/403 es definitivo y no se reintenta.
+AUTH_MAX_INTENTOS = 3
+AUTH_TIMEOUT = 5.0
+AUTH_BACKOFF = 0.2  # segundos, incremental por intento
+
 
 def create_auth_dependency(seguridad_url: str):
-    """Creates a dependency that validates tokens against the seguridad module."""
+    """Creates a dependency that validates tokens against the seguridad module (con reintentos)."""
 
     async def get_current_user(
         credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
     ) -> dict:
         token = credentials.credentials
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    f"{seguridad_url}/auth/me",
-                    headers={"Authorization": f"Bearer {token}"},
-                    timeout=10.0,
-                )
-            if response.status_code != 200:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Token inválido o sesión expirada",
-                )
-            return response.json()
-        except httpx.RequestError:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Servicio de seguridad no disponible",
-            )
+        ultimo_error = None
+        for intento in range(AUTH_MAX_INTENTOS):
+            try:
+                async with httpx.AsyncClient(timeout=AUTH_TIMEOUT) as client:
+                    response = await client.get(
+                        f"{seguridad_url}/auth/me",
+                        headers={"Authorization": f"Bearer {token}"},
+                    )
+                if response.status_code == 200:
+                    return response.json()
+                if response.status_code in (401, 403):
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Token inválido o sesión expirada",
+                    )
+                # 5xx u otros: transitorio -> reintentar
+                ultimo_error = f"HTTP {response.status_code}"
+            except httpx.RequestError as e:
+                ultimo_error = str(e) or type(e).__name__
+            if intento < AUTH_MAX_INTENTOS - 1:
+                await asyncio.sleep(AUTH_BACKOFF * (intento + 1))
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Servicio de seguridad no disponible ({ultimo_error})",
+        )
 
     return get_current_user
 
