@@ -30,7 +30,7 @@ export default function Persona360Tab() {
   const [id, setId] = useState('');
   const { data: personas } = useQuery({
     queryKey: ['adm-personas-sel', tipo],
-    queryFn: () => administracionAPI.personas[tipo === 'fisica' ? 'fisicas' : 'juridicas'].list({ limit: 300 }).then((r) => r.data),
+    queryFn: () => administracionAPI.personas[tipo === 'fisica' ? 'fisicas' : 'juridicas'].list({ limit: 100 }).then((r) => r.data),
   });
   const { data: ficha, isFetching } = useQuery({
     queryKey: ['adm-ficha360', tipo, id], enabled: !!id,
