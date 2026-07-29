@@ -83,13 +83,35 @@ function PagarModal({ op, onClose, onDone, onError }) {
   const [medio, setMedio] = useState('transferencia');
   const [idCuenta, setIdCuenta] = useState('');
   const [numeroCheque, setNumeroCheque] = useState('');
+  // retenciones pre-cargadas desde lo liquidado por Contaduría (op.retenciones_sugeridas)
+  const [rets, setRets] = useState(() => (op.retenciones_sugeridas || []).map((r) => ({
+    regimen: r.regimen || '', base: r.base ?? op.importe, alicuota: r.alicuota ?? 0,
+    importe: r.importe ?? 0, comprobante: r.comprobante || '',
+  })));
   const requiereCuenta = medio !== 'efectivo';
+  const totalRet = rets.reduce((s, r) => s + Number(r.importe || 0), 0);
+  const neto = Number(op.importe) - totalRet;
+  const conRetenciones = rets.length > 0;
+  const setRet = (i, k, v) => setRets((p) => p.map((r, x) => (x === i ? { ...r, [k]: v } : r)));
+
   const m = useMutation({
-    mutationFn: () => tesoreriaAPI.ordenesPago.pagar(op.id, { medio, id_cuenta_bancaria: idCuenta ? Number(idCuenta) : null, numero_cheque: numeroCheque || null }),
+    mutationFn: () => {
+      const base = { medio, id_cuenta_bancaria: idCuenta ? Number(idCuenta) : null, numero_cheque: numeroCheque || null };
+      if (conRetenciones) {
+        return tesoreriaAPI.pagarConRetenciones(op.id, {
+          ...base,
+          retenciones: rets.map((r) => ({
+            regimen: r.regimen, base: Number(r.base || 0), alicuota: Number(r.alicuota || 0),
+            importe: Number(r.importe || 0), comprobante: r.comprobante || null,
+          })),
+        });
+      }
+      return tesoreriaAPI.ordenesPago.pagar(op.id, base);
+    },
     onSuccess: onDone, onError: (e) => onError(e.response?.data?.detail || 'Error'),
   });
   return (
-    <Modal title={`Pagar ${op.orden_pago} — ${fmt(op.importe)}`} onClose={onClose}>
+    <Modal title={`Pagar ${op.orden_pago} — ${fmt(op.importe)}`} onClose={onClose} wide={conRetenciones}>
       <div className="space-y-3">
         <p className="text-sm text-gray-500">{op.beneficiario || ''} · {op.concepto || ''}</p>
         <Field label="Medio de pago">
@@ -106,8 +128,41 @@ function PagarModal({ op, onClose, onDone, onError }) {
           </Field>
         )}
         {medio === 'cheque' && <Field label="Número de cheque"><input className={inputClass} value={numeroCheque} onChange={(e) => setNumeroCheque(e.target.value)} /></Field>}
-        <p className="text-xs text-gray-400">El pago queda en el parte diario de egresos.</p>
-        <button className={`${btnPrimary} w-full`} disabled={m.isPending || (requiereCuenta && !idCuenta) || (medio === 'cheque' && !numeroCheque)} onClick={() => m.mutate()}>{m.isPending ? 'Pagando...' : 'Confirmar pago'}</button>
+
+        {/* Retenciones (pre-cargadas de Contaduría, editables) */}
+        <div className="border border-gray-200 rounded-lg p-3 bg-gray-50/50">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700">Retenciones {op.retenciones_sugeridas?.length ? <span className="text-xs text-blue-600">(sugeridas por Contaduría)</span> : ''}</span>
+            <button type="button" className={btnSecondary} onClick={() => setRets((p) => [...p, { regimen: 'iibb', base: op.importe, alicuota: 0, importe: 0, comprobante: '' }])}>+ Retención</button>
+          </div>
+          {rets.length === 0 ? <p className="text-xs text-gray-400">Sin retenciones — se paga el importe completo.</p> : (
+            <div className="space-y-1.5">
+              {rets.map((r, i) => (
+                <div key={i} className="grid grid-cols-12 gap-1.5 items-center">
+                  <select className={`${inputClass} col-span-3 py-1`} value={r.regimen} onChange={(e) => setRet(i, 'regimen', e.target.value)}>
+                    {['iibb', 'ganancias', 'iva', 'sijp', 'otros'].map((x) => <option key={x} value={x}>{x.toUpperCase()}</option>)}
+                  </select>
+                  <input type="number" className={`${inputClass} col-span-2 py-1`} placeholder="Base" value={r.base} onChange={(e) => setRet(i, 'base', e.target.value)} />
+                  <input type="number" className={`${inputClass} col-span-2 py-1`} placeholder="Alíc%" value={r.alicuota} onChange={(e) => setRet(i, 'alicuota', e.target.value)} />
+                  <input type="number" className={`${inputClass} col-span-2 py-1`} placeholder="Importe" value={r.importe} onChange={(e) => setRet(i, 'importe', e.target.value)} />
+                  <input className={`${inputClass} col-span-2 py-1`} placeholder="Comprob." value={r.comprobante} onChange={(e) => setRet(i, 'comprobante', e.target.value)} />
+                  <button type="button" className="col-span-1 text-red-500" onClick={() => setRets((p) => p.filter((_, x) => x !== i))}>✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {conRetenciones && (
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500">Retenciones: <b>{fmt(totalRet)}</b></span>
+            <span className="text-gray-700">Neto a pagar: <b>{fmt(neto)}</b></span>
+          </div>
+        )}
+        <p className="text-xs text-gray-400">El pago (neto) queda en el parte diario; las retenciones quedan como pasivo a depositar.</p>
+        <button className={`${btnPrimary} w-full`} disabled={m.isPending || (requiereCuenta && !idCuenta) || (medio === 'cheque' && !numeroCheque) || neto < 0} onClick={() => m.mutate()}>
+          {m.isPending ? 'Pagando...' : conRetenciones ? `Pagar neto ${fmt(neto)}` : 'Confirmar pago'}
+        </button>
       </div>
     </Modal>
   );
