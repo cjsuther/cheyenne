@@ -176,6 +176,113 @@ class CuentaCorrienteService:
             "movimientos": out,
         }
 
+    # ── Compensación de saldos a favor ───────────────────────────────────
+    def saldo_a_favor(self, id_contribuyente: int) -> Decimal:
+        """Saldo a favor (crédito) global del contribuyente en el libro mayor.
+
+        Es el neto (débitos − créditos) cuando resulta NEGATIVO: el contribuyente
+        pagó/acreditó de más. Devuelve el valor absoluto disponible para compensar.
+        """
+        rows = (
+            self.db.query(MovimientoCtaCte.tipo, func.coalesce(func.sum(MovimientoCtaCte.importe), 0))
+            .filter(MovimientoCtaCte.id_contribuyente == id_contribuyente,
+                    MovimientoCtaCte.activo == True)
+            .group_by(MovimientoCtaCte.tipo)
+            .all()
+        )
+        debito = credito = Decimal("0")
+        for tipo, total in rows:
+            if tipo == "debito":
+                debito = Decimal(str(total or 0))
+            elif tipo == "credito":
+                credito = Decimal(str(total or 0))
+        neto = _q2(debito - credito)
+        return -neto if neto < 0 else Decimal("0.00")
+
+    def compensar_saldo_a_favor(self, id_contribuyente: int, id_cuenta_corriente: int,
+                                importe=None, fecha=None, origen_ref=None,
+                                usuario=None) -> Dict[str, Any]:
+        """Aplica el saldo a favor (crédito) del contribuyente contra un concepto de deuda.
+
+        Registra en el libro mayor una CONTRACARA de doble movimiento que deja traza:
+          · un DEBITO 'compensacion' que consume el saldo a favor del contribuyente
+          · un CREDITO 'compensacion' que cancela (total o parcial) el concepto de deuda
+        Neto sobre el libro = 0, pero mueve el crédito preexistente hacia la deuda.
+        Idempotente por origen_ref.
+        """
+        cc = self.db.query(CuentaCorriente).filter(
+            CuentaCorriente.id == id_cuenta_corriente,
+            CuentaCorriente.id_contribuyente == id_contribuyente,
+            CuentaCorriente.activo == True,
+        ).first()
+        if not cc:
+            raise HTTPException(status_code=404,
+                                detail=f"Concepto {id_cuenta_corriente} no encontrado para el contribuyente {id_contribuyente}")
+
+        if origen_ref:
+            ya = (
+                self.db.query(MovimientoCtaCte)
+                .filter(MovimientoCtaCte.origen_ref == origen_ref,
+                        MovimientoCtaCte.concepto == "compensacion",
+                        MovimientoCtaCte.activo == True)
+                .first()
+            )
+            if ya:
+                return {"idempotente": True, "id_cuenta_corriente": id_cuenta_corriente,
+                        "compensado": 0.0, "detalle": "Compensación ya registrada para esta referencia"}
+
+        disponible = self.saldo_a_favor(id_contribuyente)
+        if disponible <= 0:
+            raise HTTPException(status_code=400,
+                                detail="El contribuyente no tiene saldo a favor para compensar")
+        saldo_cc = _q2(cc.saldo)
+        if saldo_cc <= 0:
+            raise HTTPException(status_code=400, detail="El concepto ya está cancelado")
+
+        pedido = _q2(importe) if importe is not None else min(disponible, saldo_cc)
+        if pedido <= 0:
+            raise HTTPException(status_code=400, detail="El importe a compensar debe ser mayor a cero")
+        compensar = min(pedido, disponible, saldo_cc)
+        if compensar <= 0:
+            raise HTTPException(status_code=400, detail="No hay importe compensable")
+
+        fecha = fecha or self._hoy()
+        detalle = {"id_contribuyente": id_contribuyente, "id_cuenta_corriente": id_cuenta_corriente,
+                   "usuario": usuario, "saldo_a_favor_previo": float(disponible)}
+        # DEBITO: consume el saldo a favor del contribuyente (sin anclar a un concepto puntual)
+        self._agregar_movimiento(
+            cc, tipo="debito", concepto="compensacion", importe=compensar,
+            fecha=fecha, descripcion="Aplicación de saldo a favor",
+            origen="compensacion", origen_ref=origen_ref, detalle=detalle,
+        )
+        # CREDITO: cancela (total/parcial) el concepto de deuda destino
+        saldo_derivado = _q2(saldo_cc - compensar)
+        self._agregar_movimiento(
+            cc, tipo="credito", concepto="compensacion", importe=compensar,
+            fecha=fecha, descripcion=f"Compensación con saldo a favor {cc.concepto or ''}".strip(),
+            origen="compensacion", saldo_posterior=saldo_derivado, detalle=detalle,
+        )
+        # baja el capital del concepto de cuenta corriente
+        cc.monto_pagado = _q2(_q2(cc.monto_pagado) + compensar)
+        cc.saldo = _q2(_q2(cc.monto_original) - cc.monto_pagado)
+        cc.estado = "pagado" if cc.saldo <= 0 else "parcial"
+        historial = list(cc.historial_pagos or [])
+        historial.append({
+            "fecha": fecha.isoformat(), "tipo": "compensacion",
+            "importe": float(compensar), "saldo_resultante": float(cc.saldo),
+        })
+        cc.historial_pagos = historial
+        self.db.commit()
+        self.db.refresh(cc)
+        return {
+            "id_cuenta_corriente": id_cuenta_corriente,
+            "id_contribuyente": id_contribuyente,
+            "compensado": float(compensar),
+            "saldo_concepto": float(cc.saldo),
+            "estado_concepto": cc.estado,
+            "saldo_a_favor_restante": float(_q2(disponible - compensar)),
+        }
+
     # ── Mora y cobranza ──────────────────────────────────────────────────
     def _hoy(self) -> date:
         return datetime.now(timezone.utc).date()

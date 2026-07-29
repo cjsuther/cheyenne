@@ -9,6 +9,7 @@ import { CrudTab, Modal, Field, inputClass, btnPrimary, btnSecondary } from '../
 import PartidasTab from './PartidasTab';
 import ModificacionesTab from './ModificacionesTab';
 import RecursosTab from './RecursosTab';
+import MapeoTributoTab from './MapeoTributoTab';
 import CuotasTab from './CuotasTab';
 import RRHHTab from './RRHHTab';
 import MetasTab from './MetasTab';
@@ -21,6 +22,7 @@ const TABS = [
   { key: 'partidas', label: 'Partidas' },
   { key: 'modificaciones', label: 'Modificaciones' },
   { key: 'recursos', label: 'Recursos' },
+  { key: 'mapeoTributo', label: 'Mapeo Tributo-Recurso' },
   { key: 'cuotas', label: 'Cuotas' },
   { key: 'rrhh', label: 'RRHH' },
   { key: 'metas', label: 'Metas' },
@@ -38,7 +40,7 @@ const TABS = [
 ];
 
 const GRUPOS = [
-  { label: 'Ejercicio', keys: ['partidas', 'modificaciones', 'recursos', 'cuotas', 'rrhh', 'metas', 'proyectos', 'tablero', 'evaluacion', 'consultas', 'ejercicios'] },
+  { label: 'Ejercicio', keys: ['partidas', 'modificaciones', 'recursos', 'mapeoTributo', 'cuotas', 'rrhh', 'metas', 'proyectos', 'tablero', 'evaluacion', 'consultas', 'ejercicios'] },
   { label: 'Nomencladores', keys: ['jurisdicciones', 'estructuras', 'objetosGasto', 'fuentes', 'rubros', 'cargos'] },
 ];
 
@@ -51,6 +53,7 @@ export default function Presupuesto() {
       {tab === 'partidas' && <PartidasTab />}
       {tab === 'modificaciones' && <ModificacionesTab />}
       {tab === 'recursos' && <RecursosTab />}
+      {tab === 'mapeoTributo' && <MapeoTributoTab />}
       {tab === 'cuotas' && <CuotasTab />}
       {tab === 'rrhh' && <RRHHTab />}
       {tab === 'metas' && <MetasTab />}

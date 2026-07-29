@@ -84,6 +84,8 @@ const TABS = [
   { key: 'libreDeuda', label: 'Libre Deuda' },
   { key: 'exenciones', label: 'Exenciones' },
   { key: 'titulares', label: 'Titulares' },
+  { key: 'prescripcion', label: 'Prescripción' },
+  { key: 'transferenciasDominio', label: 'Transf. de dominio' },
   { key: 'multas', label: 'Multas' },
   { key: 'tasas', label: 'Tasas' },
   { key: 'subTasas', label: 'Sub-Tasas' },
@@ -103,7 +105,7 @@ const GRUPOS = [
   { label: 'Vehículos', keys: ['vehiculos', 'vehiculoVal'] },
   { label: 'Emisiones', keys: ['emisiones', 'emisionDef'] },
   { label: 'Planes de pago', keys: ['planesPago', 'simularPlan', 'cuotasPlan', 'planPagoDef', 'regimenes', 'simMoratoria'] },
-  { label: 'Tributos', keys: ['tasas', 'subTasas', 'certificados', 'libreDeuda', 'exenciones', 'titulares', 'multas'] },
+  { label: 'Tributos', keys: ['tasas', 'subTasas', 'certificados', 'libreDeuda', 'exenciones', 'titulares', 'prescripcion', 'transferenciasDominio', 'multas'] },
   { label: 'Tributos Marginales', keys: ['fondeaderos', 'serviciosMedidos', 'puestosMercado', 'derechosConstruccion'] },
   { label: 'Motores de valuación', keys: ['valorTierra', 'alicuotaRubro'] },
   { label: 'Configuración', keys: ['listas'] },
@@ -138,6 +140,8 @@ export default function IngresosPublicos() {
       {tab === 'libreDeuda' && <LibreDeudaTab />}
       {tab === 'exenciones' && <ExencionesTab />}
       {tab === 'titulares' && <TitularesTab />}
+      {tab === 'prescripcion' && <PrescripcionTab />}
+      {tab === 'transferenciasDominio' && <TransferenciasDominioTab />}
       {tab === 'multas' && <MultasTab />}
       {tab === 'tasas' && <TasasTab />}
       {tab === 'subTasas' && <SubTasasTab />}
@@ -696,6 +700,187 @@ function TitularesTab() {
       { key: 'activo', label: 'Activo', type: 'boolean', defaultValue: true },
     ]}
   />;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Prescripción de deuda por antigüedad del período
+function PrescripcionTab() {
+  const qc = useQueryClient();
+  const [idCuenta, setIdCuenta] = useState('');
+  const [anios, setAnios] = useState(5);
+  const [buscar, setBuscar] = useState(null);
+  const [sel, setSel] = useState(null); // item a prescribir
+  const [acto, setActo] = useState('');
+  const [obs, setObs] = useState('');
+  const [error, setError] = useState(null);
+
+  const { data: items, isLoading } = useQuery({
+    queryKey: ['ip-prescriptible', buscar],
+    queryFn: () => ingresosPublicosAPI.prescripciones.prescriptible({
+      id_cuenta: buscar.idCuenta || undefined, anios_prescripcion: buscar.anios,
+    }).then((r) => r.data),
+    enabled: !!buscar,
+  });
+
+  const { data: prescripciones } = useQuery({
+    queryKey: ['ip-prescripciones', buscar],
+    queryFn: () => ingresosPublicosAPI.prescripciones.list({
+      id_cuenta: buscar.idCuenta || undefined, skip: 0, limit: 200,
+    }).then((r) => r.data),
+    enabled: !!buscar,
+  });
+
+  const marcar = useMutation({
+    mutationFn: (payload) => ingresosPublicosAPI.prescripciones.marcar(payload),
+    onSuccess: () => {
+      setSel(null); setActo(''); setObs(''); setError(null);
+      qc.invalidateQueries({ queryKey: ['ip-prescriptible'] });
+      qc.invalidateQueries({ queryKey: ['ip-prescripciones'] });
+    },
+    onError: (err) => setError(err?.response?.data?.detail || 'No se pudo prescribir la deuda'),
+  });
+
+  const submitBuscar = (e) => { e.preventDefault(); setBuscar({ idCuenta: idCuenta ? Number(idCuenta) : null, anios: Number(anios || 5) }); };
+  const confirmar = () => {
+    if (!acto.trim()) { setError('El acto administrativo es obligatorio'); return; }
+    marcar.mutate({
+      id_cuenta: sel.id_cuenta, id_emision: sel.id_emision,
+      ejercicio: sel.ejercicio, periodo: sel.periodo,
+      importe: sel.importe_total, acto: acto.trim(), observaciones: obs || undefined,
+    });
+  };
+
+  const cols = [
+    { key: 'id_emision', label: 'Emisión' }, { key: 'ejercicio', label: 'Ejercicio' },
+    { key: 'periodo', label: 'Período' }, { key: 'cuota', label: 'Cuota' },
+    { key: 'antiguedad_anios', label: 'Antigüedad', render: (v) => `${v} años` },
+    { key: 'importe_total', label: 'Importe', render: fmtMoney },
+    { key: 'ya_prescripta', label: 'Estado', render: (v) => v ? 'Prescripta' : 'Prescriptible' },
+    { key: '_acc', label: '', render: (_, row) => row.ya_prescripta ? null : (
+      <button className={btnSecondary} onClick={() => { setSel(row); setError(null); }}>Prescribir</button>
+    ) },
+  ];
+
+  const histCols = [
+    { key: 'id', label: 'ID' }, { key: 'ejercicio', label: 'Ejercicio' }, { key: 'periodo', label: 'Período' },
+    { key: 'fecha', label: 'Fecha' }, { key: 'acto', label: 'Acto' }, { key: 'importe', label: 'Importe', render: fmtMoney },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <form onSubmit={submitBuscar} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+        <Field label="ID Cuenta (opcional)"><input className={inputClass} type="number" value={idCuenta} onChange={(e) => setIdCuenta(e.target.value)} placeholder="Todas" /></Field>
+        <Field label="Años de prescripción"><input className={inputClass} type="number" min="1" max="50" value={anios} onChange={(e) => setAnios(e.target.value)} /></Field>
+        <button className={btnPrimary} type="submit">Buscar deuda prescriptible</button>
+      </form>
+
+      {error && <div className="bg-red-50 text-red-700 text-sm rounded-lg px-4 py-3">{error}</div>}
+
+      {sel && (
+        <div className="bg-amber-50 border border-amber-100 rounded-xl p-5 space-y-3">
+          <p className="text-amber-800 font-semibold">Prescribir emisión #{sel.id_emision} · período {sel.periodo} · {fmtMoney(sel.importe_total)}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field label="Acto administrativo"><input className={inputClass} value={acto} onChange={(e) => setActo(e.target.value)} placeholder="Resolución N°..." /></Field>
+            <Field label="Observaciones"><input className={inputClass} value={obs} onChange={(e) => setObs(e.target.value)} /></Field>
+          </div>
+          <div className="flex gap-2">
+            <button className={btnPrimary} onClick={confirmar} disabled={marcar.isPending}>{marcar.isPending ? 'Guardando...' : 'Confirmar prescripción'}</button>
+            <button className={btnSecondary} onClick={() => setSel(null)}>Cancelar</button>
+          </div>
+        </div>
+      )}
+
+      {buscar && (isLoading ? <LoadingSpinner /> : <DataTable columns={cols} data={items || []} />)}
+
+      {prescripciones?.length > 0 && (
+        <div>
+          <p className="text-sm font-semibold text-gray-600 mb-2">Prescripciones registradas</p>
+          <DataTable columns={histCols} data={prescripciones} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Transferencia de dominio / titularidad
+function TransferenciasDominioTab() {
+  const qc = useQueryClient();
+  const [form, setForm] = useState({ id_cuenta: '', id_contribuyente_destino: '', id_contribuyente_origen: '', fecha: '', acto: '', porcentaje: 100, observaciones: '' });
+  const [error, setError] = useState(null);
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const { data: contribuyentes } = useQuery({ queryKey: ['ip-contrib-sel'], queryFn: contribuyenteQuery });
+
+  const { data: movimientos } = useQuery({
+    queryKey: ['ip-transferencias', form.id_cuenta],
+    queryFn: () => ingresosPublicosAPI.transferenciasDominio.list({
+      id_cuenta: form.id_cuenta ? Number(form.id_cuenta) : undefined, skip: 0, limit: 200,
+    }).then((r) => r.data),
+  });
+
+  const transferir = useMutation({
+    mutationFn: (payload) => ingresosPublicosAPI.transferenciasDominio.transferir(payload),
+    onSuccess: () => {
+      setError(null);
+      setForm((f) => ({ ...f, id_contribuyente_destino: '', id_contribuyente_origen: '', acto: '', observaciones: '' }));
+      qc.invalidateQueries({ queryKey: ['ip-transferencias'] });
+      qc.invalidateQueries({ queryKey: ['ip-titulares'] });
+    },
+    onError: (err) => setError(err?.response?.data?.detail || 'No se pudo transferir el dominio'),
+  });
+
+  const submit = (e) => {
+    e.preventDefault();
+    if (!form.id_cuenta || !form.id_contribuyente_destino || !form.acto.trim()) { setError('Cuenta, contribuyente destino y acto son obligatorios'); return; }
+    transferir.mutate({
+      id_cuenta: Number(form.id_cuenta),
+      id_contribuyente_destino: Number(form.id_contribuyente_destino),
+      id_contribuyente_origen: form.id_contribuyente_origen ? Number(form.id_contribuyente_origen) : undefined,
+      fecha: form.fecha || undefined,
+      acto: form.acto.trim(),
+      porcentaje: Number(form.porcentaje || 100),
+      observaciones: form.observaciones || undefined,
+    });
+  };
+
+  const cols = [
+    { key: 'id', label: 'ID' }, { key: 'id_cuenta', label: 'Cuenta' },
+    { key: 'id_contribuyente_origen', label: 'Origen' }, { key: 'id_contribuyente_destino', label: 'Destino' },
+    { key: 'fecha', label: 'Fecha' }, { key: 'acto', label: 'Acto' },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <form onSubmit={submit} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+        <Field label="ID Cuenta"><input className={inputClass} type="number" value={form.id_cuenta} onChange={set('id_cuenta')} required /></Field>
+        <Field label="Contribuyente destino">
+          <select className={inputClass} value={form.id_contribuyente_destino} onChange={set('id_contribuyente_destino')} required>
+            <option value="">Seleccionar...</option>
+            {contribuyentes?.map((c) => <option key={c.id} value={c.id}>{c._label}</option>)}
+          </select>
+        </Field>
+        <Field label="Contribuyente origen (opcional)">
+          <select className={inputClass} value={form.id_contribuyente_origen} onChange={set('id_contribuyente_origen')}>
+            <option value="">Titular actual</option>
+            {contribuyentes?.map((c) => <option key={c.id} value={c.id}>{c._label}</option>)}
+          </select>
+        </Field>
+        <Field label="Acto (escritura/boleto)"><input className={inputClass} value={form.acto} onChange={set('acto')} required /></Field>
+        <Field label="% Participación"><input className={inputClass} type="number" step="0.01" value={form.porcentaje} onChange={set('porcentaje')} /></Field>
+        <Field label="Fecha (opcional)"><input className={inputClass} type="date" value={form.fecha} onChange={set('fecha')} /></Field>
+        <Field label="Observaciones"><input className={inputClass} value={form.observaciones} onChange={set('observaciones')} /></Field>
+        <button className={btnPrimary} type="submit" disabled={transferir.isPending}>{transferir.isPending ? 'Transfiriendo...' : 'Transferir dominio'}</button>
+      </form>
+
+      {error && <div className="bg-red-50 text-red-700 text-sm rounded-lg px-4 py-3">{error}</div>}
+
+      <div>
+        <p className="text-sm font-semibold text-gray-600 mb-2">Movimientos de transferencia</p>
+        <DataTable columns={cols} data={movimientos || []} />
+      </div>
+    </div>
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════════════

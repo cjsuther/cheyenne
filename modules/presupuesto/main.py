@@ -17,7 +17,7 @@ from routers import (
     afectaciones_router, recursos_router, tablero_router,
     cuotas_router, cargos_router, rrhh_router, reportes_router,
     metas_router, proyectos_router,
-    evaluacion_router,
+    evaluacion_router, mapeo_router, percibido_router,
 )
 
 import models  # noqa: F401
@@ -52,6 +52,8 @@ app.include_router(partidas_router)
 app.include_router(modificaciones_router)
 app.include_router(afectaciones_router)
 app.include_router(recursos_router)
+app.include_router(mapeo_router)
+app.include_router(percibido_router)
 app.include_router(tablero_router)
 app.include_router(cuotas_router)
 app.include_router(cargos_router)

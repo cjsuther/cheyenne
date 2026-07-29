@@ -45,6 +45,34 @@ get_current_user = create_auth_dependency(settings.seguridad_url)
 router = APIRouter(prefix="/emisiones", tags=["Emisiones"])
 
 
+def _requiere(cu, permiso):
+    if cu.get("superuser"):
+        return
+    if permiso not in [p["codigo"] for p in cu.get("permisos", [])]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"No tiene el permiso '{permiso}'")
+
+
+def _postear_percibido(anio, tributo, importe, origen_ref, periodo, concepto, token):
+    """POST best-effort a Presupuesto: devengado<->percibido (lado emisor).
+
+    Informa el cobro de un tributo para que Presupuesto registre el PERCIBIDO del
+    recurso mapeado. NUNCA rompe el flujo. Idempotente por origen_ref del lado del
+    receptor. Si no hay mapeo tributo->recurso, Presupuesto responde 200 sin_mapeo.
+    """
+    import httpx
+    try:
+        if not tributo or not importe or float(importe) <= 0:
+            return
+        with httpx.Client(timeout=6) as client:
+            client.post(
+                f"{settings.presupuesto_url}/percibido-por-tributo",
+                json={"anio": int(anio), "tributo": str(tributo), "importe": float(importe),
+                      "periodo": periodo, "origen_ref": str(origen_ref), "concepto": concepto},
+                headers={"Authorization": token} if token else {})
+    except Exception:
+        pass
+
+
 def _postear_contab(tipo, origen_ref, importe, concepto, contexto, token):
     """POST best-effort a Contabilidad del hecho económico (el contable arma el asiento).
     NUNCA rompe el flujo. Idempotente por origen_ref."""
@@ -368,6 +396,133 @@ def pagar_concepto(
     return CuentaCorrienteService(db).registrar_pago(id_cc, data.importe, data.fecha_pago)
 
 
+@router.get("/cuenta-corriente/by-contribuyente/{id_contribuyente}/saldo-a-favor")
+def get_saldo_a_favor(
+    id_contribuyente: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Saldo a favor (crédito) global del contribuyente disponible para compensar."""
+    saldo = CuentaCorrienteService(db).saldo_a_favor(id_contribuyente)
+    return {"id_contribuyente": id_contribuyente, "saldo_a_favor": float(saldo)}
+
+
+@router.post("/cuenta-corriente/{id_cc}/compensar")
+def compensar_saldo(
+    id_cc: int,
+    data: dict = Body(default={}),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Compensa el saldo a favor del contribuyente contra un concepto de deuda.
+
+    Body: {id_contribuyente:int, importe?:float, origen_ref?:str}. Si no se pasa
+    importe, compensa el máximo posible (min entre saldo a favor y saldo del concepto).
+    Deja doble traza en el libro mayor (concepto 'compensacion')."""
+    _requiere(current_user, "emisiones_compensar")
+    id_contribuyente = data.get("id_contribuyente")
+    if not id_contribuyente:
+        raise HTTPException(status_code=400, detail="id_contribuyente es obligatorio")
+    fecha = None
+    f = data.get("fecha")
+    if isinstance(f, str) and f:
+        from datetime import date as _date
+        try:
+            fecha = _date.fromisoformat(f[:10])
+        except ValueError:
+            fecha = None
+    return CuentaCorrienteService(db).compensar_saldo_a_favor(
+        int(id_contribuyente), id_cc,
+        importe=data.get("importe"), fecha=fecha,
+        origen_ref=data.get("origen_ref"),
+        usuario=current_user.get("codigo") or current_user.get("id"),
+    )
+
+
+# --- Código de pago / barcode ITF + QR ---
+
+def _vencimiento_de_comprobante(db: Session, comp: Comprobante):
+    """Primera fecha de vencimiento del comprobante (escalera o la de la emisión)."""
+    from models.vencimiento_comprobante import VencimientoComprobante
+    v = (
+        db.query(VencimientoComprobante)
+        .filter(VencimientoComprobante.id_comprobante == comp.id,
+                VencimientoComprobante.activo == True)
+        .order_by(VencimientoComprobante.numero)
+        .first()
+    )
+    if v and v.fecha_vencimiento:
+        return v.fecha_vencimiento
+    em = db.query(Emision).filter(Emision.id == comp.id_emision).first()
+    if em is not None:
+        return getattr(em, "fecha_vencimiento_1", None)
+    return None
+
+
+def _get_comprobante(db: Session, id_comprobante: int) -> Comprobante:
+    comp = (
+        db.query(Comprobante)
+        .filter(Comprobante.id == id_comprobante, Comprobante.activo == True)
+        .first()
+    )
+    if not comp:
+        raise HTTPException(status_code=404, detail=f"Comprobante {id_comprobante} no encontrado")
+    return comp
+
+
+@router.get("/comprobantes/{id_comprobante}/codigo-pago")
+def get_codigo_pago(
+    id_comprobante: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Datos del código de pago de un comprobante: código ITF con verificador mod-10
+    y payload del QR (código + importe + vencimiento). Sin binarios."""
+    from services.codigo_pago_service import datos_codigo_pago
+    comp = _get_comprobante(db, id_comprobante)
+    venc = _vencimiento_de_comprobante(db, comp)
+    return datos_codigo_pago(comp, venc)
+
+
+@router.get("/comprobantes/{id_comprobante}/barcode.png")
+def get_barcode_png(
+    id_comprobante: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """PNG del código de barras Interleaved 2of5 (con verificador mod-10)."""
+    from fastapi.responses import Response
+    from services.codigo_pago_service import (
+        construir_codigo_pago, codigo_barras_itf, render_barcode_png,
+    )
+    comp = _get_comprobante(db, id_comprobante)
+    venc = _vencimiento_de_comprobante(db, comp)
+    itf = codigo_barras_itf(construir_codigo_pago(comp, venc))
+    png = render_barcode_png(itf["codigo"])
+    return Response(content=png, media_type="image/png",
+                    headers={"Content-Disposition": f'inline; filename="barcode-{comp.numero_comprobante}.png"'})
+
+
+@router.get("/comprobantes/{id_comprobante}/qr.png")
+def get_qr_png(
+    id_comprobante: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """PNG del QR de pago con payload estructurado (código + importe + vencimiento)."""
+    from fastapi.responses import Response
+    from services.codigo_pago_service import (
+        construir_codigo_pago, codigo_barras_itf, construir_payload_qr, render_qr_png,
+    )
+    comp = _get_comprobante(db, id_comprobante)
+    venc = _vencimiento_de_comprobante(db, comp)
+    itf = codigo_barras_itf(construir_codigo_pago(comp, venc))
+    payload = construir_payload_qr(comp, itf["codigo"], venc)
+    png = render_qr_png(payload)
+    return Response(content=png, media_type="image/png",
+                    headers={"Content-Disposition": f'inline; filename="qr-{comp.numero_comprobante}.png"'})
+
+
 @router.post("/cuenta-corriente/pagar-por-comprobante")
 def pagar_por_comprobante(
     request: Request,
@@ -395,12 +550,34 @@ def pagar_por_comprobante(
         origen_modulo=data.get("origen_modulo"),
         origen_ref=data.get("origen_ref"),
     )
+    token = request.headers.get("authorization")
     # cierre contable: hecho económico "recurso.cobrado" (Recaudación a depositar a Deudores)
     ref = data.get("origen_ref") or f"cobro-comp-{numero}"
+    aplicado = resultado.get("aplicado")
     _postear_contab("recurso.cobrado", ref, importe,
                     f"Cobro tributo comprobante {numero}",
                     {"comprobante": numero, "origen": data.get("origen_modulo")},
-                    request.headers.get("authorization"))
+                    token)
+    # devengado<->percibido (lado emisor): informar el PERCIBIDO del recurso a Presupuesto,
+    # según el CONTRATO percibido-por-tributo. Best-effort e idempotente por origen_ref.
+    if aplicado and float(aplicado) > 0 and not resultado.get("idempotente"):
+        comp = (
+            db.query(Comprobante)
+            .filter(Comprobante.numero_comprobante == numero, Comprobante.activo == True)
+            .first()
+        )
+        tributo = data.get("tributo") or (comp.tipo_tributo if comp else None)
+        periodo = data.get("periodo") or (comp.periodo if comp else None)
+        anio = None
+        if periodo:
+            try:
+                anio = int(str(periodo)[:4])
+            except (ValueError, TypeError):
+                anio = None
+        if anio is None:
+            anio = datetime.now(timezone.utc).year
+        _postear_percibido(anio, tributo, aplicado, f"percibido-{ref}", periodo,
+                           f"Percibido {tributo} comprobante {numero}", token)
     return resultado
 
 

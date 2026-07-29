@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { auditoriaAPI } from '../../services/api';
 import { useTabParam } from '../../hooks/useTabParam';
 import PageHeader from '../../components/common/PageHeader';
 import DataTable from '../../components/common/DataTable';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { CrudTab } from '../../components/common/CrudComponents';
 
 const fmtDateTime = (v) => (v ? new Date(v).toLocaleString() : '');
 
@@ -312,11 +313,98 @@ function IncidenciasTab() {
   return isLoading ? <LoadingSpinner /> : <DataTable columns={incidenciasCols} data={data} />;
 }
 
+// ── Reglas de alerta (CRUD) ──────────────────────────────────────────
+const CONDICIONES = [
+  { value: 'login_fallido', label: 'Login fallido' },
+  { value: 'borrado_masivo', label: 'Borrado masivo' },
+  { value: 'error_5xx', label: 'Error 5xx' },
+  { value: 'permiso_denegado', label: 'Permiso denegado' },
+];
+const condLabel = (v) => CONDICIONES.find((c) => c.value === v)?.label || v;
+
+const reglasCols = [
+  { key: 'id', label: 'ID' },
+  { key: 'codigo', label: 'Código' },
+  { key: 'descripcion', label: 'Descripción' },
+  { key: 'condicion', label: 'Condición', render: condLabel },
+  { key: 'umbral', label: 'Umbral' },
+  { key: 'ventana_minutos', label: 'Ventana (min)' },
+  { key: 'canal', label: 'Canal' },
+  { key: 'activo', label: 'Activa', render: (v) => (v ? 'Sí' : 'No') },
+];
+
+const reglasFormFields = [
+  { key: 'codigo', label: 'Código', required: true },
+  { key: 'descripcion', label: 'Descripción' },
+  { key: 'condicion', label: 'Condición', type: 'select', required: true, options: CONDICIONES },
+  { key: 'umbral', label: 'Umbral', type: 'int', defaultValue: 5 },
+  { key: 'ventana_minutos', label: 'Ventana (minutos)', type: 'int', defaultValue: 10 },
+  { key: 'canal', label: 'Canal', type: 'select', defaultValue: 'email', options: [
+    { value: 'email', label: 'Email' },
+    { value: 'interno', label: 'Interno' },
+    { value: 'webhook', label: 'Webhook' },
+  ] },
+  { key: 'activo', label: 'Activa', type: 'boolean', defaultValue: true },
+];
+
+function ReglasTab() {
+  const queryClient = useQueryClient();
+  const evaluar = useMutation({
+    mutationFn: () => auditoriaAPI.alertas.evaluar().then((r) => r.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['auditoria-alertas'] }),
+  });
+  return (
+    <div>
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4 flex items-center gap-4">
+        <button className={btnPrimary} onClick={() => evaluar.mutate()} disabled={evaluar.isPending}>
+          {evaluar.isPending ? 'Evaluando…' : 'Evaluar reglas ahora'}
+        </button>
+        {evaluar.data && (
+          <span className="text-sm text-gray-600">
+            {evaluar.data.evaluadas} reglas evaluadas · {evaluar.data.disparadas} alerta(s) disparada(s)
+          </span>
+        )}
+        {evaluar.isError && <span className="text-sm text-red-600">Error al evaluar</span>}
+      </div>
+      <CrudTab
+        queryKey="auditoria-reglas-alerta"
+        apiFns={auditoriaAPI.reglasAlerta}
+        columns={reglasCols}
+        formFields={reglasFormFields}
+        entityName="regla de alerta"
+        wide
+      />
+    </div>
+  );
+}
+
+// ── Alertas disparadas ───────────────────────────────────────────────
+const alertasCols = [
+  { key: 'id', label: 'ID' },
+  { key: 'fecha', label: 'Fecha', render: fmtDateTime },
+  { key: 'codigo_regla', label: 'Regla' },
+  { key: 'condicion', label: 'Condición', render: condLabel },
+  { key: 'cantidad', label: 'Cantidad' },
+  { key: 'detalle', label: 'Detalle' },
+  { key: 'notificado', label: 'Notificado', render: (v) => (v ? 'Sí' : 'No') },
+];
+
+function AlertasTab() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['auditoria-alertas'],
+    queryFn: () => auditoriaAPI.alertas.list({ skip: 0, limit: 100 }).then((r) => r.data),
+    refetchInterval: 20000,
+  });
+  return isLoading ? <LoadingSpinner /> : <DataTable columns={alertasCols} data={data} />;
+}
+
 const TABS = [
   { key: 'dashboard', label: 'Dashboard' },
   { key: 'eventos', label: 'Rastro de accesos' },
   { key: 'errores', label: 'Errores' },
   { key: 'incidencias', label: 'Incidencias' },
+  { key: 'reglas', label: 'Reglas de alerta' },
+  { key: 'alertas', label: 'Alertas' },
 ];
 
 export default function Auditoria() {
@@ -341,6 +429,8 @@ export default function Auditoria() {
       {tab === 'eventos' && <EventosTab />}
       {tab === 'errores' && <ErroresTab />}
       {tab === 'incidencias' && <IncidenciasTab />}
+      {tab === 'reglas' && <ReglasTab />}
+      {tab === 'alertas' && <AlertasTab />}
     </div>
   );
 }

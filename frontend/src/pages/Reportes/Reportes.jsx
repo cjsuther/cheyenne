@@ -19,6 +19,16 @@ export function descargarTexto(texto, nombre) {
   URL.revokeObjectURL(url);
 }
 
+export function descargarBlob(data, nombre, tipo = 'application/pdf') {
+  const blob = data instanceof Blob ? data : new Blob([data], { type: tipo });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = nombre; a.click();
+  URL.revokeObjectURL(url);
+}
+
+const btnSec = 'px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-200 text-gray-700 hover:bg-gray-50';
+
 const TABS = [
   { key: 'tablero', label: 'Tablero' },
   { key: 'rendicion', label: 'Rendición (HTC)' },
@@ -168,14 +178,17 @@ function RendicionTab() {
     queryFn: () => reportesAPI.rendicion({ anio, trimestre: trimestre || undefined }).then((r) => r.data),
   });
   const c = data?.cuadro;
-  const csv = () => reportesAPI.rendicionCsv({ anio, trimestre: trimestre || undefined }).then((r) => descargarTexto(r.data, `rendicion-${anio}${trimestre ? '-T' + trimestre : ''}.csv`));
+  const suf = trimestre ? `-T${trimestre}` : '';
+  const csv = () => reportesAPI.rendicionCsv({ anio, trimestre: trimestre || undefined }).then((r) => descargarTexto(r.data, `rendicion-${anio}${suf}.csv`));
+  const pdf = () => reportesAPI.rendicionPdf({ anio, trimestre: trimestre || undefined }).then((r) => descargarBlob(r.data, `rendicion-${anio}${suf}.pdf`));
   return (
     <div>
       <div className="mb-3 flex items-end gap-2 flex-wrap">
         <div><label className="text-xs text-gray-500 block mb-1">Ejercicio</label><input type="number" className={`${inputClass} w-28`} value={anio} onChange={(e) => setAnio(Number(e.target.value))} /></div>
         <div><label className="text-xs text-gray-500 block mb-1">Trimestre</label><select className={`${inputClass} w-24`} value={trimestre} onChange={(e) => setTrimestre(e.target.value)}><option value="">Anual</option>{[1, 2, 3, 4].map((t) => <option key={t} value={t}>T{t}</option>)}</select></div>
         <button className={btnPrimary} onClick={() => refetch()} disabled={isFetching}>{isFetching ? '...' : 'Generar'}</button>
-        <button className="px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-200 text-gray-700 hover:bg-gray-50" onClick={csv}>⬇ CSV</button>
+        <button className={btnSec} onClick={csv}>⬇ CSV</button>
+        <button className={btnSec} onClick={pdf}>⬇ PDF</button>
       </div>
       {isLoading ? <LoadingSpinner /> : c && (
         <>
@@ -198,12 +211,14 @@ function EjecucionTab() {
     queryFn: () => reportesAPI.ejecucionPresupuestaria({ anio }).then((r) => r.data),
   });
   const csv = () => reportesAPI.ejecucionCsv(anio).then((r) => descargarTexto(r.data, `ejecucion-${anio}.csv`));
+  const pdf = () => reportesAPI.ejecucionPdf(anio).then((r) => descargarBlob(r.data, `ejecucion-${anio}.pdf`));
   return (
     <div>
       <div className="mb-3 flex items-end gap-2">
         <div><label className="text-xs text-gray-500 block mb-1">Ejercicio</label><input type="number" className={`${inputClass} w-28`} value={anio} onChange={(e) => setAnio(Number(e.target.value))} /></div>
         <button className={btnPrimary} onClick={() => refetch()} disabled={isFetching}>{isFetching ? '...' : 'Generar'}</button>
-        <button className="px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-200 text-gray-700 hover:bg-gray-50" onClick={csv}>⬇ CSV</button>
+        <button className={btnSec} onClick={csv}>⬇ CSV</button>
+        <button className={btnSec} onClick={pdf}>⬇ PDF</button>
       </div>
       {isLoading ? <LoadingSpinner /> : (
         <>

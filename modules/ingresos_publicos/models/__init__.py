@@ -28,3 +28,5 @@ from .servicio_medido import ServicioMedido, LecturaMedidor
 from .puesto_mercado import PuestoMercado
 from .derecho_construccion import DerechoConstruccion
 from .valuacion_motor import ValorTierra, AlicuotaRubro
+from .prescripcion import Prescripcion
+from .transferencia_dominio import TransferenciaDominio

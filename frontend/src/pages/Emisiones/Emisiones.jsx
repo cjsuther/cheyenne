@@ -90,6 +90,14 @@ function WorkflowModal({ emision, onClose }) {
     URL.revokeObjectURL(url);
   };
 
+  const descargarImagen = async (fn, filename) => {
+    const { data } = await fn();
+    const url = URL.createObjectURL(data);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const actionMutation = useMutation({
     mutationFn: ({ numero, data }) => emisionesAPI.emisiones.ejecutarPaso(emision.id, numero, data),
     onSuccess: () => {
@@ -350,6 +358,7 @@ function WorkflowModal({ emision, onClose }) {
                     <thead className="bg-gray-50 sticky top-0"><tr className="text-left text-gray-500">
                       <th className="px-3 py-2">Número</th><th className="px-3 py-2">Contrib.</th>
                       <th className="px-3 py-2">Cód. barras</th><th className="px-3 py-2 text-right">Importe</th>
+                      <th className="px-3 py-2 text-right">Código de pago</th>
                     </tr></thead>
                     <tbody>{comprobantes.map((c) => (
                       <tr key={c.id} className="border-t border-gray-50">
@@ -357,6 +366,14 @@ function WorkflowModal({ emision, onClose }) {
                         <td className="px-3 py-1.5">{c.id_contribuyente}</td>
                         <td className="px-3 py-1.5 font-mono text-gray-500">{c.codigo_barras}</td>
                         <td className="px-3 py-1.5 text-right font-medium">${Number(c.importe_total || 0).toFixed(2)}</td>
+                        <td className="px-3 py-1.5 text-right whitespace-nowrap">
+                          <button className="text-primary-600 hover:underline mr-3"
+                            onClick={() => descargarImagen(() => emisionesAPI.comprobantes.barcodePng(c.id), `barcode-${c.numero_comprobante}.png`)}
+                            title="Descargar código de barras ITF (mod-10)">Barras</button>
+                          <button className="text-primary-600 hover:underline"
+                            onClick={() => descargarImagen(() => emisionesAPI.comprobantes.qrPng(c.id), `qr-${c.numero_comprobante}.png`)}
+                            title="Descargar QR de pago">QR</button>
+                        </td>
                       </tr>
                     ))}</tbody>
                   </table>
@@ -445,16 +462,90 @@ function EmisionesTab() {
   );
 }
 
+// ── Modal de compensación de saldo a favor ───────────────────────────────
+function CompensarModal({ idContribuyente, saldoAFavor, onClose, onDone }) {
+  const [idCc, setIdCc] = useState('');
+  const [importe, setImporte] = useState('');
+  const [err, setErr] = useState('');
+
+  const { data: deuda } = useQuery({
+    queryKey: ['emi-deuda-comp', idContribuyente],
+    queryFn: () => emisionesAPI.deudaPorContribuyente(idContribuyente, { solo_deuda: true }).then((r) => r.data),
+  });
+
+  const compensar = useMutation({
+    mutationFn: (payload) => emisionesAPI.ctacte.compensar(payload.id_cc, {
+      id_contribuyente: idContribuyente,
+      importe: payload.importe != null && payload.importe !== '' ? Number(payload.importe) : undefined,
+      origen_ref: `comp-${idContribuyente}-${payload.id_cc}-${Date.now()}`,
+    }),
+    onSuccess: () => { setErr(''); onDone(); },
+    onError: (e) => setErr(e.response?.data?.detail || 'No se pudo compensar'),
+  });
+
+  const submit = (e) => {
+    e.preventDefault();
+    if (!idCc) { setErr('Elegí un concepto de deuda a compensar'); return; }
+    compensar.mutate({ id_cc: Number(idCc), importe });
+  };
+
+  return (
+    <Modal title="Compensar saldo a favor" onClose={onClose}>
+      <form onSubmit={submit} className="space-y-3">
+        {err && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-3 py-2">{err}</div>}
+        <div className="bg-green-50 border border-green-100 rounded-lg px-3 py-2 text-sm">
+          Saldo a favor disponible: <span className="font-bold text-green-700">{fmtMoney(saldoAFavor)}</span>
+        </div>
+        <Field label="Concepto de deuda a cancelar">
+          <select value={idCc} onChange={(e) => setIdCc(e.target.value)} className={inputClass}>
+            <option value="">Seleccioná un concepto…</option>
+            {(deuda || []).map((c) => (
+              <option key={c.id} value={c.id}>
+                #{c.id} · {c.concepto || c.tipo_tributo} · saldo {fmtMoney(c.saldo)}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Importe a compensar (vacío = máximo posible)">
+          <input type="number" step="0.01" value={importe} onChange={(e) => setImporte(e.target.value)}
+            placeholder="máximo posible" className={inputClass} />
+        </Field>
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" className={btnSecondary} onClick={onClose}>Cancelar</button>
+          <button type="submit" className={btnPrimary} disabled={compensar.isPending}>
+            {compensar.isPending ? 'Compensando…' : 'Compensar'}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 // ── Cuenta corriente / Libro mayor del contribuyente ─────────────────────
 function LibroMayorTab() {
   const [idContribuyente, setIdContribuyente] = useState('');
   const [buscado, setBuscado] = useState(null);
+  const [compensando, setCompensando] = useState(false);
+  const qc = useQueryClient();
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['emi-libromayor', buscado],
     queryFn: () => emisionesAPI.ctacte.movimientos(buscado).then((r) => r.data),
     enabled: buscado != null,
   });
+
+  const { data: saldoFavor } = useQuery({
+    queryKey: ['emi-saldo-favor', buscado],
+    queryFn: () => emisionesAPI.ctacte.saldoAFavor(buscado).then((r) => r.data),
+    enabled: buscado != null,
+  });
+  const disponible = Number(saldoFavor?.saldo_a_favor || 0);
+
+  const refrescar = () => {
+    qc.invalidateQueries({ queryKey: ['emi-libromayor', buscado] });
+    qc.invalidateQueries({ queryKey: ['emi-saldo-favor', buscado] });
+    qc.invalidateQueries({ queryKey: ['emi-deuda-comp', buscado] });
+  };
 
   const buscar = (e) => { e.preventDefault(); const n = Number(idContribuyente); if (n) setBuscado(n); };
 
@@ -466,7 +557,18 @@ function LibroMayorTab() {
             placeholder="ej: 1024" className={inputClass} />
         </Field>
         <button type="submit" className={btnPrimary}>Ver libro mayor</button>
+        {buscado != null && disponible > 0 && (
+          <button type="button" className={btnSecondary} onClick={() => setCompensando(true)}>
+            Compensar saldo a favor ({fmtMoney(disponible)})
+          </button>
+        )}
       </form>
+
+      {compensando && (
+        <CompensarModal idContribuyente={buscado} saldoAFavor={disponible}
+          onClose={() => setCompensando(false)}
+          onDone={() => { setCompensando(false); refrescar(); }} />
+      )}
 
       {buscado == null ? (
         <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-3">Ingresá un ID de contribuyente para ver su extracto Debe/Haber con saldo corrido.</p>
@@ -474,10 +576,11 @@ function LibroMayorTab() {
         <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-3">No se pudo obtener el libro mayor.</p>
       ) : (
         <div>
-          <div className="grid grid-cols-3 gap-3 mb-3 bg-gray-50 rounded-lg p-4 text-sm">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3 bg-gray-50 rounded-lg p-4 text-sm">
             <div><p className="text-xs text-gray-500">Total Debe</p><p className="font-bold text-gray-800">{fmtMoney(data.total_debe)}</p></div>
             <div><p className="text-xs text-gray-500">Total Haber</p><p className="font-bold text-gray-800">{fmtMoney(data.total_haber)}</p></div>
             <div><p className="text-xs text-gray-500">Saldo</p><p className={`font-bold ${Number(data.saldo) > 0 ? 'text-red-600' : 'text-green-600'}`}>{fmtMoney(data.saldo)}</p></div>
+            <div><p className="text-xs text-gray-500">Saldo a favor</p><p className="font-bold text-green-700">{fmtMoney(disponible)}</p></div>
           </div>
           {data.movimientos?.length > 0 ? (
             <div className="overflow-x-auto border border-gray-100 rounded-lg">

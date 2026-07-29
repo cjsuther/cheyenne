@@ -5,11 +5,15 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional, Any
 
+import io
+
 from fastapi import APIRouter, Depends, Query, HTTPException, status
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from starlette.requests import Request
 import httpx
+
+MUNICIPIO = "Municipalidad de Cheyenne"
 
 
 def _csv(headers, rows):
@@ -21,6 +25,93 @@ def _csv(headers, rows):
     for r in rows:
         out.append(";".join(cell(c) for c in r))
     return "\n".join(out) + "\n"
+
+
+def _money(v: Any) -> str:
+    """Formatea un importe estilo es-AR (miles con punto, decimal con coma)."""
+    try:
+        n = float(v)
+    except (TypeError, ValueError):
+        return str(v) if v not in (None, "") else ""
+    return f"{n:,.2f}".replace(",", "_").replace(".", ",").replace("_", ".")
+
+
+def _pdf(titulo: str, periodo: str, col_headers, rows, aviso: Optional[str] = None,
+         money_cols: Optional[set] = None):
+    """Genera un PDF regulatorio limpio con reportlab y lo devuelve como bytes.
+
+    titulo/periodo van al encabezado, las columnas de `money_cols` (por índice)
+    se formatean como importe y se alinean a la derecha. La última fila se resalta
+    como totales. Pie con fecha de emisión.
+    """
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.lib import colors
+    from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
+    money_cols = money_cols or set()
+    styles = getSampleStyleSheet()
+    h_muni = ParagraphStyle("muni", parent=styles["Normal"], fontSize=9,
+                            textColor=colors.HexColor("#64748B"), alignment=TA_CENTER)
+    h_title = ParagraphStyle("tit", parent=styles["Title"], fontSize=16,
+                             textColor=colors.HexColor("#0F172A"), spaceBefore=2, spaceAfter=2)
+    h_per = ParagraphStyle("per", parent=styles["Normal"], fontSize=10,
+                           textColor=colors.HexColor("#475569"), alignment=TA_CENTER)
+    foot = ParagraphStyle("foot", parent=styles["Italic"], fontSize=8,
+                          textColor=colors.HexColor("#94A3B8"))
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, title=titulo,
+                            topMargin=20 * mm, bottomMargin=18 * mm,
+                            leftMargin=18 * mm, rightMargin=18 * mm)
+    story = [
+        Paragraph(MUNICIPIO.upper(), h_muni),
+        Paragraph(titulo, h_title),
+        Paragraph(periodo, h_per),
+        Spacer(1, 8 * mm),
+    ]
+    if aviso:
+        story.append(Paragraph(f"<font color='#B45309'>{aviso}</font>", styles["Normal"]))
+        story.append(Spacer(1, 4 * mm))
+
+    def fmt_cell(i, v):
+        return _money(v) if i in money_cols else ("" if v is None else str(v))
+
+    data = [list(col_headers)] + [[fmt_cell(i, c) for i, c in enumerate(r)] for r in rows]
+    tabla = Table(data, repeatRows=1)
+    st = [
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1D4ED8")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 1), (-1, -1), 5),
+        ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#CBD5E1")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -2), [colors.white, colors.HexColor("#F8FAFC")]),
+        ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#E2E8F0")),
+        ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+    ]
+    for i in money_cols:
+        st.append(("ALIGN", (i, 0), (i, -1), "RIGHT"))
+    tabla.setStyle(TableStyle(st))
+    story.append(tabla)
+    story.append(Spacer(1, 10 * mm))
+    story.append(Paragraph(
+        f"Emitido el {datetime.now(timezone.utc).strftime('%d/%m/%Y %H:%M')} UTC · "
+        f"Cheyenne · Módulo Reportes", foot))
+
+    doc.build(story)
+    buf.seek(0)
+    return buf
+
+
+def _pdf_response(buf, filename: str) -> StreamingResponse:
+    return StreamingResponse(
+        buf, media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'})
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from shared.base_module import create_auth_dependency
@@ -200,11 +291,11 @@ def cierre_caja(
 def ejecucion_presupuestaria(
     request: Request,
     anio: Optional[int] = Query(None, description="Ejercicio (año)"),
-    formato: str = Query("json", description="json | csv"),
+    formato: str = Query("json", description="json | csv | pdf"),
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """Ejecución del presupuesto desde el módulo presupuesto. Exportable a CSV (?formato=csv)."""
+    """Ejecución del presupuesto desde el módulo presupuesto. Exportable a CSV/PDF (?formato=csv|pdf)."""
     _requiere(current_user, "reportes_read")
     headers = _auth_header(request)
     a = anio or datetime.now(timezone.utc).year
@@ -221,7 +312,7 @@ def ejecucion_presupuestaria(
     ejecutado = _sum_field(datos, "ejecutado", "devengado", "gastado") if datos else 0.0
     pct = round((ejecutado / presupuestado * 100), 2) if presupuestado else 0.0
 
-    if formato == "csv":
+    if formato in ("csv", "pdf"):
         filas = []
         detalle = datos if isinstance(datos, list) else (datos.get("partidas") if isinstance(datos, dict) else None) or []
         for x in (detalle or []):
@@ -230,8 +321,17 @@ def ejecucion_presupuestaria(
                               x.get("vigente") or x.get("credito") or x.get("presupuestado") or 0,
                               x.get("comprometido") or 0, x.get("devengado") or x.get("ejecutado") or 0,
                               x.get("pagado") or 0])
+        cols = ["Partida", "Denominación", "Vigente", "Comprometido", "Devengado", "Pagado"]
+        if formato == "pdf":
+            filas.append(["", "TOTALES", presupuestado, "", ejecutado, ""])
+            buf = _pdf(
+                "Ejecución Presupuestaria", f"Ejercicio {a}", cols, filas,
+                aviso=(tablero.get("aviso") if not tablero["disponible"] else None),
+                money_cols={2, 3, 4, 5})
+            _log(db, current_user, "ejecucion-presupuestaria", {"anio": a, "formato": "pdf"}, ok, err)
+            return _pdf_response(buf, f"ejecucion-{a}.pdf")
         filas.append(["", "TOTALES", presupuestado, "", ejecutado, ""])
-        csv = _csv(["Partida", "Denominación", "Vigente", "Comprometido", "Devengado", "Pagado"], filas)
+        csv = _csv(cols, filas)
         _log(db, current_user, "ejecucion-presupuestaria", {"anio": a, "formato": "csv"}, ok, err)
         return PlainTextResponse(csv, headers={"Content-Disposition": f'attachment; filename="ejecucion-{a}.csv"'})
 
@@ -256,7 +356,7 @@ def rendicion(
     request: Request,
     anio: Optional[int] = Query(None, description="Ejercicio (año)"),
     trimestre: Optional[int] = Query(None, ge=1, le=4),
-    formato: str = Query("json", description="json | csv"),
+    formato: str = Query("json", description="json | csv | pdf"),
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -284,16 +384,27 @@ def rendicion(
         "gastos": {"credito_vigente": round(vigente, 2), "ejecutado": round(ejecutado, 2)},
         "resultado_financiero": resultado,
     }
-    if formato == "csv":
+    if formato in ("csv", "pdf"):
         filas = [
             ["RECURSOS", "Recaudado", round(recaudado, 2)],
             ["GASTOS", "Crédito vigente", round(vigente, 2)],
             ["GASTOS", "Ejecutado (devengado)", round(ejecutado, 2)],
             ["RESULTADO", "Superávit/Déficit financiero", resultado],
         ]
-        csv = _csv(["Concepto", "Detalle", "Importe"], filas)
+        cols = ["Concepto", "Detalle", "Importe"]
+        suf = f"-T{trimestre}" if trimestre else ""
+        if formato == "pdf":
+            periodo = f"Ejercicio {a}" + (f" · Trimestre {trimestre}" if trimestre else " · Anual")
+            buf = _pdf(
+                "Rendición de Cuentas (HTC)", periodo, cols, filas,
+                aviso=("El módulo Presupuesto no respondió; los importes pueden estar incompletos."
+                       if not tablero["disponible"] else None),
+                money_cols={2})
+            _log(db, current_user, "rendicion", {"anio": a, "trimestre": trimestre, "formato": "pdf"}, ok, err)
+            return _pdf_response(buf, f"rendicion-{a}{suf}.pdf")
+        csv = _csv(cols, filas)
         _log(db, current_user, "rendicion", {"anio": a, "trimestre": trimestre, "formato": "csv"}, ok, err)
-        return PlainTextResponse(csv, headers={"Content-Disposition": f'attachment; filename="rendicion-{a}{"-T"+str(trimestre) if trimestre else ""}.csv"'})
+        return PlainTextResponse(csv, headers={"Content-Disposition": f'attachment; filename="rendicion-{a}{suf}.csv"'})
 
     _log(db, current_user, "rendicion", {"anio": a, "trimestre": trimestre}, ok, err)
     return {"reporte": "rendicion", "anio": a, "trimestre": trimestre, "cuadro": cuadro,

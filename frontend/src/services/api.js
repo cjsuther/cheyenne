@@ -935,3 +935,57 @@ dmerge(administracionAPI, {
     ficha360: (tipo, id) => api.get(`/administracion/personas/${tipo}/${id}/ficha-360`),
   },
 });
+
+// ── Inciso C: percibido, prescripción, transferencias, saldos a favor, barcode/QR, PDF, alertas ──
+dmerge(presupuestoAPI, {
+  mapeoTributoRecurso: {
+    list: (params) => api.get('/presupuesto/mapeo-tributo-recurso', { params }),
+    create: (data) => api.post('/presupuesto/mapeo-tributo-recurso', data),
+    delete: (id) => api.delete(`/presupuesto/mapeo-tributo-recurso/${id}`),
+  },
+  percibidoPorTributo: (data) => api.post('/presupuesto/percibido-por-tributo', data),
+});
+
+dmerge(emisionesAPI, {
+  comprobantes: {
+    codigoPago: (id) => api.get(`/emisiones/emisiones/comprobantes/${id}/codigo-pago`),
+    barcodePng: (id) => api.get(`/emisiones/emisiones/comprobantes/${id}/barcode.png`, { responseType: 'blob' }),
+    qrPng: (id) => api.get(`/emisiones/emisiones/comprobantes/${id}/qr.png`, { responseType: 'blob' }),
+  },
+  ctacte: {
+    saldoAFavor: (idContribuyente) => api.get(`/emisiones/emisiones/cuenta-corriente/by-contribuyente/${idContribuyente}/saldo-a-favor`),
+    compensar: (idCc, data) => api.post(`/emisiones/emisiones/cuenta-corriente/${idCc}/compensar`, data),
+  },
+});
+
+dmerge(ingresosPublicosAPI, {
+  prescripciones: {
+    list: (params) => api.get('/ingresos-publicos/prescripciones', { params }),
+    prescriptible: (params) => api.get('/ingresos-publicos/prescripciones/prescriptible', { params }),
+    marcar: (data) => api.post('/ingresos-publicos/prescripciones', data),
+    revertir: (id) => api.delete(`/ingresos-publicos/prescripciones/${id}`),
+  },
+  transferenciasDominio: {
+    list: (params) => api.get('/ingresos-publicos/transferencias-dominio', { params }),
+    transferir: (data) => api.post('/ingresos-publicos/transferencias-dominio', data),
+  },
+});
+
+dmerge(reportesAPI, {
+  rendicionPdf: (params) => api.get('/reportes/rendicion', { params: { ...params, formato: 'pdf' }, responseType: 'blob' }),
+  ejecucionPdf: (anio) => api.get('/reportes/ejecucion-presupuestaria', { params: { anio, formato: 'pdf' }, responseType: 'blob' }),
+});
+
+dmerge(auditoriaAPI, {
+  reglasAlerta: {
+    list: (params) => api.get('/auditoria/alertas/reglas', { params }),
+    get: (id) => api.get(`/auditoria/alertas/reglas/${id}`),
+    create: (data) => api.post('/auditoria/alertas/reglas', data),
+    update: (id, data) => api.put(`/auditoria/alertas/reglas/${id}`, data),
+    delete: (id) => api.delete(`/auditoria/alertas/reglas/${id}`),
+  },
+  alertas: {
+    list: (params) => api.get('/auditoria/alertas', { params }),
+    evaluar: () => api.post('/auditoria/alertas/evaluar', {}),
+  },
+});

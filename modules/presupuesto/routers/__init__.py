@@ -7,6 +7,7 @@ from .partidas import router as partidas_router
 from .modificaciones import router as modificaciones_router
 from .afectaciones import router as afectaciones_router
 from .recursos import router as recursos_router
+from .mapeo import router as mapeo_router, percibido_router
 from .tablero import router as tablero_router
 from .cuotas import router as cuotas_router
 from .rrhh import cargos_router, rrhh_router
