@@ -2,6 +2,7 @@ import sys
 import os
 from typing import List, Optional
 from datetime import datetime, timezone
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Query, HTTPException, status, Body
 from sqlalchemy.orm import Session
@@ -42,6 +43,24 @@ settings = get_settings()
 get_current_user = create_auth_dependency(settings.seguridad_url)
 
 router = APIRouter(prefix="/emisiones", tags=["Emisiones"])
+
+
+def _postear_contab(tipo, origen_ref, importe, concepto, contexto, token):
+    """POST best-effort a Contabilidad del hecho económico (el contable arma el asiento).
+    NUNCA rompe el flujo. Idempotente por origen_ref."""
+    import httpx
+    try:
+        if not importe or float(importe) <= 0:
+            return
+        with httpx.Client(timeout=6) as client:
+            client.post(
+                f"{settings.contabilidad_url}/transacciones",
+                json={"origen_modulo": "emisiones", "origen_ref": str(origen_ref), "tipo": tipo,
+                      "fecha": None, "importe": float(importe), "concepto": concepto,
+                      "contexto": contexto or {}},
+                headers={"Authorization": token} if token else {})
+    except Exception:
+        pass
 
 
 # --- CRUD ---
@@ -351,6 +370,7 @@ def pagar_concepto(
 
 @router.post("/cuenta-corriente/pagar-por-comprobante")
 def pagar_por_comprobante(
+    request: Request,
     data: dict = Body(...),
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
@@ -370,11 +390,18 @@ def pagar_por_comprobante(
             fecha = None
     else:
         fecha = None
-    return CuentaCorrienteService(db).pagar_por_comprobante(
+    resultado = CuentaCorrienteService(db).pagar_por_comprobante(
         numero, importe, fecha,
         origen_modulo=data.get("origen_modulo"),
         origen_ref=data.get("origen_ref"),
     )
+    # cierre contable: hecho económico "recurso.cobrado" (Recaudación a depositar a Deudores)
+    ref = data.get("origen_ref") or f"cobro-comp-{numero}"
+    _postear_contab("recurso.cobrado", ref, importe,
+                    f"Cobro tributo comprobante {numero}",
+                    {"comprobante": numero, "origen": data.get("origen_modulo")},
+                    request.headers.get("authorization"))
+    return resultado
 
 
 @router.get("/cuenta-corriente/by-contribuyente/{id_contribuyente}/movimientos")
@@ -835,6 +862,7 @@ def paso_13_imputacion_contable(
 @router.post("/{id}/pasos/14-publicar-deuda")
 def paso_14_publicar_deuda(
     id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -843,8 +871,10 @@ def paso_14_publicar_deuda(
         cuentas = db.query(CuentaCorriente).filter(
             CuentaCorriente.id_emision == id, CuentaCorriente.activo == True
         ).all()
+        total = Decimal("0")
         for cuenta in cuentas:
             cuenta.estado = "publicada"
+            total += Decimal(str(cuenta.monto_original or 0))
         db.commit()
 
         emision.paso_actual = 14
@@ -852,6 +882,11 @@ def paso_14_publicar_deuda(
         _registrar_paso(db, id, 14, "completado",
                         resultado=f"Deuda publicada: {len(cuentas)} cuentas",
                         id_usuario=current_user.get("id"))
+        # cierre contable: hecho económico "recurso.emitido" (Deudores a Recursos)
+        _postear_contab("recurso.emitido", f"emision-{id}", total,
+                        f"Emisión de deuda #{id} — {len(cuentas)} cuentas",
+                        {"id_emision": id, "cuentas": len(cuentas)},
+                        request.headers.get("authorization"))
         return {"paso": 14, "estado": "completado", "cuentas_publicadas": len(cuentas)}
     except Exception as e:
         db.rollback()

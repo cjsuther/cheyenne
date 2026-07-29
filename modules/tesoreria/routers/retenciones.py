@@ -29,6 +29,23 @@ get_current_user = create_auth_dependency(settings.seguridad_url)
 CERO = Decimal("0.00")
 
 
+def _postear_contab(tipo, origen_ref, importe, concepto, contexto, token):
+    """POST best-effort a Contabilidad del hecho económico. NUNCA rompe el flujo."""
+    import httpx
+    try:
+        if not importe or float(importe) <= 0:
+            return
+        with httpx.Client(timeout=6) as client:
+            client.post(
+                f"{settings.contabilidad_url}/transacciones",
+                json={"origen_modulo": "tesoreria", "origen_ref": str(origen_ref), "tipo": tipo,
+                      "fecha": None, "importe": float(importe), "concepto": concepto,
+                      "contexto": contexto or {}},
+                headers={"Authorization": token} if token else {})
+    except Exception:
+        pass
+
+
 def _requiere(cu: dict, permiso: str):
     if cu.get("superuser"):
         return
@@ -142,7 +159,8 @@ op_pago_router = APIRouter(prefix="/ordenes-pago", tags=["Pagos con retenciones"
 
 
 @op_pago_router.post("/{id}/pagar-con-retenciones")
-def pagar_con_retenciones(id: int, data: PagoConRetencionesIn, db: Session = Depends(get_db),
+def pagar_con_retenciones(id: int, data: PagoConRetencionesIn, request: Request,
+                          db: Session = Depends(get_db),
                           current_user: dict = Depends(get_current_user)):
     """Paga una OP descontando retenciones y embargos judiciales.
     neto = importe OP - retenciones - embargos. Las retenciones quedan como pasivo a depositar.
@@ -216,6 +234,13 @@ def pagar_con_retenciones(id: int, data: PagoConRetencionesIn, db: Session = Dep
     op.estado = "pagada"
     db.commit()
     db.refresh(op)
+
+    # cierre contable: hecho económico "retencion.practicada" (Proveedores a Fondos de terceros)
+    if total_ret > CERO:
+        _postear_contab("retencion.practicada", f"ret-op-{op.id}", total_ret,
+                        f"Retenciones OP-{op.anio}-{op.numero:05d}",
+                        {"orden_pago": op.id, "regimenes": [l.regimen for l in data.retenciones]},
+                        request.headers.get("authorization"))
 
     return {
         "id": op.id, "orden_pago": f"OP-{op.anio}-{op.numero:05d}",
