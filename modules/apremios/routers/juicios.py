@@ -23,6 +23,21 @@ settings = get_settings()
 get_current_user = create_auth_dependency(settings.seguridad_url)
 
 
+def _postear_contab(tipo, origen_ref, importe, concepto, contexto, token):
+    """POST best-effort a Contabilidad del hecho económico. No rompe el flujo."""
+    import httpx
+    try:
+        if not importe or float(importe) <= 0:
+            return
+        with httpx.Client(timeout=6) as c:
+            c.post(f"{settings.contabilidad_url}/transacciones",
+                   json={"origen_modulo": "apremios", "origen_ref": str(origen_ref), "tipo": tipo,
+                         "fecha": None, "importe": float(importe), "concepto": concepto, "contexto": contexto or {}},
+                   headers={"Authorization": token} if token else {})
+    except Exception:
+        pass
+
+
 def _requiere(cu, permiso):
     if cu.get("superuser"):
         return
@@ -141,6 +156,11 @@ def crear_juicio(data: JuicioIn, request: Request, db: Session = Depends(get_db)
     db.add(ActoProcesal(id_juicio=x.id, tipo="inicio_demanda",
                         fecha=x.fecha_inicio, detalle="Inicio de juicio de apremio"))
     db.commit()
+    # ledger: reclasifica la deuda a gestión judicial (Deudores judiciales a Deudores por tributos)
+    _postear_contab("apremios.iniciado", f"juicio-{x.id}", x.deuda_capital,
+                    f"Apremio {x.caratula or ''} #{x.id}",
+                    {"id_juicio": x.id, "id_contribuyente": x.id_contribuyente},
+                    request.headers.get("authorization"))
     return _serial(x)
 
 
@@ -162,7 +182,7 @@ def editar_juicio(id: int, data: JuicioIn, db: Session = Depends(get_db),
 
 
 @juicios_router.post("/{id}/avanzar")
-def avanzar_juicio(id: int, data: AvanzarIn, db: Session = Depends(get_db),
+def avanzar_juicio(id: int, data: AvanzarIn, request: Request, db: Session = Depends(get_db),
                    current_user: dict = Depends(get_current_user)):
     """Avanza el juicio a un nuevo estado del circuito, registrando el ActoProcesal."""
     _requiere(current_user, "apremios_gestionar")
@@ -184,6 +204,12 @@ def avanzar_juicio(id: int, data: AvanzarIn, db: Session = Depends(get_db),
     detalle = data.detalle or f"Cambio de estado: {anterior} → {destino}"
     db.add(ActoProcesal(id_juicio=x.id, tipo=destino, fecha=fecha, detalle=detalle))
     db.commit(); db.refresh(x)
+    # ledger: al cobrar el juicio, ingresa la recaudación (Recaudación a Deudores judiciales)
+    if destino == "cobrado":
+        _postear_contab("apremios.cobrado", f"juicio-cobro-{x.id}",
+                        x.deuda_actualizada or x.deuda_capital,
+                        f"Cobro apremio #{x.id}", {"id_juicio": x.id},
+                        request.headers.get("authorization"))
     return _serial(x)
 
 

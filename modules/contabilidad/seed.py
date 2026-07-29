@@ -108,6 +108,14 @@ REGLAS = [
         (1, "debe",  "1.1.03"), (2, "haber", "1.1.20")]),
     ("retencion.practicada", "Retención practicada: Proveedores a Fondos de terceros", [
         (1, "debe",  "2.1.01"), (2, "haber", "2.2.01")]),
+    ("cementerio.liquidada", "Tasa de cementerio liquidada: Deudores a Recurso cementerio", [
+        (1, "debe",  "1.1.20"), (2, "haber", "4.1.05")]),
+    ("cementerio.cobrada", "Cobro tasa de cementerio: Recaudación a Deudores", [
+        (1, "debe",  "1.1.03"), (2, "haber", "1.1.20")]),
+    ("apremios.iniciado", "Apremio iniciado: reclasifica a Deudores en gestión judicial", [
+        (1, "debe",  "1.1.21"), (2, "haber", "1.1.20")]),
+    ("apremios.cobrado", "Cobro judicial (apremio): Recaudación a Deudores judiciales", [
+        (1, "debe",  "1.1.03"), (2, "haber", "1.1.21")]),
 ]
 
 

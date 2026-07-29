@@ -25,6 +25,21 @@ settings = get_settings()
 get_current_user = create_auth_dependency(settings.seguridad_url)
 
 
+def _postear_contab(tipo, origen_ref, importe, concepto, contexto, token):
+    """POST best-effort a Contabilidad del hecho económico. El contable arma el asiento. No rompe el flujo."""
+    import httpx
+    try:
+        if not importe or float(importe) <= 0:
+            return
+        with httpx.Client(timeout=6) as c:
+            c.post(f"{settings.contabilidad_url}/transacciones",
+                   json={"origen_modulo": "cementerio", "origen_ref": str(origen_ref), "tipo": tipo,
+                         "fecha": None, "importe": float(importe), "concepto": concepto, "contexto": contexto or {}},
+                   headers={"Authorization": token} if token else {})
+    except Exception:
+        pass
+
+
 def _requiere(cu, permiso):
     if cu.get("superuser"):
         return
@@ -192,7 +207,7 @@ def listar_tasas(request: Request, skip: int = Query(0, ge=0), limit: int = Quer
 
 
 @tasas_router.post("/liquidar", status_code=201)
-def liquidar_tasa(data: LiquidarTasaIn, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+def liquidar_tasa(data: LiquidarTasaIn, request: Request, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     """Liquida (genera) una tasa de cementerio para una concesión y período dados."""
     _requiere(current_user, "cementerio_liquidar")
     c = db.query(Concesion).filter(Concesion.id == data.id_concesion, Concesion.activo == True).first()
@@ -208,11 +223,16 @@ def liquidar_tasa(data: LiquidarTasaIn, db: Session = Depends(get_db), current_u
     x = TasaCementerio(id_concesion=data.id_concesion, periodo=data.periodo, concepto=data.concepto,
                        importe=data.importe, estado="pendiente", vencimiento=data.vencimiento)
     db.add(x); db.commit(); db.refresh(x)
+    # ledger: la tasa liquidada genera deuda (Deudores a Recurso cementerio)
+    _postear_contab("cementerio.liquidada", f"tasa-{x.id}", x.importe,
+                    f"Tasa cementerio {x.periodo} concesión #{x.id_concesion}",
+                    {"id_concesion": x.id_concesion, "periodo": x.periodo},
+                    request.headers.get("authorization"))
     return _ser_tasa(x)
 
 
 @tasas_router.post("/{id}/pagar")
-def pagar_tasa(id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+def pagar_tasa(id: int, request: Request, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     _requiere(current_user, "cementerio_liquidar")
     x = db.query(TasaCementerio).filter(TasaCementerio.id == id).first()
     if not x:
@@ -220,6 +240,11 @@ def pagar_tasa(id: int, db: Session = Depends(get_db), current_user: dict = Depe
     if x.estado == "pagada":
         raise HTTPException(status_code=409, detail="La tasa ya está pagada")
     x.estado = "pagada"; db.commit()
+    # ledger: cobro de la tasa (Recaudación a Deudores)
+    _postear_contab("cementerio.cobrada", f"tasa-pago-{x.id}", x.importe,
+                    f"Cobro tasa cementerio {x.periodo} concesión #{x.id_concesion}",
+                    {"id_concesion": x.id_concesion, "periodo": x.periodo},
+                    request.headers.get("authorization"))
     return _ser_tasa(x)
 
 
