@@ -223,6 +223,35 @@ export const tesoreriaAPI = {
     anular: (id) => api.post(`/tesoreria/ordenes-pago/${id}/anular`, {}),
   },
   parteEgresos: (fecha) => api.get('/tesoreria/egresos/parte-diario', { params: fecha ? { fecha } : {} }),
+  chequeras: {
+    list: (params) => api.get('/tesoreria/chequeras', { params }),
+    create: (data) => api.post('/tesoreria/chequeras', data),
+  },
+  cheques: {
+    list: (params) => api.get('/tesoreria/cheques', { params }),
+    emitir: (data) => api.post('/tesoreria/cheques', data),
+    entregar: (id) => api.post(`/tesoreria/cheques/${id}/entregar`, {}),
+    cobrar: (id) => api.post(`/tesoreria/cheques/${id}/cobrar`, {}),
+    anular: (id) => api.post(`/tesoreria/cheques/${id}/anular`, {}),
+    rechazar: (id) => api.post(`/tesoreria/cheques/${id}/rechazar`, {}),
+  },
+  ordenesBancarias: {
+    list: (params) => api.get('/tesoreria/ordenes-bancarias', { params }),
+    get: (id) => api.get(`/tesoreria/ordenes-bancarias/${id}`),
+    create: (data) => api.post('/tesoreria/ordenes-bancarias', data),
+    archivo: (id) => api.get(`/tesoreria/ordenes-bancarias/${id}/archivo`, { responseType: 'text' }),
+    confirmar: (id) => api.post(`/tesoreria/ordenes-bancarias/${id}/confirmar`, {}),
+    anular: (id) => api.post(`/tesoreria/ordenes-bancarias/${id}/anular`, {}),
+  },
+  conciliacion: {
+    extractos: (params) => api.get('/tesoreria/conciliacion/extractos', { params }),
+    extracto: (id) => api.get(`/tesoreria/conciliacion/extractos/${id}`),
+    crearExtracto: (data) => api.post('/tesoreria/conciliacion/extractos', data),
+    egresosPendientes: (id) => api.get(`/tesoreria/conciliacion/extractos/${id}/egresos-pendientes`),
+    resumen: (id) => api.get(`/tesoreria/conciliacion/extractos/${id}/resumen`),
+    conciliar: (idMov, data) => api.post(`/tesoreria/conciliacion/movimientos/${idMov}/conciliar`, data),
+    desconciliar: (idMov) => api.post(`/tesoreria/conciliacion/movimientos/${idMov}/desconciliar`, {}),
+  },
 };
 
 export const emisionesAPI = {

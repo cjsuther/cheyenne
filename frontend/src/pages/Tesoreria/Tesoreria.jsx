@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTabParam } from '../../hooks/useTabParam';
 import { OrdenesPagoTab, ParteEgresosTab } from './EgresosTabs';
+import { ChequesTab, OrdenesBancariasTab, ConciliacionTab } from './BancaTabs';
 import { CrudTab as _CrudTab } from '../../components/common/CrudComponents';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tesoreriaAPI } from '../../services/api';
@@ -200,6 +201,9 @@ function DetailModal({ lote, detailApiFns, detailName, entityName, detailColumns
 const TABS = [
   { key: 'ordenesPago', label: 'Órdenes de Pago' },
   { key: 'parteEgresos', label: 'Parte de Egresos' },
+  { key: 'cheques', label: 'Cheques' },
+  { key: 'ordenesBanc', label: 'Órdenes Bancarias' },
+  { key: 'conciliacion', label: 'Conciliación' },
   { key: 'beneficiarios', label: 'Beneficiarios' },
   { key: 'cuentasBanc', label: 'Cuentas Bancarias' },
   { key: 'recaudacionLotes', label: 'Recaudación' },
@@ -214,7 +218,7 @@ const TABS = [
 ];
 
 const GRUPOS = [
-  { label: 'Egresos', keys: ['ordenesPago', 'parteEgresos', 'beneficiarios', 'cuentasBanc'] },
+  { label: 'Egresos', keys: ['ordenesPago', 'parteEgresos', 'cheques', 'ordenesBanc', 'conciliacion', 'beneficiarios', 'cuentasBanc'] },
   { label: 'Recaudación', keys: ['recaudacionLotes', 'reciboPubLotes', 'pagoRendLotes', 'regContLotes', 'cajas', 'recaudadoras'] },
   { label: 'Configuración', keys: ['dependencias', 'entidades', 'listas'] },
 ];
@@ -227,6 +231,9 @@ export default function Tesoreria() {
       <GroupedTabBar grupos={GRUPOS} tabsMeta={TABS} tab={tab} setTab={setTab} />
       {tab === 'ordenesPago' && <OrdenesPagoTab />}
       {tab === 'parteEgresos' && <ParteEgresosTab />}
+      {tab === 'cheques' && <ChequesTab />}
+      {tab === 'ordenesBanc' && <OrdenesBancariasTab />}
+      {tab === 'conciliacion' && <ConciliacionTab />}
       {tab === 'beneficiarios' && (
         <_CrudTab queryKey="tes-benef-crud" apiFns={tesoreriaAPI.beneficiarios} entityName="Beneficiario"
           columns={[{ key: 'codigo', label: 'Código' }, { key: 'nombre', label: 'Nombre' }, { key: 'cuit', label: 'CUIT' }, { key: 'cbu', label: 'CBU' }, { key: 'activo', label: 'Estado', render: (v) => (v ? 'Activo' : 'Baja') }]}
