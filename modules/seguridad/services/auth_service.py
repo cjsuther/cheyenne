@@ -37,7 +37,7 @@ class AuthService:
         self.db = db
         self.settings = get_settings()
 
-    def authenticate(self, username: str, password: str) -> dict:
+    def authenticate(self, username: str, password: str, totp_code: Optional[str] = None) -> dict:
         acceso = (
             self.db.query(Acceso)
             .filter(Acceso.identificador == username)
@@ -83,9 +83,26 @@ class AuthService:
                 detail="Credenciales inválidas",
             )
 
-        # Login exitoso: resetear contador y bloqueo
+        # Password OK: resetear contador y bloqueo
         usuario.intentos_fallidos = 0
         usuario.bloqueado_hasta = None
+        self.db.commit()
+
+        # 2FA (TOTP): si el usuario lo tiene habilitado, exigir codigo valido
+        if usuario.totp_habilitado:
+            if not totp_code:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="2FA requerido: ingrese el codigo de su aplicacion de autenticacion.",
+                    headers={"X-2FA-Required": "true"},
+                )
+            from services.totp_service import TotpService
+            if not TotpService(self.db).verificar(usuario, totp_code):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Codigo 2FA invalido.",
+                    headers={"X-2FA-Required": "true"},
+                )
 
         perfiles_ids = [p.id for p in usuario.perfiles]
         permisos = []

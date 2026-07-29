@@ -22,6 +22,9 @@ import Contaduria from './pages/Contaduria/Contaduria';
 import Presupuesto from './pages/Presupuesto/Presupuesto';
 import Compras from './pages/Compras/Compras';
 import Contabilidad from './pages/Contabilidad/Contabilidad';
+import Cementerio from './pages/Cementerio/Cementerio';
+import Apremios from './pages/Apremios/Apremios';
+import Reportes from './pages/Reportes/Reportes';
 import Perfil from './pages/Perfil/Perfil';
 
 const queryClient = new QueryClient({
@@ -71,6 +74,9 @@ export default function App() {
             <Route path="compras" element={<Compras />} />
             {/* Contabilidad */}
             <Route path="contabilidad" element={<Contabilidad />} />
+            <Route path="cementerio" element={<Cementerio />} />
+            <Route path="apremios" element={<Apremios />} />
+            <Route path="reportes" element={<Reportes />} />
             {/* Contaduría */}
             <Route path="contaduria" element={<Contaduria />} />
             {/* Configuración (maestros) */}

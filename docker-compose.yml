@@ -165,6 +165,57 @@ services:
     networks:
       - cheyenne-net
 
+  # ─── MÓDULO CEMENTERIO ────────────────────────────────────────────
+  cementerio:
+    build:
+      context: ./modules
+      dockerfile: cementerio/Dockerfile
+    container_name: cheyenne-cementerio
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cheyenne}:${POSTGRES_PASSWORD:-cheyenne123}@postgres:5432/${POSTGRES_DB:-cheyenne}
+      SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+      SEGURIDAD_URL: http://seguridad:8000
+    depends_on:
+      - seguridad
+    networks:
+      - cheyenne-net
+  apremios:
+    build:
+      context: ./modules
+      dockerfile: apremios/Dockerfile
+    container_name: cheyenne-apremios
+    environment:
+      DATABASE_URL: postgresql://cheyenne:cheyenne123@postgres:5432/cheyenne
+      SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+      SEGURIDAD_URL: http://seguridad:8000
+      INGRESOS_PUBLICOS_URL: http://ingresos_publicos:8000
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+    depends_on:
+      - seguridad
+    networks:
+      - cheyenne-net
+    restart: unless-stopped
+  # ─── MÓDULO REPORTES ──────────────────────────────────────────────
+  reportes:
+    build:
+      context: ./modules
+      dockerfile: reportes/Dockerfile
+    container_name: cheyenne-reportes
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cheyenne}:${POSTGRES_PASSWORD:-cheyenne123}@postgres:5432/${POSTGRES_DB:-cheyenne}
+      SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+      SEGURIDAD_URL: http://seguridad:8000
+      TESORERIA_URL: http://tesoreria:8000
+      EMISIONES_URL: http://emisiones:8000
+      CONTADURIA_URL: http://contaduria:8000
+      PRESUPUESTO_URL: http://presupuesto:8000
+    depends_on:
+      - seguridad
+    networks:
+      - cheyenne-net
+
   # ─── MÓDULO IMPORTACIÓN ───────────────────────────────────────────
   importacion:
     build:
@@ -296,6 +347,9 @@ services:
       - contaduria
       - compras
       - contabilidad
+      - cementerio
+      - apremios
+      - reportes
       - wav
     networks:
       - cheyenne-net

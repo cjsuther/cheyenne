@@ -23,3 +23,7 @@ from .multa import Multa
 from .exencion import Exencion
 from .regimen_moratoria import RegimenMoratoria
 from .titular_cuenta import TitularCuenta
+from .fondeadero import Fondeadero
+from .servicio_medido import ServicioMedido, LecturaMedidor
+from .puesto_mercado import PuestoMercado
+from .derecho_construccion import DerechoConstruccion

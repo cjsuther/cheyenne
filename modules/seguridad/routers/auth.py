@@ -28,7 +28,7 @@ security_scheme = HTTPBearer()
 @router.post("/token", response_model=TokenResponse)
 def login(request: LoginRequest, db: Session = Depends(get_db)):
     auth_service = AuthService(db)
-    return auth_service.authenticate(request.username, request.password)
+    return auth_service.authenticate(request.username, request.password, request.totp_code)
 
 
 @router.post("/refresh", response_model=TokenResponse)

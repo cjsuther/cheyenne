@@ -11,7 +11,7 @@ from config import get_settings
 from database import engine
 from shared.database import Base
 from shared.audit_middleware import AuditMiddleware
-from routers import auth_router, usuarios_router, perfiles_router, permisos_router, listas_router
+from routers import auth_router, usuarios_router, perfiles_router, permisos_router, listas_router, dos_factores_router
 
 settings = get_settings()
 
@@ -37,6 +37,7 @@ app.include_router(usuarios_router)
 app.include_router(perfiles_router)
 app.include_router(permisos_router)
 app.include_router(listas_router)
+app.include_router(dos_factores_router)
 
 
 @app.on_event("startup")

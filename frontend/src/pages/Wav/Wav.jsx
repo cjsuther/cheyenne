@@ -22,6 +22,25 @@ const descargarReciboPdf = async (idPago) => {
 };
 
 export default function Wav() {
+  const [tab, setTab] = useState('autogestion'); // 'autogestion' | 'debito'
+
+  return (
+    <div>
+      <PageHeader title="WAV — Autogestión" subtitle="Portal ciudadano: cuentas, declaraciones juradas y pagos" />
+      <div className="flex gap-1 mb-5 border-b border-gray-200">
+        {[['autogestion', 'Autogestión'], ['debito', 'Débito automático']].map(([k, label]) => (
+          <button key={k} onClick={() => setTab(k)}
+            className={`px-4 py-2 text-sm font-medium -mb-px border-b-2 ${tab === k ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {tab === 'autogestion' ? <Autogestion /> : <DebitoAdmin />}
+    </div>
+  );
+}
+
+function Autogestion() {
   const [q, setQ] = useState('');
   const [dq, setDq] = useState('');
   const [selected, setSelected] = useState(null); // contribuyente
@@ -53,8 +72,6 @@ export default function Wav() {
 
   return (
     <div>
-      <PageHeader title="WAV — Autogestión" subtitle="Portal ciudadano: cuentas, declaraciones juradas y pagos" />
-
       {/* Buscar contribuyente */}
       <form onSubmit={onSearch} className="flex gap-2 mb-4 max-w-xl">
         <input className={inputCls} placeholder="Buscar contribuyente por CUIL, DNI o nombre..." value={q} onChange={(e) => setQ(e.target.value)} />
@@ -451,6 +468,219 @@ function AccionDeudaModal({ cuenta, accion, onClose, onDone }) {
               <button className={`${btn} w-full`} disabled={armarPlan.isPending || Number(cuotas) < 1} onClick={() => armarPlan.mutate()}>
                 {armarPlan.isPending ? 'Procesando...' : 'Confirmar plan'}
               </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════ Débito automático (gestión de lotes) ═══════════════
+
+const ESTADO_LOTE = {
+  generado: 'bg-amber-100 text-amber-700',
+  enviado: 'bg-blue-100 text-blue-700',
+  procesado: 'bg-green-100 text-green-700',
+};
+const ESTADO_ITEM = {
+  pendiente: 'bg-gray-100 text-gray-600',
+  debitado: 'bg-green-100 text-green-700',
+  rechazado: 'bg-red-100 text-red-700',
+};
+
+// Descarga el archivo de texto de débito (formato CBU) autenticado y lo baja.
+const descargarArchivoDebito = async (lote) => {
+  try {
+    const resp = await wavAPI.debito.lotes.archivo(lote.id);
+    const url = URL.createObjectURL(new Blob([resp.data], { type: 'text/plain' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `debito_${lote.medio}_${lote.periodo}_${lote.id}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch {
+    alert('No se pudo generar el archivo de débito.');
+  }
+};
+
+function DebitoAdmin() {
+  const qc = useQueryClient();
+  const hoy = new Date();
+  const [periodo, setPeriodo] = useState(`${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`);
+  const [medio, setMedio] = useState('cbu');
+  const [loteSel, setLoteSel] = useState(null);
+
+  const { data: lotes, isLoading } = useQuery({
+    queryKey: ['wav-lotes'],
+    queryFn: () => wavAPI.debito.lotes.list().then((r) => r.data),
+  });
+
+  const generar = useMutation({
+    mutationFn: () => wavAPI.debito.lotes.generar({ periodo, medio }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['wav-lotes'] }),
+  });
+  const enviar = useMutation({
+    mutationFn: (id) => wavAPI.debito.lotes.enviar(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['wav-lotes'] }),
+  });
+
+  return (
+    <div className="space-y-5">
+      {/* Generar lote */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">Generar lote de débito</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
+          <div>
+            <label className="text-xs text-gray-500">Período</label>
+            <input className={inputCls} value={periodo} onChange={(e) => setPeriodo(e.target.value)} placeholder="AAAA-MM" />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500">Medio</label>
+            <select className={inputCls} value={medio} onChange={(e) => setMedio(e.target.value)}>
+              <option value="cbu">CBU</option>
+              <option value="tarjeta">Tarjeta</option>
+            </select>
+          </div>
+          <button className={btn} disabled={generar.isPending || !periodo} onClick={() => generar.mutate()}>
+            {generar.isPending ? 'Generando...' : 'Generar lote'}
+          </button>
+          {generar.isSuccess && <p className="text-xs text-green-600 self-center">Lote #{generar.data?.data?.id} generado.</p>}
+        </div>
+        <p className="text-xs text-gray-400 mt-2">Toma las adhesiones activas del medio elegido y la deuda del período (consultada a emisiones).</p>
+      </div>
+
+      {/* Lotes */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">Lotes generados</h3>
+        {isLoading ? <LoadingSpinner /> : (lotes?.length ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-gray-500 border-b">
+                  <th className="py-2 pr-3">#</th>
+                  <th className="py-2 pr-3">Período</th>
+                  <th className="py-2 pr-3">Medio</th>
+                  <th className="py-2 pr-3">Estado</th>
+                  <th className="py-2 pr-3 text-right">Cant.</th>
+                  <th className="py-2 pr-3 text-right">Total</th>
+                  <th className="py-2 pr-3">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lotes.map((l) => (
+                  <tr key={l.id} className="border-b last:border-0">
+                    <td className="py-2 pr-3 font-medium">{l.id}</td>
+                    <td className="py-2 pr-3">{l.periodo}</td>
+                    <td className="py-2 pr-3">{l.medio?.toUpperCase()}</td>
+                    <td className="py-2 pr-3">
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${ESTADO_LOTE[l.estado] || 'bg-gray-100 text-gray-600'}`}>{l.estado}</span>
+                    </td>
+                    <td className="py-2 pr-3 text-right">{l.cantidad}</td>
+                    <td className="py-2 pr-3 text-right font-medium">{fmtMoney(l.total)}</td>
+                    <td className="py-2 pr-3">
+                      <div className="flex flex-wrap gap-1.5">
+                        <button className={btnSec} onClick={() => setLoteSel(l)}>Detalle</button>
+                        <button className={btnSec} onClick={() => descargarArchivoDebito(l)}>Archivo</button>
+                        {l.estado === 'generado' && (
+                          <button className={btnSec} onClick={() => enviar.mutate(l.id)} disabled={enviar.isPending}>Marcar enviado</button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : <p className="text-sm text-gray-400">Aún no hay lotes de débito. Generá uno arriba.</p>)}
+      </div>
+
+      {loteSel && (
+        <LoteDetalleModal idLote={loteSel.id} onClose={() => setLoteSel(null)}
+          onDone={() => qc.invalidateQueries({ queryKey: ['wav-lotes'] })} />
+      )}
+    </div>
+  );
+}
+
+function LoteDetalleModal({ idLote, onClose, onDone }) {
+  const qc = useQueryClient();
+  const { data: lote, isLoading, refetch } = useQuery({
+    queryKey: ['wav-lote', idLote],
+    queryFn: () => wavAPI.debito.lotes.get(idLote).then((r) => r.data),
+  });
+  const [rechazos, setRechazos] = useState({}); // { [id_item]: motivo }
+
+  const toggleRechazo = (id) => setRechazos((p) => {
+    const n = { ...p };
+    if (id in n) delete n[id]; else n[id] = '';
+    return n;
+  });
+
+  const procesar = useMutation({
+    mutationFn: () => wavAPI.debito.lotes.procesarRechazos(idLote, {
+      rechazos: Object.entries(rechazos).map(([id_item, motivo]) => ({ id_item: Number(id_item), motivo })),
+      marcar_resto_debitado: true,
+    }),
+    onSuccess: () => { refetch(); qc.invalidateQueries({ queryKey: ['wav-lotes'] }); onDone?.(); },
+  });
+
+  const procesado = lote?.estado === 'procesado';
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="px-5 py-3 border-b flex items-center justify-between sticky top-0 bg-white">
+          <h3 className="font-semibold text-gray-800">
+            Lote #{idLote}{lote ? ` · ${lote.periodo} · ${lote.medio?.toUpperCase()} · ${fmtMoney(lote.total)}` : ''}
+          </h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+        </div>
+        <div className="p-5 space-y-3">
+          {isLoading ? <LoadingSpinner /> : (
+            <>
+              <p className="text-xs text-gray-500">
+                Estado: <b>{lote?.estado}</b>. {procesado ? 'Lote ya procesado.' : 'Tildá los débitos rechazados y escribí el motivo; el resto se marcará como debitado.'}
+              </p>
+              <div className="space-y-1">
+                {(lote?.items || []).map((it) => {
+                  const marcado = it.id in rechazos;
+                  return (
+                    <div key={it.id} className={`rounded-lg px-3 py-2 text-sm ${marcado ? 'bg-red-50' : 'bg-gray-50'}`}>
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">Cuenta #{it.id_cuenta} · {it.titular || it.datos || '—'}</span>
+                        <span className="flex items-center gap-2">
+                          <span className="font-medium">{fmtMoney(it.importe)}</span>
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${ESTADO_ITEM[it.estado] || 'bg-gray-100 text-gray-600'}`}>{it.estado}</span>
+                        </span>
+                      </div>
+                      {!procesado && (
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <label className="flex items-center gap-1 text-xs text-gray-600">
+                            <input type="checkbox" checked={marcado} onChange={() => toggleRechazo(it.id)} /> Rechazado
+                          </label>
+                          {marcado && (
+                            <input className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs"
+                              placeholder="Motivo del rechazo" value={rechazos[it.id]}
+                              onChange={(e) => setRechazos((p) => ({ ...p, [it.id]: e.target.value }))} />
+                          )}
+                        </div>
+                      )}
+                      {procesado && it.motivo_rechazo && (
+                        <p className="text-xs text-red-600 mt-1">Motivo: {it.motivo_rechazo}</p>
+                      )}
+                    </div>
+                  );
+                })}
+                {!lote?.items?.length && <p className="text-sm text-gray-400">El lote no tiene renglones de débito.</p>}
+              </div>
+              {!procesado && (
+                <button className={`${btn} w-full`} disabled={procesar.isPending} onClick={() => procesar.mutate()}>
+                  {procesar.isPending ? 'Procesando...' : `Procesar rechazos (${Object.keys(rechazos).length}) y confirmar débitos`}
+                </button>
+              )}
             </>
           )}
         </div>

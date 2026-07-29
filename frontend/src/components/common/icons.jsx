@@ -130,6 +130,30 @@ export const IconContabilidad = (p) => (
   </Svg>
 );
 
+export const IconCementerio = (p) => (
+  <Svg {...p}>
+    <path d="M6 21V10a6 6 0 0 1 12 0v11" />
+    <path d="M4 21h16" />
+    <path d="M12 5v5" />
+    <path d="M9.5 7.5h5" />
+  </Svg>
+);
+
+export const IconApremios = (p) => (
+  <Svg {...p}>
+    <path d="M12 3v18" /><path d="M7 21h10" /><path d="M5 7h14" /><path d="M8 3h8" />
+    <path d="M5 7l-2.5 5a3.5 3.5 0 0 0 7 0L7 7" />
+    <path d="M19 7l-2.5 5a3.5 3.5 0 0 0 7 0L21 7" />
+  </Svg>
+);
+
+export const IconReportes = (p) => (
+  <Svg {...p}>
+    <path d="M3 3v18h18" />
+    <rect x="7" y="11" width="3" height="6" /><rect x="12" y="7" width="3" height="10" /><rect x="17" y="13" width="3" height="4" />
+  </Svg>
+);
+
 export const IconContaduria = (p) => (
   <Svg {...p}>
     <rect x="4" y="3" width="16" height="18" rx="2" />

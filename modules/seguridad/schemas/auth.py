@@ -5,6 +5,30 @@ from typing import Optional, List
 class LoginRequest(BaseModel):
     username: str
     password: str
+    totp_code: Optional[str] = None
+
+
+class TotpSetupResponse(BaseModel):
+    secret: str
+    otpauth_uri: str
+    issuer: str
+    account: str
+
+
+class TotpCodeRequest(BaseModel):
+    codigo: str
+
+
+class TotpActivarResponse(BaseModel):
+    habilitado: bool
+    codigos_respaldo: List[str]
+    mensaje: str
+
+
+class TotpEstadoResponse(BaseModel):
+    habilitado: bool
+    configuracion_pendiente: bool
+    codigos_respaldo_restantes: int
 
 
 class TokenResponse(BaseModel):

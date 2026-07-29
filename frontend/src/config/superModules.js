@@ -1,6 +1,6 @@
 // Registro central de los super-módulos (dashboard) y sus sub-menús.
 import {
-  IconContribuyente360, IconIngresos, IconSeguridad, IconContaduria, IconConfig, IconPresupuesto, IconTesoreria, IconCompras, IconContabilidad,
+  IconContribuyente360, IconIngresos, IconSeguridad, IconContaduria, IconConfig, IconPresupuesto, IconTesoreria, IconCompras, IconContabilidad, IconCementerio, IconApremios, IconReportes,
 } from '../components/common/icons';
 
 export const SUPER_MODULES = [
@@ -52,6 +52,21 @@ export const SUPER_MODULES = [
     items: [
       { path: '/contabilidad', label: 'Contabilidad general', module: 'contabilidad' },
     ],
+  },
+  {
+    key: 'cementerio', label: 'Cementerio', desc: 'Sepulturas, concesiones, inhumaciones, traslados y tasas',
+    Icon: IconCementerio, chip: 'bg-stone-100 text-stone-700',
+    items: [ { path: '/cementerio', label: 'Cementerio', module: 'cementerio' } ],
+  },
+  {
+    key: 'apremios', label: 'Apremios', desc: 'Gestión judicial de deuda: juicios, embargos y honorarios',
+    Icon: IconApremios, chip: 'bg-red-50 text-red-700',
+    items: [ { path: '/apremios', label: 'Juicios de Apremio', module: 'apremios' } ],
+  },
+  {
+    key: 'reportes', label: 'Reportes', desc: 'Reportes consolidados: recaudación, cierre de caja y ejecución',
+    Icon: IconReportes, chip: 'bg-indigo-50 text-indigo-700',
+    items: [ { path: '/reportes', label: 'Reportes', module: 'reportes' } ],
   },
   {
     key: 'tesoreria', label: 'Tesorería', desc: 'Recaudación, pagos y bancos',

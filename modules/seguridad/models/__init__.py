@@ -8,3 +8,4 @@ from .verificacion import Verificacion
 from .password_historial import PasswordHistorial
 from .token_revocado import TokenRevocado
 from .usuario_permiso import UsuarioPermiso
+from .codigo_respaldo import CodigoRespaldo

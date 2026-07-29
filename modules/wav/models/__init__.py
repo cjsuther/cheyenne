@@ -5,3 +5,5 @@ from .declaracion_jurada_item import DeclaracionJuradaItem
 from .pago_contado import PagoContado
 from .plan_pago import PlanPago
 from .adhesion_debito import AdhesionDebito
+from .lote_debito import LoteDebito
+from .debito_item import DebitoItem

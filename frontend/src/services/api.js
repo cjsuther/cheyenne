@@ -750,3 +750,111 @@ dmerge(contabilidadAPI, {
     delete: (id) => api.delete(`/contabilidad/mapeo-cuentas/${id}`),
   },
 });
+
+// ═══════════════ DOMINIOS NUEVOS ═══════════════
+
+export const cementerioAPI = {
+  sepulturas: crud('/cementerio/sepulturas'),
+  concesiones: {
+    ...crud('/cementerio/concesiones'),
+    get: (id) => api.get(`/cementerio/concesiones/${id}`),
+  },
+  difuntos: crud('/cementerio/difuntos'),
+  inhumaciones: {
+    list: (params) => api.get('/cementerio/inhumaciones', { params }),
+    create: (data) => api.post('/cementerio/inhumaciones', data),
+  },
+  traslados: {
+    list: (params) => api.get('/cementerio/traslados', { params }),
+    create: (data) => api.post('/cementerio/traslados', data),
+  },
+  tasas: {
+    list: (params) => api.get('/cementerio/tasas', { params }),
+    liquidar: (data) => api.post('/cementerio/tasas/liquidar', data),
+    pagar: (id) => api.post(`/cementerio/tasas/${id}/pagar`, {}),
+  },
+  ocupacion: () => api.get('/cementerio/ocupacion'),
+};
+
+export const apremiosAPI = {
+  juicios: {
+    list: (params) => api.get('/apremios/juicios', { params }),
+    get: (id) => api.get(`/apremios/juicios/${id}`),
+    create: (data) => api.post('/apremios/juicios', data),
+    update: (id, data) => api.put(`/apremios/juicios/${id}`, data),
+    avanzar: (id, data) => api.post(`/apremios/juicios/${id}/avanzar`, data),
+    remove: (id) => api.delete(`/apremios/juicios/${id}`),
+  },
+  actos: {
+    list: (idJuicio, params) => api.get(`/apremios/juicios/${idJuicio}/actos`, { params }),
+    create: (idJuicio, data) => api.post(`/apremios/juicios/${idJuicio}/actos`, data),
+    remove: (idJuicio, id) => api.delete(`/apremios/juicios/${idJuicio}/actos/${id}`),
+  },
+  embargos: {
+    list: (idJuicio, params) => api.get(`/apremios/juicios/${idJuicio}/embargos`, { params }),
+    create: (idJuicio, data) => api.post(`/apremios/juicios/${idJuicio}/embargos`, data),
+    update: (idJuicio, id, data) => api.put(`/apremios/juicios/${idJuicio}/embargos/${id}`, data),
+    remove: (idJuicio, id) => api.delete(`/apremios/juicios/${idJuicio}/embargos/${id}`),
+  },
+  honorarios: {
+    list: (idJuicio, params) => api.get(`/apremios/juicios/${idJuicio}/honorarios`, { params }),
+    create: (idJuicio, data) => api.post(`/apremios/juicios/${idJuicio}/honorarios`, data),
+    update: (idJuicio, id, data) => api.put(`/apremios/juicios/${idJuicio}/honorarios/${id}`, data),
+    remove: (idJuicio, id) => api.delete(`/apremios/juicios/${idJuicio}/honorarios/${id}`),
+  },
+  mandamientos: {
+    list: (idJuicio, params) => api.get(`/apremios/juicios/${idJuicio}/mandamientos`, { params }),
+    create: (idJuicio, data) => api.post(`/apremios/juicios/${idJuicio}/mandamientos`, data),
+    update: (idJuicio, id, data) => api.put(`/apremios/juicios/${idJuicio}/mandamientos/${id}`, data),
+    remove: (idJuicio, id) => api.delete(`/apremios/juicios/${idJuicio}/mandamientos/${id}`),
+  },
+};
+
+export const reportesAPI = {
+  tablero: (params) => api.get('/reportes/tablero', { params }),
+  recaudacion: (params) => api.get('/reportes/recaudacion', { params }),
+  cierreCaja: (params) => api.get('/reportes/cierre-caja', { params }),
+  ejecucionPresupuestaria: (params) => api.get('/reportes/ejecucion-presupuestaria', { params }),
+  cicloGasto: (params) => api.get('/reportes/ciclo-gasto', { params }),
+};
+
+dmerge(authAPI, {
+  login: (username, password, totp_code) => api.post('/seguridad/auth/token', { username, password, totp_code }),
+  twofaEstado: () => api.get('/seguridad/2fa/estado'),
+  twofaSetup: () => api.post('/seguridad/2fa/setup'),
+  twofaActivar: (codigo) => api.post('/seguridad/2fa/activar', { codigo }),
+  twofaVerificar: (codigo) => api.post('/seguridad/2fa/verificar', { codigo }),
+  twofaDesactivar: (codigo) => api.post('/seguridad/2fa/desactivar', { codigo }),
+});
+
+dmerge(auditoriaAPI, {
+  estadisticas: {
+    resumen:    (params) => api.get('/auditoria/estadisticas/resumen', { params }),
+    porDia:     (params) => api.get('/auditoria/estadisticas/por-dia', { params }),
+    porUsuario: (params) => api.get('/auditoria/estadisticas/por-usuario', { params }),
+    errores:    (params) => api.get('/auditoria/estadisticas/errores', { params }),
+  },
+});
+
+dmerge(wavAPI, { debito: { lotes: {
+  list: (params) => api.get('/wav/debito/lotes', { params }),
+  get: (id) => api.get(`/wav/debito/lotes/${id}`),
+  generar: (data) => api.post('/wav/debito/generar-lote', data),
+  archivo: (id) => api.get(`/wav/debito/lotes/${id}/archivo`, { responseType: 'arraybuffer' }),
+  enviar: (id) => api.post(`/wav/debito/lotes/${id}/enviar`, {}),
+  procesarRechazos: (id, data) => api.post(`/wav/debito/lotes/${id}/procesar-rechazos`, data),
+} } });
+
+dmerge(ingresosPublicosAPI, {
+  fondeaderos: crud('/ingresos-publicos/fondeaderos'),
+  puestosMercado: crud('/ingresos-publicos/puestos-mercado'),
+  serviciosMedidos: {
+    ...crud('/ingresos-publicos/servicios-medidos'),
+    lecturas: (idServicio) => api.get(`/ingresos-publicos/servicios-medidos/${idServicio}/lecturas`),
+    cargarLectura: (idServicio, data) => api.post(`/ingresos-publicos/servicios-medidos/${idServicio}/lecturas`, data),
+  },
+  derechosConstruccion: {
+    ...crud('/ingresos-publicos/derechos-construccion'),
+    liquidar: (id, data) => api.post(`/ingresos-publicos/derechos-construccion/${id}/liquidar`, data || {}),
+  },
+});

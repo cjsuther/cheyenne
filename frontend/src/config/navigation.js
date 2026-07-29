@@ -68,6 +68,21 @@ export const NAV = [
     { k: 'plan', l: 'Plan de Cuentas' }, { k: 'ejercicios', l: 'Ejercicios' },
   ] },
 
+  // ── Cementerio ──
+  { label: 'Cementerio Municipal', path: '/cementerio', module: 'cementerio', tabs: [
+    { k: 'sepulturas', l: 'Sepulturas' }, { k: 'concesiones', l: 'Concesiones' }, { k: 'circuito', l: 'Inhumaciones/Traslados' },
+    { k: 'tasas', l: 'Tasas' }, { k: 'difuntos', l: 'Difuntos' }, { k: 'ocupacion', l: 'Ocupación' },
+  ] },
+  // ── Apremios ──
+  { label: 'Apremios — Gestión Judicial', path: '/apremios', module: 'apremios', tabs: [
+    { k: 'juicios', l: 'Juicios' }, { k: 'embargos', l: 'Embargos' }, { k: 'honorarios', l: 'Honorarios' }, { k: 'mandamientos', l: 'Mandamientos' },
+  ] },
+  // ── Reportes ──
+  { label: 'Reportes Consolidados', path: '/reportes', module: 'reportes', tabs: [
+    { k: 'tablero', l: 'Tablero' }, { k: 'recaudacion', l: 'Recaudación' }, { k: 'cierre', l: 'Cierre de caja' },
+    { k: 'ejecucion', l: 'Ejecución presupuestaria' }, { k: 'ciclo', l: 'Ciclo del gasto' },
+  ] },
+
   // ── Contaduría ──
   { label: 'Contaduría — Ciclo del Gasto', path: '/contaduria', module: 'contaduria', tabs: [] },
 

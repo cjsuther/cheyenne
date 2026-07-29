@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, Integer, String, DateTime, Table, ForeignKey
+from sqlalchemy import Column, BigInteger, Integer, String, DateTime, Table, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -34,6 +34,10 @@ class Usuario(Base):
 
     # Politica de contrasena
     password_actualizado_en = Column(DateTime(timezone=True), nullable=True)
+
+    # 2FA (TOTP)
+    totp_secret = Column(String(64), nullable=True)
+    totp_habilitado = Column(Boolean, nullable=False, default=False, server_default="false")
 
     perfiles = relationship("Perfil", secondary=usuario_perfil, back_populates="usuarios", lazy="selectin")
     accesos = relationship("Acceso", back_populates="usuario", lazy="selectin", cascade="all, delete-orphan")

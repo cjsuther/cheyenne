@@ -19,6 +19,7 @@ from routers import (
     deuda_router,
     recibos_router,
     planes_router,
+    debito_router,
 )
 
 settings = get_settings()
@@ -47,6 +48,7 @@ app.include_router(listas_router)
 app.include_router(deuda_router)
 app.include_router(recibos_router)
 app.include_router(planes_router)
+app.include_router(debito_router)
 
 
 @app.on_event("startup")

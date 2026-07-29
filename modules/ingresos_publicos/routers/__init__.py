@@ -21,3 +21,7 @@ from .personas import router as personas_router
 from .exenciones import router as exenciones_router
 from .titulares import router as titulares_router
 from .regimenes_moratoria import router as regimenes_moratoria_router
+from .fondeaderos import router as fondeaderos_router
+from .servicios_medidos import router as servicios_medidos_router
+from .puestos_mercado import router as puestos_mercado_router
+from .derechos_construccion import router as derechos_construccion_router

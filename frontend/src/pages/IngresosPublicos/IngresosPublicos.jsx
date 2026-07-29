@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTabParam } from '../../hooks/useTabParam';
 import { ingresosPublicosAPI } from '../../services/api';
 import PageHeader from '../../components/common/PageHeader';
@@ -87,6 +87,10 @@ const TABS = [
   { key: 'tasas', label: 'Tasas' },
   { key: 'subTasas', label: 'Sub-Tasas' },
   { key: 'listas', label: 'Listas' },
+  { key: 'fondeaderos', label: 'Fondeadero' },
+  { key: 'serviciosMedidos', label: 'Servicios Medidos' },
+  { key: 'puestosMercado', label: 'Mercado' },
+  { key: 'derechosConstruccion', label: 'Derecho Construcción' },
 ];
 
 const GRUPOS = [
@@ -97,6 +101,7 @@ const GRUPOS = [
   { label: 'Emisiones', keys: ['emisiones', 'emisionDef'] },
   { label: 'Planes de pago', keys: ['planesPago', 'simularPlan', 'cuotasPlan', 'planPagoDef', 'regimenes', 'simMoratoria'] },
   { label: 'Tributos', keys: ['tasas', 'subTasas', 'certificados', 'libreDeuda', 'exenciones', 'titulares', 'multas'] },
+  { label: 'Tributos Marginales', keys: ['fondeaderos', 'serviciosMedidos', 'puestosMercado', 'derechosConstruccion'] },
   { label: 'Configuración', keys: ['listas'] },
 ];
 
@@ -133,6 +138,10 @@ export default function IngresosPublicos() {
       {tab === 'tasas' && <TasasTab />}
       {tab === 'subTasas' && <SubTasasTab />}
       {tab === 'listas' && <ListasTab />}
+      {tab === 'fondeaderos' && <FondeaderosTab />}
+      {tab === 'serviciosMedidos' && <ServiciosMedidosTab />}
+      {tab === 'puestosMercado' && <PuestosMercadoTab />}
+      {tab === 'derechosConstruccion' && <DerechosConstruccionTab />}
     </div>
   );
 }
@@ -837,5 +846,204 @@ function LibreDeudaTab() {
         </div>
       )}
     </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// TRIBUTOS MARGINALES
+// ═══════════════════════════════════════════════════════════════════════
+function FondeaderosTab() {
+  return <CrudTab queryKey="ip-fondeaderos" apiFns={ingresosPublicosAPI.fondeaderos} entityName="Fondeadero" wide
+    columns={[
+      { key: 'id', label: 'ID' }, { key: 'id_contribuyente', label: 'Contribuyente' },
+      { key: 'embarcacion', label: 'Embarcación' }, { key: 'matricula', label: 'Matrícula' },
+      { key: 'eslora', label: 'Eslora' }, { key: 'amarra', label: 'Amarra' },
+      { key: 'activo', label: 'Estado', render: (v) => v ? 'Activo' : 'Baja' },
+    ]}
+    formFields={[
+      { key: 'id_contribuyente', label: 'Contribuyente', type: 'remote_select', queryKey: 'sel-ip-contribuyentes', queryFn: contribuyenteQuery, optionLabel: '_label' },
+      { key: 'embarcacion', label: 'Embarcación' },
+      { key: 'matricula', label: 'Matrícula' },
+      { key: 'eslora', label: 'Eslora (m)', type: 'decimal' },
+      { key: 'amarra', label: 'Amarra' },
+      { key: 'activo', label: 'Activo', type: 'boolean', defaultValue: true },
+    ]}
+  />;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+function PuestosMercadoTab() {
+  return <CrudTab queryKey="ip-puestos-mercado" apiFns={ingresosPublicosAPI.puestosMercado} entityName="Puesto de Mercado" wide
+    columns={[
+      { key: 'id', label: 'ID' }, { key: 'id_contribuyente', label: 'Contribuyente' },
+      { key: 'mercado', label: 'Mercado' }, { key: 'puesto_numero', label: 'Puesto N°' },
+      { key: 'rubro', label: 'Rubro' }, { key: 'superficie', label: 'Superficie (m²)' },
+      { key: 'activo', label: 'Estado', render: (v) => v ? 'Activo' : 'Baja' },
+    ]}
+    formFields={[
+      { key: 'id_contribuyente', label: 'Contribuyente', type: 'remote_select', queryKey: 'sel-ip-contribuyentes', queryFn: contribuyenteQuery, optionLabel: '_label' },
+      { key: 'mercado', label: 'Mercado' },
+      { key: 'puesto_numero', label: 'Número de puesto' },
+      { key: 'rubro', label: 'Rubro' },
+      { key: 'superficie', label: 'Superficie (m²)', type: 'decimal' },
+      { key: 'activo', label: 'Activo', type: 'boolean', defaultValue: true },
+    ]}
+  />;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+const ESTADO_DER = { liquidado: 'bg-amber-100 text-amber-700', pagado: 'bg-green-100 text-green-700' };
+
+function DerechosConstruccionTab() {
+  const qc = useQueryClient();
+  const [modal, setModal] = useState(null);
+  const [error, setError] = useState('');
+  const { data, isLoading } = useQuery({ queryKey: ['ip-derechos'], queryFn: () => ingresosPublicosAPI.derechosConstruccion.list({ limit: 100 }).then((r) => r.data) });
+  const refetch = () => qc.invalidateQueries({ queryKey: ['ip-derechos'] });
+  const liquidarMut = useMutation({ mutationFn: (id) => ingresosPublicosAPI.derechosConstruccion.liquidar(id, {}), onSuccess: refetch, onError: (e) => setError(e.response?.data?.detail || 'Error') });
+  return (
+    <div>
+      {error && <div className="mb-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-2 flex justify-between"><span>⚠ {error}</span><button onClick={() => setError('')} className="text-red-500">✕</button></div>}
+      <div className="mb-3 flex justify-end"><button className={btnPrimary} onClick={() => setModal('nuevo')}>Nuevo derecho</button></div>
+      {isLoading ? <LoadingSpinner /> : (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto">
+          <table className="min-w-full text-left text-xs">
+            <thead><tr className="border-b bg-gray-50/70 text-gray-500 uppercase">{['ID', 'Inmueble', 'Expediente', 'm²', 'Destino', 'Valor obra', 'Importe', 'Estado', 'Acciones'].map((h) => <th key={h} className="px-3 py-2.5 font-semibold">{h}</th>)}</tr></thead>
+            <tbody className="divide-y divide-gray-50">
+              {data?.length ? data.map((d) => (
+                <tr key={d.id} className="hover:bg-primary-50/40">
+                  <td className="px-3 py-2">{d.id}</td><td className="px-3 py-2">{d.id_inmueble || '—'}</td>
+                  <td className="px-3 py-2">{d.expediente || '—'}</td><td className="px-3 py-2">{d.m2 || '—'}</td>
+                  <td className="px-3 py-2">{d.destino || '—'}</td><td className="px-3 py-2">{fmtMoney(d.valor_obra)}</td>
+                  <td className="px-3 py-2 font-semibold">{fmtMoney(d.importe)}</td>
+                  <td className="px-3 py-2"><span className={`px-2 py-0.5 rounded text-[11px] font-medium ${ESTADO_DER[d.estado] || 'bg-gray-100'}`}>{d.estado}</span></td>
+                  <td className="px-3 py-2"><button className="text-primary-600 border border-primary-200 rounded px-2 py-0.5" onClick={() => liquidarMut.mutate(d.id)}>Liquidar</button></td>
+                </tr>
+              )) : <tr><td colSpan={9} className="px-3 py-8 text-center text-gray-400">Sin derechos de construcción.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {modal === 'nuevo' && <DerechoModal onClose={() => setModal(null)} onDone={() => { setModal(null); refetch(); }} />}
+    </div>
+  );
+}
+
+function DerechoModal({ onClose, onDone }) {
+  const [f, setF] = useState({ id_inmueble: '', expediente: '', m2: '', destino: '', valor_obra: '' });
+  const [msg, setMsg] = useState('');
+  const m = useMutation({
+    mutationFn: () => ingresosPublicosAPI.derechosConstruccion.create({
+      id_inmueble: f.id_inmueble ? Number(f.id_inmueble) : null, expediente: f.expediente || null,
+      m2: f.m2 ? Number(f.m2) : null, destino: f.destino || null,
+      valor_obra: Number(f.valor_obra || 0), importe: 0, estado: 'liquidado',
+    }),
+    onSuccess: onDone, onError: (e) => setMsg(e.response?.data?.detail || 'Error'),
+  });
+  return (
+    <Modal title="Nuevo derecho de construcción" onClose={onClose} wide>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="ID Inmueble"><input type="number" className={inputClass} value={f.id_inmueble} onChange={(e) => setF({ ...f, id_inmueble: e.target.value })} /></Field>
+        <Field label="Expediente"><input className={inputClass} value={f.expediente} onChange={(e) => setF({ ...f, expediente: e.target.value })} /></Field>
+        <Field label="m²"><input type="number" className={inputClass} value={f.m2} onChange={(e) => setF({ ...f, m2: e.target.value })} /></Field>
+        <Field label="Destino"><input className={inputClass} value={f.destino} onChange={(e) => setF({ ...f, destino: e.target.value })} placeholder="vivienda / comercial" /></Field>
+        <Field label="Valor de obra"><input type="number" className={inputClass} value={f.valor_obra} onChange={(e) => setF({ ...f, valor_obra: e.target.value })} /></Field>
+      </div>
+      <p className="text-xs text-gray-500 mt-2">El importe se calcula al liquidar (1% del valor de obra por defecto).</p>
+      {msg && <p className="text-red-600 text-sm mt-2">⚠ {msg}</p>}
+      <button className={`${btnPrimary} w-full mt-3`} disabled={m.isPending || !(Number(f.valor_obra) > 0)} onClick={() => m.mutate()}>{m.isPending ? '...' : 'Crear derecho'}</button>
+    </Modal>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Servicios medidos: CRUD + carga de lecturas (consumo = actual - anterior)
+function ServiciosMedidosTab() {
+  const qc = useQueryClient();
+  const [modal, setModal] = useState(null);
+  const [detalle, setDetalle] = useState(null);
+  const { data, isLoading } = useQuery({ queryKey: ['ip-serv-medidos'], queryFn: () => ingresosPublicosAPI.serviciosMedidos.list({ limit: 100 }).then((r) => r.data) });
+  const refetch = () => qc.invalidateQueries({ queryKey: ['ip-serv-medidos'] });
+  return (
+    <div>
+      <div className="mb-3 flex justify-end"><button className={btnPrimary} onClick={() => setModal('nuevo')}>Nuevo servicio medido</button></div>
+      {isLoading ? <LoadingSpinner /> : (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto">
+          <table className="min-w-full text-left text-xs">
+            <thead><tr className="border-b bg-gray-50/70 text-gray-500 uppercase">{['ID', 'Cuenta', 'Tipo', 'Medidor', 'Tarifa', 'Estado', 'Acciones'].map((h) => <th key={h} className="px-3 py-2.5 font-semibold">{h}</th>)}</tr></thead>
+            <tbody className="divide-y divide-gray-50">
+              {data?.length ? data.map((s) => (
+                <tr key={s.id} className="hover:bg-primary-50/40">
+                  <td className="px-3 py-2">{s.id}</td><td className="px-3 py-2">{s.id_cuenta || '—'}</td>
+                  <td className="px-3 py-2 capitalize">{s.tipo}</td><td className="px-3 py-2">{s.medidor_numero || '—'}</td>
+                  <td className="px-3 py-2">{fmtMoney(s.tarifa)}</td>
+                  <td className="px-3 py-2">{s.activo ? 'Activo' : 'Baja'}</td>
+                  <td className="px-3 py-2"><button className="text-primary-600 border border-primary-200 rounded px-2 py-0.5" onClick={() => setDetalle(s)}>Lecturas</button></td>
+                </tr>
+              )) : <tr><td colSpan={7} className="px-3 py-8 text-center text-gray-400">Sin servicios medidos.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {modal === 'nuevo' && <ServicioModal onClose={() => setModal(null)} onDone={() => { setModal(null); refetch(); }} />}
+      {detalle && <LecturasModal servicio={detalle} onClose={() => setDetalle(null)} />}
+    </div>
+  );
+}
+
+function ServicioModal({ onClose, onDone }) {
+  const [f, setF] = useState({ id_cuenta: '', tipo: 'agua', medidor_numero: '', tarifa: '' });
+  const [msg, setMsg] = useState('');
+  const m = useMutation({
+    mutationFn: () => ingresosPublicosAPI.serviciosMedidos.create({
+      id_cuenta: f.id_cuenta ? Number(f.id_cuenta) : null, tipo: f.tipo,
+      medidor_numero: f.medidor_numero || null, tarifa: Number(f.tarifa || 0), activo: true,
+    }),
+    onSuccess: onDone, onError: (e) => setMsg(e.response?.data?.detail || 'Error'),
+  });
+  return (
+    <Modal title="Nuevo servicio medido" onClose={onClose}>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="ID Cuenta"><input type="number" className={inputClass} value={f.id_cuenta} onChange={(e) => setF({ ...f, id_cuenta: e.target.value })} /></Field>
+        <Field label="Tipo"><select className={inputClass} value={f.tipo} onChange={(e) => setF({ ...f, tipo: e.target.value })}><option value="agua">Agua</option><option value="cloaca">Cloaca</option><option value="luz">Luz</option></select></Field>
+        <Field label="N° Medidor"><input className={inputClass} value={f.medidor_numero} onChange={(e) => setF({ ...f, medidor_numero: e.target.value })} /></Field>
+        <Field label="Tarifa por unidad"><input type="number" className={inputClass} value={f.tarifa} onChange={(e) => setF({ ...f, tarifa: e.target.value })} /></Field>
+      </div>
+      {msg && <p className="text-red-600 text-sm mt-2">⚠ {msg}</p>}
+      <button className={`${btnPrimary} w-full mt-3`} disabled={m.isPending} onClick={() => m.mutate()}>{m.isPending ? '...' : 'Crear servicio'}</button>
+    </Modal>
+  );
+}
+
+function LecturasModal({ servicio, onClose }) {
+  const qc = useQueryClient();
+  const { data: lecturas, isLoading } = useQuery({ queryKey: ['ip-lecturas', servicio.id], queryFn: () => ingresosPublicosAPI.serviciosMedidos.lecturas(servicio.id).then((r) => r.data) });
+  const [f, setF] = useState({ periodo: '', lectura_actual: '' });
+  const [msg, setMsg] = useState('');
+  const m = useMutation({
+    mutationFn: () => ingresosPublicosAPI.serviciosMedidos.cargarLectura(servicio.id, { periodo: Number(f.periodo), lectura_actual: Number(f.lectura_actual) }),
+    onSuccess: () => { setF({ periodo: '', lectura_actual: '' }); setMsg(''); qc.invalidateQueries({ queryKey: ['ip-lecturas', servicio.id] }); },
+    onError: (e) => setMsg(e.response?.data?.detail || 'Error'),
+  });
+  return (
+    <Modal title={`Lecturas — servicio #${servicio.id} (${servicio.tipo})`} onClose={onClose} wide>
+      <div className="grid grid-cols-3 gap-2 items-end mb-3">
+        <Field label="Período (AAAAMM)"><input type="number" className={inputClass} value={f.periodo} onChange={(e) => setF({ ...f, periodo: e.target.value })} placeholder="202607" /></Field>
+        <Field label="Lectura actual"><input type="number" className={inputClass} value={f.lectura_actual} onChange={(e) => setF({ ...f, lectura_actual: e.target.value })} /></Field>
+        <button className={btnPrimary} disabled={m.isPending || !f.periodo || f.lectura_actual === ''} onClick={() => m.mutate()}>{m.isPending ? '...' : 'Cargar lectura'}</button>
+      </div>
+      <p className="text-xs text-gray-500 mb-2">La lectura anterior se toma de la última cargada; el consumo e importe (× tarifa {fmtMoney(servicio.tarifa)}) se calculan solos.</p>
+      {msg && <p className="text-red-600 text-sm mb-2">⚠ {msg}</p>}
+      {isLoading ? <LoadingSpinner /> : (
+        <table className="min-w-full text-left text-xs">
+          <thead><tr className="border-b bg-gray-50/70 text-gray-500 uppercase">{['Período', 'Anterior', 'Actual', 'Consumo', 'Importe'].map((h) => <th key={h} className="px-3 py-2 font-semibold">{h}</th>)}</tr></thead>
+          <tbody className="divide-y divide-gray-50">
+            {lecturas?.length ? lecturas.map((l) => (
+              <tr key={l.id}><td className="px-3 py-1.5">{l.periodo}</td><td className="px-3 py-1.5">{l.lectura_anterior}</td><td className="px-3 py-1.5">{l.lectura_actual}</td><td className="px-3 py-1.5 font-medium">{l.consumo}</td><td className="px-3 py-1.5 font-semibold">{fmtMoney(l.importe)}</td></tr>
+            )) : <tr><td colSpan={5} className="px-3 py-6 text-center text-gray-400">Sin lecturas.</td></tr>}
+          </tbody>
+        </table>
+      )}
+    </Modal>
   );
 }
