@@ -858,3 +858,14 @@ dmerge(ingresosPublicosAPI, {
     liquidar: (id, data) => api.post(`/ingresos-publicos/derechos-construccion/${id}/liquidar`, data || {}),
   },
 });
+
+dmerge(tesoreriaAPI, {
+  cuentasBancarias: {
+    depositos: (id) => api.get(`/tesoreria/cuentas-bancarias/${id}/depositos`),
+    crearDeposito: (id, data) => api.post(`/tesoreria/cuentas-bancarias/${id}/depositos`, data),
+    acreditarRecaudacion: (id, data) => api.post(`/tesoreria/cuentas-bancarias/${id}/acreditar-recaudacion`, data),
+  },
+  conciliacion: {
+    autoConciliar: (idExtracto) => api.post(`/tesoreria/conciliacion/extractos/${idExtracto}/auto-conciliar`, {}),
+  },
+});

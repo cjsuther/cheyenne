@@ -54,6 +54,21 @@ class OrdenPago(Base):
 MEDIOS_PAGO = ("efectivo", "cheque", "transferencia", "orden_bancaria")
 
 
+class DepositoBancario(Base):
+    """Crédito a una cuenta bancaria: recaudación depositada, depósito manual o transferencia entrante.
+    Junto con los egresos (débitos) forma el ledger de la cuenta: saldo = inicial + depósitos - egresos."""
+    __tablename__ = "tesoreria_depositos_bancarios"
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id_cuenta_bancaria = Column(BigInteger, nullable=False, index=True)
+    importe = Column(Numeric(18, 2), nullable=False)
+    concepto = Column(String(200), nullable=True)
+    origen = Column(String(30), nullable=False, default="manual")   # manual | recaudacion | transferencia | cementerio | apremios
+    referencia = Column(String(80), nullable=True, index=True)      # p.ej. lote de recaudación (idempotencia)
+    fecha = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    usuario_nombre = Column(String(150), nullable=True)
+    activo = Column(Boolean, nullable=False, default=True)
+
+
 class Egreso(Base):
     """Pago efectivo de una OP: el dinero que sale (parte diario de egresos)."""
     __tablename__ = "tesoreria_egresos"

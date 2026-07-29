@@ -143,8 +143,27 @@ def anular(id: int, db: Session = Depends(get_db), current_user: dict = Depends(
     if a.tipo in ("cierre", "apertura"):
         raise HTTPException(status_code=409, detail="No se anulan asientos de cierre/apertura")
     _ejercicio_abierto_o_error(db, a.anio)
+    # Si estaba CONFIRMADO (ya impactó el mayor), se emite un CONTRA-ASIENTO (debe<->haber)
+    # en vez de borrar el impacto: preserva la trazabilidad y deja el mayor en cero.
+    contra = None
+    if a.estado == "confirmado":
+        items = db.query(AsientoItem).filter(AsientoItem.id_asiento == a.id).all()
+        td = sum((_dec(i.haber) for i in items), CERO)
+        th = sum((_dec(i.debe) for i in items), CERO)
+        contra = Asiento(anio=a.anio, numero=_proximo_numero(db, a.anio), fecha=date.today(),
+                         tipo="automatico", concepto=f"Anulación de AS-{a.anio}-{a.numero:05d}",
+                         origen_modulo="contabilidad", origen_ref=f"anula-{a.id}", estado="confirmado",
+                         total_debe=td, total_haber=th, creado_por=_quien(current_user))
+        db.add(contra); db.flush()
+        for i in items:
+            db.add(AsientoItem(id_asiento=contra.id, id_cuenta=i.id_cuenta,
+                               debe=_dec(i.haber), haber=_dec(i.debe),
+                               detalle=f"Reversa: {i.detalle or ''}".strip()))
     a.estado = "anulado"; db.commit(); db.refresh(a)
-    return _ser_asiento(a, db)
+    out = _ser_asiento(a, db)
+    if contra:
+        out["contra_asiento"] = f"AS-{contra.anio}-{contra.numero:05d}"
+    return out
 
 
 @asientos_router.post("/automatico", status_code=201)

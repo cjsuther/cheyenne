@@ -17,8 +17,18 @@ from shared.filters import filtered_query
 from database import get_db
 from config import get_settings
 from models.egresos import (
-    Beneficiario, CuentaBancaria, OrdenPago, Egreso, ESTADOS_OP, MEDIOS_PAGO,
+    Beneficiario, CuentaBancaria, OrdenPago, Egreso, DepositoBancario, ESTADOS_OP, MEDIOS_PAGO,
 )
+from models.recaudacion_lote import RecaudacionLote
+
+
+def _saldo_cuenta(db, id_cuenta, saldo_inicial):
+    """Saldo real de la cuenta: saldo_inicial + depósitos (créditos) - egresos (débitos)."""
+    egresado = db.query(func.sum(Egreso.importe)).filter(
+        Egreso.id_cuenta_bancaria == id_cuenta, Egreso.activo == True).scalar() or 0
+    depositado = db.query(func.sum(DepositoBancario.importe)).filter(
+        DepositoBancario.id_cuenta_bancaria == id_cuenta, DepositoBancario.activo == True).scalar() or 0
+    return Decimal(str(saldo_inicial)) + Decimal(str(depositado)) - Decimal(str(egresado))
 
 settings = get_settings()
 get_current_user = create_auth_dependency(settings.seguridad_url)
@@ -125,10 +135,8 @@ def listar_ctas(request: Request, skip: int = Query(0, ge=0), limit: int = Query
                        exclude={"skip", "limit"}, default_sort="banco")
     out = []
     for c in q.offset(skip).limit(limit).all():
-        egresado = db.query(func.sum(Egreso.importe)).filter(
-            Egreso.id_cuenta_bancaria == c.id, Egreso.activo == True).scalar() or 0
         row = {k: getattr(c, k) for k in _C}
-        row["saldo_actual"] = float(Decimal(str(c.saldo_inicial)) - Decimal(str(egresado)))
+        row["saldo_actual"] = float(_saldo_cuenta(db, c.id, c.saldo_inicial))
         out.append(row)
     return out
 
@@ -160,6 +168,82 @@ def del_cta(id: int, db: Session = Depends(get_db), current_user: dict = Depends
         raise HTTPException(status_code=404, detail="Cuenta inexistente")
     c.activo = False; db.commit()
     return {"message": "dada de baja"}
+
+
+# ── Depósitos bancarios (créditos) ───────────────────────────────────
+class DepositoIn(BaseModel):
+    importe: Decimal
+    concepto: Optional[str] = None
+    origen: str = "manual"
+    referencia: Optional[str] = None
+
+
+def _ser_dep(d: DepositoBancario):
+    return {"id": d.id, "id_cuenta_bancaria": d.id_cuenta_bancaria, "importe": float(d.importe),
+            "concepto": d.concepto, "origen": d.origen, "referencia": d.referencia,
+            "fecha": d.fecha, "usuario": d.usuario_nombre}
+
+
+@cuentas_router.get("/{id}/depositos")
+def listar_depositos(id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    _requiere(current_user, "tesoreria_read")
+    q = db.query(DepositoBancario).filter(
+        DepositoBancario.id_cuenta_bancaria == id, DepositoBancario.activo == True).order_by(DepositoBancario.id.desc())
+    return [_ser_dep(d) for d in q.limit(200).all()]
+
+
+@cuentas_router.post("/{id}/depositos", status_code=201)
+def crear_deposito(id: int, data: DepositoIn, db: Session = Depends(get_db),
+                   current_user: dict = Depends(get_current_user)):
+    """Registra un crédito (depósito) en la cuenta: suma al saldo. Idempotente por (origen, referencia)."""
+    _requiere(current_user, "tesoreria_write")
+    if not db.query(CuentaBancaria).filter(CuentaBancaria.id == id, CuentaBancaria.activo == True).first():
+        raise HTTPException(status_code=400, detail="Cuenta bancaria inexistente")
+    if data.importe <= 0:
+        raise HTTPException(status_code=400, detail="El importe debe ser mayor a cero")
+    if data.referencia:
+        ex = db.query(DepositoBancario).filter(
+            DepositoBancario.origen == data.origen, DepositoBancario.referencia == data.referencia,
+            DepositoBancario.activo == True).first()
+        if ex:
+            out = _ser_dep(ex); out["idempotente"] = True
+            return out
+    d = DepositoBancario(id_cuenta_bancaria=id, importe=data.importe, concepto=data.concepto,
+                         origen=data.origen, referencia=data.referencia, usuario_nombre=_quien(current_user))
+    db.add(d); db.commit(); db.refresh(d)
+    return _ser_dep(d)
+
+
+@cuentas_router.post("/{id}/acreditar-recaudacion")
+def acreditar_recaudacion(id: int, data: dict = Body(...), db: Session = Depends(get_db),
+                          current_user: dict = Depends(get_current_user)):
+    """Acredita un lote de recaudación en la cuenta bancaria (recaudación -> banco).
+    Crea el depósito por el importe neto del lote y marca la fecha de acreditación. Idempotente."""
+    _requiere(current_user, "tesoreria_write")
+    cta = db.query(CuentaBancaria).filter(CuentaBancaria.id == id, CuentaBancaria.activo == True).first()
+    if not cta:
+        raise HTTPException(status_code=400, detail="Cuenta bancaria inexistente")
+    id_lote = data.get("id_lote")
+    lote = db.query(RecaudacionLote).filter(RecaudacionLote.id == id_lote).first()
+    if not lote:
+        raise HTTPException(status_code=404, detail="Lote de recaudación inexistente")
+    importe = Decimal(str(lote.importe_neto or lote.importe_total or 0))
+    if importe <= 0:
+        raise HTTPException(status_code=400, detail="El lote no tiene importe neto a acreditar")
+    ref = f"lote-{lote.id}"
+    ex = db.query(DepositoBancario).filter(
+        DepositoBancario.origen == "recaudacion", DepositoBancario.referencia == ref,
+        DepositoBancario.activo == True).first()
+    if ex:
+        return {**_ser_dep(ex), "idempotente": True}
+    d = DepositoBancario(id_cuenta_bancaria=id, importe=importe,
+                         concepto=f"Acreditación recaudación lote #{lote.id}",
+                         origen="recaudacion", referencia=ref, usuario_nombre=_quien(current_user))
+    db.add(d)
+    from datetime import date as _date
+    lote.fecha_acreditacion = _date.today()
+    db.commit(); db.refresh(d)
+    return _ser_dep(d)
 
 
 # ── Órdenes de pago ──────────────────────────────────────────────────

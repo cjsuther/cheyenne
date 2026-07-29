@@ -434,6 +434,45 @@ def egresos_pendientes(id: int, db: Session = Depends(get_db), current_user: dic
             for e in egresos if e.id not in conciliados]
 
 
+@conc_router.post("/extractos/{id}/auto-conciliar")
+def auto_conciliar(id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    """Concilia automáticamente: casa cada débito del extracto pendiente con un egreso no conciliado
+    del mismo importe (y fecha cercana, ±5 días si ambos la tienen). 1 a 1, sin ambigüedad."""
+    _requiere(current_user, "tesoreria_conciliar")
+    ex = db.query(ExtractoBancario).filter(ExtractoBancario.id == id, ExtractoBancario.activo == True).first()
+    if not ex:
+        raise HTTPException(status_code=404, detail="Extracto inexistente")
+    ya_conc = {m.id_egreso for m in db.query(ExtractoMovimiento).filter(
+        ExtractoMovimiento.id_egreso.isnot(None), ExtractoMovimiento.activo == True).all()}
+    egresos = [e for e in db.query(Egreso).filter(
+        Egreso.id_cuenta_bancaria == ex.id_cuenta_bancaria, Egreso.activo == True).all() if e.id not in ya_conc]
+    movs = db.query(ExtractoMovimiento).filter(
+        ExtractoMovimiento.id_extracto == ex.id, ExtractoMovimiento.activo == True,
+        ExtractoMovimiento.conciliado == False).all()
+
+    def cerca(fa, fb):
+        if not fa or not fb:
+            return True
+        try:
+            return abs((fa - fb).days) <= 5
+        except Exception:
+            return True
+
+    usados = set(); conciliados = 0
+    for m in movs:
+        if Decimal(str(m.importe)) >= 0:   # solo débitos (importe negativo) casan con egresos
+            continue
+        objetivo = abs(Decimal(str(m.importe)))
+        candidatos = [e for e in egresos if e.id not in usados
+                      and Decimal(str(e.importe)) == objetivo and cerca(m.fecha, e.fecha.date() if e.fecha else None)]
+        if len(candidatos) >= 1:
+            e = candidatos[0]
+            m.id_egreso = e.id; m.conciliado = True; usados.add(e.id); conciliados += 1
+    db.commit()
+    return {"conciliados": conciliados, "movimientos_pendientes": len(movs) - conciliados,
+            "egresos_sin_casar": len([e for e in egresos if e.id not in usados])}
+
+
 @conc_router.post("/movimientos/{id}/conciliar")
 def conciliar(id: int, data: dict = Body(...), db: Session = Depends(get_db),
               current_user: dict = Depends(get_current_user)):
@@ -474,9 +513,12 @@ def resumen_conciliacion(id: int, db: Session = Depends(get_db), current_user: d
     if not ex:
         raise HTTPException(status_code=404, detail="Extracto inexistente")
     cuenta = _cuenta(db, ex.id_cuenta_bancaria)
+    from models.egresos import DepositoBancario
     egresado = db.query(func.sum(Egreso.importe)).filter(
         Egreso.id_cuenta_bancaria == cuenta.id, Egreso.activo == True).scalar() or 0
-    saldo_contable = Decimal(str(cuenta.saldo_inicial)) - Decimal(str(egresado))
+    depositado = db.query(func.sum(DepositoBancario.importe)).filter(
+        DepositoBancario.id_cuenta_bancaria == cuenta.id, DepositoBancario.activo == True).scalar() or 0
+    saldo_contable = Decimal(str(cuenta.saldo_inicial)) + Decimal(str(depositado)) - Decimal(str(egresado))
     movs = db.query(ExtractoMovimiento).filter(
         ExtractoMovimiento.id_extracto == ex.id, ExtractoMovimiento.activo == True).all()
     total = len(movs)

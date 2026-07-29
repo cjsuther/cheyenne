@@ -279,7 +279,10 @@ function ExtractoDetalle({ id, onBack, onError }) {
   const desconciliar = (mov) => tesoreriaAPI.conciliacion.desconciliar(mov.id).then(refetch).catch((e) => onError(e.response?.data?.detail || 'Error'));
   return (
     <div>
-      <button className="text-sm text-primary-600 mb-3 hover:underline" onClick={onBack}>← Volver a extractos</button>
+      <div className="flex items-center justify-between mb-3">
+        <button className="text-sm text-primary-600 hover:underline" onClick={onBack}>← Volver a extractos</button>
+        <button className={btnSecondary} onClick={() => tesoreriaAPI.conciliacion.autoConciliar(id).then((r) => { alert(`Auto-conciliados: ${r.data.conciliados} · pendientes: ${r.data.movimientos_pendientes}`); refetch(); }).catch((e) => onError(e.response?.data?.detail || 'Error'))}>⚡ Auto-conciliar por importe/fecha</button>
+      </div>
       {resumen && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
           {[['Saldo extracto', fmt(resumen.saldo_extracto)], ['Saldo contable', fmt(resumen.saldo_contable)], ['Diferencia', fmt(resumen.diferencia)], ['Conciliados', `${resumen.movimientos_conciliados}/${resumen.movimientos_total}`]].map(([l, v]) => (
