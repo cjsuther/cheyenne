@@ -869,3 +869,20 @@ dmerge(tesoreriaAPI, {
     autoConciliar: (idExtracto) => api.post(`/tesoreria/conciliacion/extractos/${idExtracto}/auto-conciliar`, {}),
   },
 });
+
+export const patrimonioAPI = {
+  bienes: {
+    list: (params) => api.get('/patrimonio/bienes', { params }),
+    get: (id) => api.get(`/patrimonio/bienes/${id}`),
+    create: (data) => api.post('/patrimonio/bienes', data),
+    update: (id, data) => api.put(`/patrimonio/bienes/${id}`, data),
+    pase: (id, data) => api.post(`/patrimonio/bienes/${id}/pase`, data),
+    baja: (id, data) => api.post(`/patrimonio/bienes/${id}/baja`, data),
+    altaDesdeOc: (data) => api.post('/patrimonio/bienes/alta-desde-oc', data),
+    inventario: () => api.get('/patrimonio/bienes/inventario'),
+  },
+  amortizacion: {
+    preview: (periodo) => api.get('/patrimonio/amortizacion/preview', { params: { periodo } }),
+    correr: (data) => api.post('/patrimonio/amortizacion/correr', data),
+  },
+};

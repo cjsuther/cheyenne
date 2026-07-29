@@ -1,6 +1,6 @@
 // Registro central de los super-módulos (dashboard) y sus sub-menús.
 import {
-  IconContribuyente360, IconIngresos, IconSeguridad, IconContaduria, IconConfig, IconPresupuesto, IconTesoreria, IconCompras, IconContabilidad, IconCementerio, IconApremios, IconReportes,
+  IconContribuyente360, IconIngresos, IconSeguridad, IconContaduria, IconConfig, IconPresupuesto, IconTesoreria, IconCompras, IconContabilidad, IconPatrimonio, IconCementerio, IconApremios, IconReportes,
 } from '../components/common/icons';
 
 export const SUPER_MODULES = [
@@ -61,6 +61,13 @@ export const SUPER_MODULES = [
     key: 'reportes', label: 'Reportes', desc: 'Reportes consolidados: recaudación, cierre de caja y ejecución',
     Icon: IconReportes, chip: 'bg-indigo-50 text-indigo-700',
     items: [ { path: '/reportes', label: 'Reportes', module: 'reportes' } ],
+  },
+  {
+    key: 'patrimonio', label: 'Patrimonio', desc: 'Bienes de uso: altas, amortización, pases y bajas',
+    Icon: IconPatrimonio, chip: 'bg-lime-50 text-lime-700',
+    items: [
+      { path: '/patrimonio', label: 'Bienes de uso', module: 'patrimonio' },
+    ],
   },
   {
     key: 'tesoreria', label: 'Tesorería', desc: 'Recaudación, pagos y bancos',

@@ -154,6 +154,14 @@ export const IconReportes = (p) => (
   </Svg>
 );
 
+export const IconPatrimonio = (p) => (
+  <Svg {...p}>
+    <path d="M3 7l9-4 9 4-9 4-9-4Z" />
+    <path d="M3 7v10l9 4 9-4V7" />
+    <path d="M12 11v10" />
+  </Svg>
+);
+
 export const IconContaduria = (p) => (
   <Svg {...p}>
     <rect x="4" y="3" width="16" height="18" rx="2" />

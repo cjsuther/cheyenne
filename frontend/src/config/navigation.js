@@ -83,6 +83,11 @@ export const NAV = [
     { k: 'ejecucion', l: 'Ejecución presupuestaria' }, { k: 'ciclo', l: 'Ciclo del gasto' },
   ] },
 
+  // ── Patrimonio ──
+  { label: 'Patrimonio — Bienes de Uso', path: '/patrimonio', module: 'patrimonio', tabs: [
+    { k: 'bienes', l: 'Bienes' }, { k: 'inventario', l: 'Inventario' }, { k: 'amortizacion', l: 'Amortización' },
+  ] },
+
   // ── Contaduría ──
   { label: 'Contaduría — Ciclo del Gasto', path: '/contaduria', module: 'contaduria', tabs: [] },
 

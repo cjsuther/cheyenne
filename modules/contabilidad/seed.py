@@ -116,6 +116,12 @@ REGLAS = [
         (1, "debe",  "1.1.21"), (2, "haber", "1.1.20")]),
     ("apremios.cobrado", "Cobro judicial (apremio): Recaudación a Deudores judiciales", [
         (1, "debe",  "1.1.03"), (2, "haber", "1.1.21")]),
+    ("patrimonio.alta", "Alta de bien de uso: Bienes de uso a Patrimonio", [
+        (1, "debe",  "1.2.01"), (2, "haber", "3.1.01")]),
+    ("patrimonio.amortizacion", "Amortización: Gasto de amortización a Bienes de uso", [
+        (1, "debe",  "5.1.09"), (2, "haber", "1.2.01")]),
+    ("patrimonio.baja", "Baja de bien de uso: Patrimonio a Bienes de uso", [
+        (1, "debe",  "3.1.01"), (2, "haber", "1.2.01")]),
 ]
 
 
