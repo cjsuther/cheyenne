@@ -91,7 +91,7 @@ def imputar(db: Session, tx: Transaccion, creado_por: str):
 
     asiento, err = _crear_asiento(
         db, anio, fecha, tx.concepto or f"{tx.tipo} · {tx.origen_ref}", "automatico",
-        tx.origen_modulo, f"tx-{tx.id}", creado_por)
+        tx.origen_modulo, f"tx-{tx.id}", lineas_cod, creado_por)
     if err:
         tx.estado = "error"; tx.id_asiento = None; tx.motivo = err; return
     tx.estado = "imputada"; tx.motivo = None; tx.id_asiento = asiento.id
