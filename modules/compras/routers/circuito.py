@@ -27,6 +27,21 @@ get_current_user = create_auth_dependency(settings.seguridad_url)
 CERO = Decimal("0.00")
 
 
+def _numero_central(clave, anio, minimo, prefijo, padding, token):
+    """Número centralizado seguro (best-effort). Devuelve el número o `minimo` si Administración no responde."""
+    import httpx
+    try:
+        with httpx.Client(timeout=5) as c:
+            r = c.post(f"{settings.administracion_url}/numeradores/{clave}-{anio}/siguiente-seguro",
+                       json={"minimo": minimo, "prefijo": prefijo, "padding": padding, "anio": anio},
+                       headers={"Authorization": token} if token else {})
+        if r.status_code < 400:
+            return int(r.json()["numero"])
+    except Exception:
+        pass
+    return minimo
+
+
 def _requiere(cu, permiso):
     if cu.get("superuser"):
         return
@@ -190,7 +205,7 @@ def obtener_oc(id: int, db: Session = Depends(get_db), current_user: dict = Depe
 
 
 @oc_router.post("", status_code=201)
-def crear_oc(data: OCIn, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+def crear_oc(data: OCIn, request: Request, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     _requiere(current_user, "compras_ordenar")
     if not data.items:
         raise HTTPException(status_code=400, detail="La OC debe tener al menos un ítem")
@@ -212,7 +227,8 @@ def crear_oc(data: OCIn, db: Session = Depends(get_db), current_user: dict = Dep
             raise HTTPException(status_code=400, detail=f"Artículo {it.id_articulo} inexistente")
         total += Decimal(str(it.cantidad)) * Decimal(str(it.precio))
     ultimo = db.query(func.max(OrdenCompra.numero)).filter(OrdenCompra.anio == data.anio).scalar() or 0
-    oc = OrdenCompra(anio=data.anio, numero=ultimo + 1, id_pedido=data.id_pedido,
+    numero = _numero_central("oc", data.anio, ultimo + 1, f"OC-{data.anio}-", 4, request.headers.get("authorization"))
+    oc = OrdenCompra(anio=data.anio, numero=numero, id_pedido=data.id_pedido,
                      id_proveedor=prov.id, proveedor_nombre=prov.nombre, total=total,
                      concepto=data.concepto, estado="emitida", creado_por=_quien(current_user))
     db.add(oc); db.flush()

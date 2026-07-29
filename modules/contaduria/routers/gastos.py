@@ -52,6 +52,20 @@ def _quien(cu: dict) -> str:
     return cu.get("nombre_apellido") or cu.get("codigo") or "?"
 
 
+def _numero_central(clave, anio, minimo, prefijo, padding, token):
+    """Número centralizado seguro (best-effort). Devuelve el número o `minimo` si Administración no responde."""
+    try:
+        with httpx.Client(timeout=5) as c:
+            r = c.post(f"{settings.administracion_url}/numeradores/{clave}-{anio}/siguiente-seguro",
+                       json={"minimo": minimo, "prefijo": prefijo, "padding": padding, "anio": anio},
+                       headers={"Authorization": token} if token else {})
+        if r.status_code < 400:
+            return int(r.json()["numero"])
+    except Exception:
+        pass
+    return minimo
+
+
 def _presupuesto(metodo: str, path: str, token: str, json_body: dict = None):
     """Llama al módulo presupuesto reenviando el token del usuario. Propaga errores de negocio."""
     try:
@@ -169,7 +183,7 @@ def crear(data: GastoIn, request: Request, db: Session = Depends(get_db),
     token = request.headers.get("authorization")
 
     ultimo = db.query(func.max(GastoExpediente.numero)).filter(GastoExpediente.anio == data.anio).scalar() or 0
-    numero = ultimo + 1
+    numero = _numero_central("expediente-gasto", data.anio, ultimo + 1, f"GEX-{data.anio}-", 4, token)
     referencia = f"GEX-{data.anio}-{numero:04d}"
 
     # 1) reservar crédito en presupuesto (si falla, el expediente NO se crea)
@@ -275,12 +289,23 @@ def avanzar(id: int, request: Request, data: dict = Body(default={}),
     # integración: al PAGAR, generar la orden de pago en Tesorería (best-effort, idempotente)
     tes_msg = None
     if etapa == "pagar":
+        # retenciones liquidadas sobre el gasto -> se sugieren a Tesorería para pre-cargar al pagar
+        retenciones_sugeridas = []
+        try:
+            from models.retencion import RetencionAplicada
+            for r in db.query(RetencionAplicada).filter(RetencionAplicada.id_gasto == g.id).all():
+                retenciones_sugeridas.append({
+                    "regimen": r.regimen, "base": float(r.base_calculo), "alicuota": float(r.alicuota or 0),
+                    "importe": float(r.importe), "comprobante": r.comprobante})
+        except Exception:
+            retenciones_sugeridas = []
         try:
             with httpx.Client(timeout=10) as client:
                 resp = client.post(f"{settings.tesoreria_url}/ordenes-pago",
                     json={"anio": g.anio, "importe": float(importe),
                           "concepto": g.descripcion, "beneficiario_nombre": g.proveedor,
-                          "origen": "contaduria", "referencia_externa": f"GEX-{g.anio}-{g.numero:04d}"},
+                          "origen": "contaduria", "referencia_externa": f"GEX-{g.anio}-{g.numero:04d}",
+                          "retenciones_sugeridas": retenciones_sugeridas or None},
                     headers={"Authorization": token} if token else {})
             if resp.status_code < 400:
                 g.op_numero = resp.json().get("orden_pago") or g.op_numero

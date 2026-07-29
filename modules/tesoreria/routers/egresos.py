@@ -35,6 +35,21 @@ def _quien(cu: dict) -> str:
     return cu.get("nombre_apellido") or cu.get("codigo") or "?"
 
 
+def _numero_central(clave, anio, minimo, prefijo, padding, token):
+    """Número centralizado seguro (best-effort). Devuelve el número o `minimo` si Administración no responde."""
+    import httpx
+    try:
+        with httpx.Client(timeout=5) as c:
+            r = c.post(f"{settings.administracion_url}/numeradores/{clave}-{anio}/siguiente-seguro",
+                       json={"minimo": minimo, "prefijo": prefijo, "padding": padding, "anio": anio},
+                       headers={"Authorization": token} if token else {})
+        if r.status_code < 400:
+            return int(r.json()["numero"])
+    except Exception:
+        pass
+    return minimo
+
+
 # ── Beneficiarios ────────────────────────────────────────────────────
 beneficiarios_router = APIRouter(prefix="/beneficiarios", tags=["Beneficiarios de pago"])
 _B = ["id", "codigo", "nombre", "cuit", "cbu", "activo"]
@@ -159,6 +174,7 @@ class OrdenPagoIn(BaseModel):
     beneficiario_nombre: Optional[str] = None
     origen: str = "manual"
     referencia_externa: Optional[str] = None
+    retenciones_sugeridas: Optional[list] = None   # liquidadas por Contaduría, para pre-cargar al pagar
 
 
 def _ser_op(op: OrdenPago, db: Session):
@@ -169,6 +185,7 @@ def _ser_op(op: OrdenPago, db: Session):
         "id_beneficiario": op.id_beneficiario, "beneficiario": op.beneficiario_nombre,
         "importe": float(op.importe), "concepto": op.concepto, "estado": op.estado,
         "origen": op.origen, "referencia_externa": op.referencia_externa,
+        "retenciones_sugeridas": (lambda v: __import__("json").loads(v) if v else [])(op.retenciones_sugeridas),
         "creado_por": op.creado_por, "created_at": op.created_at,
         "pagos": [{"id": e.id, "medio": e.medio, "numero_cheque": e.numero_cheque,
                    "importe": float(e.importe), "fecha": e.fecha, "usuario": e.usuario_nombre}
@@ -190,7 +207,7 @@ def listar_op(request: Request, anio: int = Query(None), skip: int = Query(0, ge
 
 
 @op_router.post("", status_code=201)
-def crear_op(data: OrdenPagoIn, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+def crear_op(data: OrdenPagoIn, request: Request, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     _requiere(current_user, "tesoreria_write")
     if data.importe <= 0:
         raise HTTPException(status_code=400, detail="El importe debe ser mayor a cero")
@@ -207,10 +224,14 @@ def crear_op(data: OrdenPagoIn, db: Session = Depends(get_db), current_user: dic
         b = db.query(Beneficiario).filter(Beneficiario.id == data.id_beneficiario).first()
         nombre = b.nombre if b else None
     ultimo = db.query(func.max(OrdenPago.numero)).filter(OrdenPago.anio == data.anio).scalar() or 0
+    numero = _numero_central("op", data.anio, ultimo + 1, f"OP-{data.anio}-", 5, request.headers.get("authorization"))
+    import json as _json
     op = OrdenPago(
-        anio=data.anio, numero=ultimo + 1, id_beneficiario=data.id_beneficiario,
+        anio=data.anio, numero=numero, id_beneficiario=data.id_beneficiario,
         beneficiario_nombre=nombre, importe=data.importe, concepto=data.concepto,
-        origen=data.origen, referencia_externa=data.referencia_externa, creado_por=_quien(current_user))
+        origen=data.origen, referencia_externa=data.referencia_externa,
+        retenciones_sugeridas=_json.dumps(data.retenciones_sugeridas) if data.retenciones_sugeridas else None,
+        creado_por=_quien(current_user))
     db.add(op); db.commit(); db.refresh(op)
     return _ser_op(op, db)
 

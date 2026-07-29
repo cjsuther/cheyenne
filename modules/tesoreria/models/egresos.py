@@ -45,6 +45,7 @@ class OrdenPago(Base):
     estado = Column(String(15), nullable=False, default="pendiente")
     origen = Column(String(30), nullable=False, default="manual")     # manual | contaduria
     referencia_externa = Column(String(80), nullable=True)            # p.ej. expediente GEX
+    retenciones_sugeridas = Column(Text, nullable=True)               # JSON: retenciones liquidadas por Contaduría
     creado_por = Column(String(150), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     activo = Column(Boolean, nullable=False, default=True)

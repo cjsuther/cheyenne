@@ -136,6 +136,41 @@ def eliminar_por_id(id: int, db: Session = Depends(get_db), current_user: dict =
     return {"message": "dado de baja"}
 
 
+class SiguienteSeguroIn(BaseModel):
+    minimo: int = 1
+    prefijo: Optional[str] = None
+    padding: int = 0
+    descripcion: Optional[str] = None
+    anio: Optional[int] = None
+
+
+@router.post("/{clave}/siguiente-seguro")
+def siguiente_seguro(clave: str, data: SiguienteSeguroIn, db: Session = Depends(get_db),
+                     current_user: dict = Depends(get_current_user)):
+    """Numeración centralizada segura para retrofit: crea el numerador si no existe
+    (arrancando en `minimo`) y garantiza que el número emitido sea >= `minimo`, evitando
+    colisiones con documentos ya numerados internamente por el módulo. Lo consumen
+    Compras/Tesorería/Contaduría con minimo = max(numero_actual)+1."""
+    _requiere(current_user, "administracion_config_write")
+    clave = clave.strip()
+    x = db.query(Numerador).filter(Numerador.clave == clave).with_for_update().first()
+    if not x:
+        x = Numerador(clave=clave, descripcion=data.descripcion, anio=data.anio,
+                      proximo=data.minimo, prefijo=data.prefijo, padding=data.padding, activo=True)
+        db.add(x); db.flush()
+    if not x.activo:
+        raise HTTPException(status_code=409, detail="Numerador inactivo")
+    numero = max(x.proximo or 1, data.minimo)
+    x.proximo = numero + 1
+    if data.prefijo and not x.prefijo:
+        x.prefijo = data.prefijo
+    if data.padding and not x.padding:
+        x.padding = data.padding
+    db.commit()
+    return {"clave": x.clave, "numero": numero,
+            "formateado": _formatear(x.prefijo, x.padding or 0, numero), "proximo": x.proximo}
+
+
 @router.post("/{clave}/siguiente")
 def siguiente(clave: str, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     """Incrementa atomicamente el numerador y devuelve el numero formateado."""
