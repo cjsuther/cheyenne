@@ -78,6 +78,19 @@ $DC build --pull
 log "Levantando servicios..."
 $DC up -d --remove-orphans
 
+# ── 3.5. Migraciones de esquema (aplicador con tracking) ──────────────
+# Espera a que Postgres esté listo y aplica las migraciones pendientes en orden.
+log "Aplicando migraciones pendientes..."
+for _ in $(seq 1 30); do
+  $DC exec -T postgres pg_isready -U "${POSTGRES_USER:-cheyenne}" >/dev/null 2>&1 && break
+  sleep 2
+done
+if bash scripts/migrate.sh; then
+  log "Migraciones al día."
+else
+  warn "El aplicador de migraciones devolvió error; revisar scripts/migrate.sh status."
+fi
+
 # ── 4. Sembrar datos iniciales ────────────────────────────────────────
 # Espera a que un servicio responda /health antes de ejecutar su seed.
 wait_health() {
