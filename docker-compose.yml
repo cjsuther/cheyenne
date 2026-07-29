@@ -185,8 +185,9 @@ services:
       context: ./modules
       dockerfile: apremios/Dockerfile
     container_name: cheyenne-apremios
+    restart: always
     environment:
-      DATABASE_URL: postgresql://cheyenne:cheyenne123@postgres:5432/cheyenne
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cheyenne}:${POSTGRES_PASSWORD:-cheyenne123}@postgres:5432/${POSTGRES_DB:-cheyenne}
       SECRET_KEY: ${SECRET_KEY:-supersecretkey}
       SEGURIDAD_URL: http://seguridad:8000
       INGRESOS_PUBLICOS_URL: http://ingresos_publicos:8000
@@ -195,7 +196,6 @@ services:
       - seguridad
     networks:
       - cheyenne-net
-    restart: unless-stopped
   # ─── MÓDULO REPORTES ──────────────────────────────────────────────
   reportes:
     build:

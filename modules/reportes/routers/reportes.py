@@ -22,7 +22,7 @@ get_current_user = create_auth_dependency(settings.seguridad_url)
 
 logger = logging.getLogger("reportes")
 
-reportes_router = APIRouter(prefix="/reportes", tags=["Reportes consolidados"])
+reportes_router = APIRouter(prefix="", tags=["Reportes consolidados"])
 
 
 def _requiere(cu, permiso):
