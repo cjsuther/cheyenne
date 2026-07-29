@@ -4,6 +4,7 @@ import { useTabParam } from '../../hooks/useTabParam';
 import { ingresosPublicosAPI } from '../../services/api';
 import PageHeader from '../../components/common/PageHeader';
 import GroupedTabBar from '../../components/common/GroupedTabBar';
+import { ValorTierraTab, AlicuotaRubroTab } from './MotoresValuacionTabs';
 import DataTable from '../../components/common/DataTable';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { CrudTab, inputClass, btnPrimary, btnSecondary, Field } from '../../components/common/CrudComponents';
@@ -86,6 +87,8 @@ const TABS = [
   { key: 'multas', label: 'Multas' },
   { key: 'tasas', label: 'Tasas' },
   { key: 'subTasas', label: 'Sub-Tasas' },
+  { key: 'valorTierra', label: 'Valor Tierra (motor)' },
+  { key: 'alicuotaRubro', label: 'Alícuota Rubro (motor)' },
   { key: 'listas', label: 'Listas' },
   { key: 'fondeaderos', label: 'Fondeadero' },
   { key: 'serviciosMedidos', label: 'Servicios Medidos' },
@@ -102,6 +105,7 @@ const GRUPOS = [
   { label: 'Planes de pago', keys: ['planesPago', 'simularPlan', 'cuotasPlan', 'planPagoDef', 'regimenes', 'simMoratoria'] },
   { label: 'Tributos', keys: ['tasas', 'subTasas', 'certificados', 'libreDeuda', 'exenciones', 'titulares', 'multas'] },
   { label: 'Tributos Marginales', keys: ['fondeaderos', 'serviciosMedidos', 'puestosMercado', 'derechosConstruccion'] },
+  { label: 'Motores de valuación', keys: ['valorTierra', 'alicuotaRubro'] },
   { label: 'Configuración', keys: ['listas'] },
 ];
 
@@ -142,6 +146,8 @@ export default function IngresosPublicos() {
       {tab === 'serviciosMedidos' && <ServiciosMedidosTab />}
       {tab === 'puestosMercado' && <PuestosMercadoTab />}
       {tab === 'derechosConstruccion' && <DerechosConstruccionTab />}
+      {tab === 'valorTierra' && <ValorTierraTab />}
+      {tab === 'alicuotaRubro' && <AlicuotaRubroTab />}
     </div>
   );
 }

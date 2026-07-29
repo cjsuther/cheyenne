@@ -24,7 +24,7 @@ export const NAV = [
       { k: 'planesPago', l: 'Planes de Pago' }, { k: 'simularPlan', l: 'Simular Plan' },
       { k: 'cuotasPlan', l: 'Cuotas de Plan' }, { k: 'planPagoDef', l: 'Definiciones de Plan' },
       { k: 'certificados', l: 'Certificados' }, { k: 'multas', l: 'Multas' },
-      { k: 'tasas', l: 'Tasas' }, { k: 'subTasas', l: 'Sub-Tasas' }, { k: 'listas', l: 'Listas' },
+      { k: 'tasas', l: 'Tasas' }, { k: 'subTasas', l: 'Sub-Tasas' }, { k: 'valorTierra', l: 'Valor Tierra (motor)' }, { k: 'alicuotaRubro', l: 'Alícuota Rubro (motor)' }, { k: 'listas', l: 'Listas' },
     ],
   },
   { label: 'Emisiones', path: '/emisiones', module: 'emisiones', tabs: [] },
