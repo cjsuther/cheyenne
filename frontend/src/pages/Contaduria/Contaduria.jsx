@@ -392,14 +392,18 @@ function RetencionesTab() {
       limit: 200, ...(regimen ? { regimen } : {}), ...(periodo ? { periodo } : {}),
     }).then((r) => r.data),
   });
-  const exportar = async () => {
-    const r = await contaduriaAPI.retenciones.exportTxt({ ...(regimen ? { regimen } : {}), ...(periodo ? { periodo } : {}) });
-    const blob = new Blob([r.data], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `retenciones_${regimen || 'todos'}_${periodo || 'todo'}.txt`;
-    a.click(); URL.revokeObjectURL(url);
+  const descargarRet = async (promesa, nombre) => {
+    try {
+      const r = await promesa;
+      const blob = new Blob([r.data], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = nombre; a.click(); URL.revokeObjectURL(url);
+    } catch (e) { alert(e.response?.data?.detail || 'Error al exportar'); }
   };
+  const exportar = () => descargarRet(
+    contaduriaAPI.retenciones.exportTxt({ ...(regimen ? { regimen } : {}), ...(periodo ? { periodo } : {}) }),
+    `retenciones_${regimen || 'todos'}_${periodo || 'todo'}.txt`);
   return (
     <div>
       <div className="mb-3 flex flex-wrap gap-2 items-end justify-between">
@@ -414,7 +418,11 @@ function RetencionesTab() {
             <input className={inputClass} value={periodo} onChange={(e) => setPeriodo(e.target.value)} placeholder="202606" />
           </label>
         </div>
-        <button className={btnPrimary} onClick={exportar}>Exportar TXT (AFIP/ARBA)</button>
+        <div className="flex gap-2">
+          <button className={btnSecondary} onClick={exportar}>TXT genérico</button>
+          <button className={btnSecondary} onClick={() => descargarRet(contaduriaAPI.retenciones.sicore(periodo || undefined), `sicore_${periodo || 'todo'}.txt`)}>SICORE (Ganancias)</button>
+          <button className={btnPrimary} onClick={() => descargarRet(contaduriaAPI.retenciones.iibb(periodo || undefined), `iibb_arba_${periodo || 'todo'}.txt`)}>IIBB (ARBA)</button>
+        </div>
       </div>
       {isLoading ? <LoadingSpinner /> : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">

@@ -898,3 +898,15 @@ export const creditoPublicoAPI = {
   },
   cuotas: { pagar: (id) => api.post(`/credito-publico/cuotas/${id}/pagar`, {}) },
 };
+
+dmerge(contaduriaAPI, {
+  retenciones: {
+    sicore: (periodo) => api.get('/contaduria/retenciones/sicore.txt', { params: periodo ? { periodo } : {}, responseType: 'text' }),
+    iibb: (periodo) => api.get('/contaduria/retenciones/iibb-arba.txt', { params: periodo ? { periodo } : {}, responseType: 'text' }),
+  },
+});
+dmerge(reportesAPI, {
+  rendicion: (params) => api.get('/reportes/rendicion', { params }),
+  rendicionCsv: (params) => api.get('/reportes/rendicion', { params: { ...params, formato: 'csv' }, responseType: 'text' }),
+  ejecucionCsv: (anio) => api.get('/reportes/ejecucion-presupuestaria', { params: { anio, formato: 'csv' }, responseType: 'text' }),
+});

@@ -6,9 +6,21 @@ from datetime import datetime, timezone
 from typing import Optional, Any
 
 from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 from starlette.requests import Request
 import httpx
+
+
+def _csv(headers, rows):
+    """Arma un CSV (separador ';', decimal-friendly es-AR) para descarga desde Excel."""
+    def cell(v):
+        s = "" if v is None else str(v)
+        return '"' + s.replace('"', '""') + '"' if (";" in s or '"' in s or "\n" in s) else s
+    out = [";".join(headers)]
+    for r in rows:
+        out.append(";".join(cell(c) for c in r))
+    return "\n".join(out) + "\n"
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from shared.base_module import create_auth_dependency
@@ -188,10 +200,11 @@ def cierre_caja(
 def ejecucion_presupuestaria(
     request: Request,
     anio: Optional[int] = Query(None, description="Ejercicio (año)"),
+    formato: str = Query("json", description="json | csv"),
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """Ejecución del presupuesto desde el módulo presupuesto."""
+    """Ejecución del presupuesto desde el módulo presupuesto. Exportable a CSV (?formato=csv)."""
     _requiere(current_user, "reportes_read")
     headers = _auth_header(request)
     a = anio or datetime.now(timezone.utc).year
@@ -208,6 +221,20 @@ def ejecucion_presupuestaria(
     ejecutado = _sum_field(datos, "ejecutado", "devengado", "gastado") if datos else 0.0
     pct = round((ejecutado / presupuestado * 100), 2) if presupuestado else 0.0
 
+    if formato == "csv":
+        filas = []
+        detalle = datos if isinstance(datos, list) else (datos.get("partidas") if isinstance(datos, dict) else None) or []
+        for x in (detalle or []):
+            if isinstance(x, dict):
+                filas.append([x.get("codigo") or x.get("partida") or "", x.get("denominacion") or x.get("nombre") or "",
+                              x.get("vigente") or x.get("credito") or x.get("presupuestado") or 0,
+                              x.get("comprometido") or 0, x.get("devengado") or x.get("ejecutado") or 0,
+                              x.get("pagado") or 0])
+        filas.append(["", "TOTALES", presupuestado, "", ejecutado, ""])
+        csv = _csv(["Partida", "Denominación", "Vigente", "Comprometido", "Devengado", "Pagado"], filas)
+        _log(db, current_user, "ejecucion-presupuestaria", {"anio": a, "formato": "csv"}, ok, err)
+        return PlainTextResponse(csv, headers={"Content-Disposition": f'attachment; filename="ejecucion-{a}.csv"'})
+
     _log(db, current_user, "ejecucion-presupuestaria", {"anio": a}, ok, err)
     return {
         "reporte": "ejecucion-presupuestaria",
@@ -221,6 +248,56 @@ def ejecucion_presupuestaria(
         },
         "modulos_no_disponibles": list(err.keys()),
     }
+
+
+# ── Rendición de cuentas (HTC) ───────────────────────────────────────
+@reportes_router.get("/rendicion")
+def rendicion(
+    request: Request,
+    anio: Optional[int] = Query(None, description="Ejercicio (año)"),
+    trimestre: Optional[int] = Query(None, ge=1, le=4),
+    formato: str = Query("json", description="json | csv"),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Rendición de cuentas al HTC: estado consolidado de recursos (recaudado) y gastos (ejecutado)
+    con el resultado del ejercicio. Exportable a CSV. Base para la presentación regulatoria."""
+    _requiere(current_user, "reportes_read")
+    headers = _auth_header(request)
+    a = anio or datetime.now(timezone.utc).year
+    qp = {"anio": a, "ejercicio": a}
+    if trimestre:
+        qp["trimestre"] = trimestre
+    ok, err = {}, {}
+
+    tablero = _fetch("presupuesto", f"{settings.presupuesto_url}/tablero", headers, qp, ok, err)
+    gastos = tablero["datos"] if tablero["disponible"] else None
+    ejecutado = _sum_field(gastos, "ejecutado", "devengado", "gastado", "pagado") if gastos else 0.0
+    vigente = _sum_field(gastos, "presupuestado", "credito", "vigente") if gastos else 0.0
+
+    rec = _fetch("tesoreria", f"{settings.tesoreria_url}/recaudacion-lotes", headers, {"limit": 100}, ok, err)
+    recaudado = _sum_field(rec["datos"], "importe_total", "importe_neto", "importe") if rec["disponible"] else 0.0
+
+    resultado = round(recaudado - ejecutado, 2)
+    cuadro = {
+        "recursos": {"recaudado": round(recaudado, 2)},
+        "gastos": {"credito_vigente": round(vigente, 2), "ejecutado": round(ejecutado, 2)},
+        "resultado_financiero": resultado,
+    }
+    if formato == "csv":
+        filas = [
+            ["RECURSOS", "Recaudado", round(recaudado, 2)],
+            ["GASTOS", "Crédito vigente", round(vigente, 2)],
+            ["GASTOS", "Ejecutado (devengado)", round(ejecutado, 2)],
+            ["RESULTADO", "Superávit/Déficit financiero", resultado],
+        ]
+        csv = _csv(["Concepto", "Detalle", "Importe"], filas)
+        _log(db, current_user, "rendicion", {"anio": a, "trimestre": trimestre, "formato": "csv"}, ok, err)
+        return PlainTextResponse(csv, headers={"Content-Disposition": f'attachment; filename="rendicion-{a}{"-T"+str(trimestre) if trimestre else ""}.csv"'})
+
+    _log(db, current_user, "rendicion", {"anio": a, "trimestre": trimestre}, ok, err)
+    return {"reporte": "rendicion", "anio": a, "trimestre": trimestre, "cuadro": cuadro,
+            "modulos_no_disponibles": list(err.keys())}
 
 
 # ── Ciclo del gasto ──────────────────────────────────────────────────

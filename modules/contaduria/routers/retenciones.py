@@ -185,6 +185,91 @@ def export_txt(request: Request, regimen: Optional[str] = Query(None), periodo: 
     return "\n".join(lineas) + ("\n" if lineas else "")
 
 
+# ── Export SICORE (AFIP Ganancias) e IIBB (ARBA), ancho fijo ─────────
+# NOTA: el layout sigue la ESTRUCTURA de campos del organismo; las posiciones/anchos
+# exactos deben validarse contra el diseño de registro vigente (AFIP RG / ARBA disposición)
+# antes de presentar. Los campos y su orden son los correctos; ajustar anchos si el aplicativo lo exige.
+def _num_afip(v, enteros, decimales=2):
+    """Importe sin punto decimal, con ceros a la izquierda (formato organismos)."""
+    n = int((Decimal(str(v or 0)).quantize(Decimal("0.01")) * (10 ** decimales)).to_integral_value())
+    return str(abs(n)).zfill(enteros + decimales)[: enteros + decimales]
+
+
+def _txt(v, ancho, izq=True):
+    s = (str(v or "")).replace("\n", " ").replace("|", " ")
+    s = s[:ancho]
+    return s.ljust(ancho) if izq else s.rjust(ancho, "0")
+
+
+def _fecha_afip(dt):
+    try:
+        return dt.strftime("%d/%m/%Y")
+    except Exception:
+        return " " * 10
+
+
+@retenciones_router.get("/sicore.txt", response_class=PlainTextResponse)
+def export_sicore(periodo: Optional[str] = Query(None, description="AAAAMM"),
+                  db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    """SICORE — retenciones/percepciones de Ganancias (AFIP). Un registro por retención de régimen 'ganancias'.
+    Campos: fecha ret. | cód. comprobante | nº comprobante | importe comprobante | cód. impuesto (217) |
+    cód. régimen | cód. operación (1) | base cálculo | fecha ret. | cód. condición (01) | susp. (0) |
+    importe retención | % excl. (000000) | tipo doc (80=CUIT) | nº doc | nº certificado."""
+    _requiere(current_user, "contaduria_retenciones")
+    q = db.query(RetencionAplicada).filter(RetencionAplicada.activo == True,
+                                           RetencionAplicada.regimen == "ganancias")
+    if periodo:
+        q = q.filter(RetencionAplicada.periodo == periodo)
+    lineas = []
+    for r in q.order_by(RetencionAplicada.id).all():
+        f = _fecha_afip(r.created_at)
+        reg = [
+            "06",                                        # cód. comprobante (06 = orden de pago)
+            f,                                           # fecha del comprobante
+            _txt(r.comprobante, 16),                     # nº comprobante
+            _num_afip(r.base_calculo, 13),               # importe del comprobante (aprox = base)
+            "217",                                       # impuesto Ganancias
+            _txt((r.tipo_codigo or "078"), 3, izq=False),  # régimen
+            "1",                                         # operación: retención
+            _num_afip(r.base_calculo, 12),               # base de cálculo
+            f,                                           # fecha de la retención
+            "01",                                        # condición
+            "0",                                         # sujeto suspendido
+            _num_afip(r.importe, 12),                    # importe retención
+            "000000",                                    # % exclusión
+            "80",                                        # tipo doc: CUIT
+            _txt((r.cuit_beneficiario or "").replace("-", ""), 20, izq=False),
+            _txt(r.id, 14, izq=False),                   # nº certificado (usamos el id)
+        ]
+        lineas.append("".join(reg))
+    return "\r\n".join(lineas) + ("\r\n" if lineas else "")
+
+
+@retenciones_router.get("/iibb-arba.txt", response_class=PlainTextResponse)
+def export_iibb(periodo: Optional[str] = Query(None, description="AAAAMM"),
+                db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    """ARBA — retenciones de Ingresos Brutos. Un registro por retención de régimen 'iibb'.
+    Campos: CUIT | fecha ret. (AAAAMMDD) | tipo/nº comprobante | monto retención | tipo operación (R) | base."""
+    _requiere(current_user, "contaduria_retenciones")
+    q = db.query(RetencionAplicada).filter(RetencionAplicada.activo == True,
+                                           RetencionAplicada.regimen == "iibb")
+    if periodo:
+        q = q.filter(RetencionAplicada.periodo == periodo)
+    lineas = []
+    for r in q.order_by(RetencionAplicada.id).all():
+        fecha = r.created_at.strftime("%Y%m%d") if r.created_at else "        "
+        campos = [
+            (r.cuit_beneficiario or "").replace("-", "").rjust(11, "0")[:11],
+            fecha,
+            _txt(r.comprobante, 16),
+            _num_afip(r.importe, 11),
+            "R",
+            _num_afip(r.base_calculo, 11),
+        ]
+        lineas.append("".join(campos))
+    return "\r\n".join(lineas) + ("\r\n" if lineas else "")
+
+
 # ── Cálculo/registro de retenciones sobre un gasto ───────────────────
 gasto_ret_router = APIRouter(prefix="/gastos", tags=["Retenciones"])
 

@@ -11,15 +11,24 @@ const fmt = (v) => new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2 }).
 const fmtPct = (v) => `${new Intl.NumberFormat('es-AR', { maximumFractionDigits: 2 }).format(Number(v || 0))}%`;
 const hoy = () => new Date().toISOString().slice(0, 10);
 
+export function descargarTexto(texto, nombre) {
+  const blob = new Blob([texto], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = nombre; a.click();
+  URL.revokeObjectURL(url);
+}
+
 const TABS = [
   { key: 'tablero', label: 'Tablero' },
+  { key: 'rendicion', label: 'Rendición (HTC)' },
   { key: 'recaudacion', label: 'Recaudación' },
   { key: 'cierre', label: 'Cierre de caja' },
   { key: 'ejecucion', label: 'Ejecución presupuestaria' },
   { key: 'ciclo', label: 'Ciclo del gasto' },
 ];
 const GRUPOS = [
-  { label: 'Consolidado', keys: ['tablero'] },
+  { label: 'Consolidado', keys: ['tablero', 'rendicion'] },
   { label: 'Tesorería', keys: ['recaudacion', 'cierre'] },
   { label: 'Presupuesto y gasto', keys: ['ejecucion', 'ciclo'] },
 ];
@@ -31,6 +40,7 @@ export default function Reportes() {
       <PageHeader title="Reportes — Consolidados" subtitle="Consolida en tiempo real datos de tesorería, emisiones, presupuesto y contaduría" />
       <GroupedTabBar grupos={GRUPOS} tabsMeta={TABS} tab={tab} setTab={setTab} />
       {tab === 'tablero' && <TableroTab />}
+      {tab === 'rendicion' && <RendicionTab />}
       {tab === 'recaudacion' && <RecaudacionTab />}
       {tab === 'cierre' && <CierreCajaTab />}
       {tab === 'ejecucion' && <EjecucionTab />}
@@ -150,17 +160,50 @@ function CierreCajaTab() {
 }
 
 // ─────────────────────────── Ejecución presupuestaria ───────────────────────────
+function RendicionTab() {
+  const [anio, setAnio] = useState(new Date().getFullYear());
+  const [trimestre, setTrimestre] = useState('');
+  const { data, isLoading, refetch, isFetching } = useQuery({
+    queryKey: ['rep-rendicion', anio, trimestre],
+    queryFn: () => reportesAPI.rendicion({ anio, trimestre: trimestre || undefined }).then((r) => r.data),
+  });
+  const c = data?.cuadro;
+  const csv = () => reportesAPI.rendicionCsv({ anio, trimestre: trimestre || undefined }).then((r) => descargarTexto(r.data, `rendicion-${anio}${trimestre ? '-T' + trimestre : ''}.csv`));
+  return (
+    <div>
+      <div className="mb-3 flex items-end gap-2 flex-wrap">
+        <div><label className="text-xs text-gray-500 block mb-1">Ejercicio</label><input type="number" className={`${inputClass} w-28`} value={anio} onChange={(e) => setAnio(Number(e.target.value))} /></div>
+        <div><label className="text-xs text-gray-500 block mb-1">Trimestre</label><select className={`${inputClass} w-24`} value={trimestre} onChange={(e) => setTrimestre(e.target.value)}><option value="">Anual</option>{[1, 2, 3, 4].map((t) => <option key={t} value={t}>T{t}</option>)}</select></div>
+        <button className={btnPrimary} onClick={() => refetch()} disabled={isFetching}>{isFetching ? '...' : 'Generar'}</button>
+        <button className="px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-200 text-gray-700 hover:bg-gray-50" onClick={csv}>⬇ CSV</button>
+      </div>
+      {isLoading ? <LoadingSpinner /> : c && (
+        <>
+          <Aviso modulos={data?.modulos_no_disponibles} />
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Kpi label="Recursos recaudados" value={fmt(c.recursos?.recaudado)} accent="primary" />
+            <Kpi label="Gastos ejecutados" value={fmt(c.gastos?.ejecutado)} accent="amber" hint={`Crédito vigente ${fmt(c.gastos?.credito_vigente)}`} />
+            <Kpi label="Resultado financiero" value={fmt(c.resultado_financiero)} accent={c.resultado_financiero >= 0 ? 'primary' : 'red'} hint={c.resultado_financiero >= 0 ? 'Superávit' : 'Déficit'} />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function EjecucionTab() {
   const [anio, setAnio] = useState(new Date().getFullYear());
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['rep-ejecucion', anio],
     queryFn: () => reportesAPI.ejecucionPresupuestaria({ anio }).then((r) => r.data),
   });
+  const csv = () => reportesAPI.ejecucionCsv(anio).then((r) => descargarTexto(r.data, `ejecucion-${anio}.csv`));
   return (
     <div>
       <div className="mb-3 flex items-end gap-2">
         <div><label className="text-xs text-gray-500 block mb-1">Ejercicio</label><input type="number" className={`${inputClass} w-28`} value={anio} onChange={(e) => setAnio(Number(e.target.value))} /></div>
         <button className={btnPrimary} onClick={() => refetch()} disabled={isFetching}>{isFetching ? '...' : 'Generar'}</button>
+        <button className="px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-200 text-gray-700 hover:bg-gray-50" onClick={csv}>⬇ CSV</button>
       </div>
       {isLoading ? <LoadingSpinner /> : (
         <>
