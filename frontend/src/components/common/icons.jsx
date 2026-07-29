@@ -162,6 +162,14 @@ export const IconPatrimonio = (p) => (
   </Svg>
 );
 
+export const IconCredito = (p) => (
+  <Svg {...p}>
+    <rect x="2" y="6" width="20" height="12" rx="2" />
+    <circle cx="12" cy="12" r="2.5" />
+    <path d="M6 10v4M18 10v4" />
+  </Svg>
+);
+
 export const IconContaduria = (p) => (
   <Svg {...p}>
     <rect x="4" y="3" width="16" height="18" rx="2" />

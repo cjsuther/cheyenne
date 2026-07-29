@@ -1,6 +1,6 @@
 // Registro central de los super-módulos (dashboard) y sus sub-menús.
 import {
-  IconContribuyente360, IconIngresos, IconSeguridad, IconContaduria, IconConfig, IconPresupuesto, IconTesoreria, IconCompras, IconContabilidad, IconPatrimonio, IconCementerio, IconApremios, IconReportes,
+  IconContribuyente360, IconIngresos, IconSeguridad, IconContaduria, IconConfig, IconPresupuesto, IconTesoreria, IconCompras, IconContabilidad, IconPatrimonio, IconCredito, IconCementerio, IconApremios, IconReportes,
 } from '../components/common/icons';
 
 export const SUPER_MODULES = [
@@ -67,6 +67,13 @@ export const SUPER_MODULES = [
     Icon: IconPatrimonio, chip: 'bg-lime-50 text-lime-700',
     items: [
       { path: '/patrimonio', label: 'Bienes de uso', module: 'patrimonio' },
+    ],
+  },
+  {
+    key: 'credito', label: 'Crédito Público', desc: 'Deuda pública: empréstitos, amortización e intereses',
+    Icon: IconCredito, chip: 'bg-rose-50 text-rose-700',
+    items: [
+      { path: '/credito-publico', label: 'Empréstitos', module: 'credito_publico' },
     ],
   },
   {

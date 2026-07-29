@@ -886,3 +886,15 @@ export const patrimonioAPI = {
     correr: (data) => api.post('/patrimonio/amortizacion/correr', data),
   },
 };
+
+export const creditoPublicoAPI = {
+  emprestitos: {
+    list: (params) => api.get('/credito-publico/emprestitos', { params }),
+    get: (id) => api.get(`/credito-publico/emprestitos/${id}`),
+    create: (data) => api.post('/credito-publico/emprestitos', data),
+    generarPlan: (id) => api.post(`/credito-publico/emprestitos/${id}/plan-amortizacion`, {}),
+    desembolsar: (id, data) => api.post(`/credito-publico/emprestitos/${id}/desembolso`, data),
+    resumen: () => api.get('/credito-publico/emprestitos/resumen'),
+  },
+  cuotas: { pagar: (id) => api.post(`/credito-publico/cuotas/${id}/pagar`, {}) },
+};

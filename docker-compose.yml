@@ -232,6 +232,22 @@ services:
     networks:
       - cheyenne-net
 
+  # ─── MÓDULO CRÉDITO PÚBLICO ───────────────────────────────────────
+  credito_publico:
+    build:
+      context: ./modules
+      dockerfile: credito_publico/Dockerfile
+    container_name: cheyenne-credito-publico
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cheyenne}:${POSTGRES_PASSWORD:-cheyenne123}@postgres:5432/${POSTGRES_DB:-cheyenne}
+      SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+      SEGURIDAD_URL: http://seguridad:8000
+    depends_on:
+      - seguridad
+    networks:
+      - cheyenne-net
+
   # ─── MÓDULO IMPORTACIÓN ───────────────────────────────────────────
   importacion:
     build:
@@ -367,6 +383,7 @@ services:
       - apremios
       - reportes
       - patrimonio
+      - credito_publico
       - wav
     networks:
       - cheyenne-net

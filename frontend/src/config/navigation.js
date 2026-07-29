@@ -88,6 +88,11 @@ export const NAV = [
     { k: 'bienes', l: 'Bienes' }, { k: 'inventario', l: 'Inventario' }, { k: 'amortizacion', l: 'Amortización' },
   ] },
 
+  // ── Crédito Público ──
+  { label: 'Crédito Público — Deuda', path: '/credito-publico', module: 'credito_publico', tabs: [
+    { k: 'emprestitos', l: 'Empréstitos' }, { k: 'resumen', l: 'Resumen de deuda' },
+  ] },
+
   // ── Contaduría ──
   { label: 'Contaduría — Ciclo del Gasto', path: '/contaduria', module: 'contaduria', tabs: [] },
 

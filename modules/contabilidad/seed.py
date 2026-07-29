@@ -73,6 +73,7 @@ PLAN = [
     ("5.1.03", "Bienes de consumo",              "gasto",       True,  "5.1", 3),
     ("5.1.04", "Servicios no personales",        "gasto",       True,  "5.1", 3),
     ("5.1.05", "Transferencias",                 "gasto",       True,  "5.1", 3),
+    ("5.1.06", "Intereses de la deuda",          "gasto",       True,  "5.1", 3),
     ("5.1.09", "Otros gastos de funcionamiento", "gasto",       True,  "5.1", 3),
     ("5.2",    "Gastos de capital",              "gasto",       False, "5",   2),
     ("5.2.01", "Bienes de capital / obras",      "gasto",       True,  "5.2", 3),
@@ -122,6 +123,12 @@ REGLAS = [
         (1, "debe",  "5.1.09"), (2, "haber", "1.2.01")]),
     ("patrimonio.baja", "Baja de bien de uso: Patrimonio a Bienes de uso", [
         (1, "debe",  "3.1.01"), (2, "haber", "1.2.01")]),
+    ("credito.desembolso", "Desembolso de empréstito: Banco a Deuda pública", [
+        (1, "debe",  "1.1.01"), (2, "haber", "2.3.01")]),
+    ("credito.pago_capital", "Amortización de deuda: Deuda pública a Banco", [
+        (1, "debe",  "2.3.01"), (2, "haber", "1.1.01")]),
+    ("credito.pago_interes", "Interés de deuda: Gasto de intereses a Banco", [
+        (1, "debe",  "5.1.06"), (2, "haber", "1.1.01")]),
 ]
 
 

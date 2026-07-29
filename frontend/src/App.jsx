@@ -26,6 +26,7 @@ import Cementerio from './pages/Cementerio/Cementerio';
 import Apremios from './pages/Apremios/Apremios';
 import Reportes from './pages/Reportes/Reportes';
 import Patrimonio from './pages/Patrimonio/Patrimonio';
+import CreditoPublico from './pages/CreditoPublico/CreditoPublico';
 import Perfil from './pages/Perfil/Perfil';
 
 const queryClient = new QueryClient({
@@ -79,6 +80,7 @@ export default function App() {
             <Route path="apremios" element={<Apremios />} />
             <Route path="reportes" element={<Reportes />} />
             <Route path="patrimonio" element={<Patrimonio />} />
+            <Route path="credito-publico" element={<CreditoPublico />} />
             {/* Contaduría */}
             <Route path="contaduria" element={<Contaduria />} />
             {/* Configuración (maestros) */}
