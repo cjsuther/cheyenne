@@ -726,3 +726,27 @@ dmerge(ingresosPublicosAPI, {
   },
   regimenesMoratoria: crud('/ingresos-publicos/regimenes-moratoria'),
 });
+
+dmerge(contabilidadAPI, {
+  transacciones: {
+    list: (params) => api.get('/contabilidad/transacciones', { params }),
+    get: (id) => api.get(`/contabilidad/transacciones/${id}`),
+    pendientes: () => api.get('/contabilidad/transacciones/pendientes'),
+    crear: (data) => api.post('/contabilidad/transacciones', data),
+    reprocesar: (id) => api.post(`/contabilidad/transacciones/${id}/reprocesar`, {}),
+    anular: (id) => api.post(`/contabilidad/transacciones/${id}/anular`, {}),
+  },
+  reglasImputacion: {
+    list: () => api.get('/contabilidad/reglas-imputacion'),
+    create: (data) => api.post('/contabilidad/reglas-imputacion', data),
+    update: (id, data) => api.put(`/contabilidad/reglas-imputacion/${id}`, data),
+    delete: (id) => api.delete(`/contabilidad/reglas-imputacion/${id}`),
+    reprocesarPendientes: (id) => api.post(`/contabilidad/reglas-imputacion/${id}/reprocesar-pendientes`, {}),
+  },
+  mapeoCuentas: {
+    list: (params) => api.get('/contabilidad/mapeo-cuentas', { params }),
+    create: (data) => api.post('/contabilidad/mapeo-cuentas', data),
+    update: (id, data) => api.put(`/contabilidad/mapeo-cuentas/${id}`, data),
+    delete: (id) => api.delete(`/contabilidad/mapeo-cuentas/${id}`),
+  },
+});

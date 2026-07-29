@@ -6,21 +6,26 @@ import PageHeader from '../../components/common/PageHeader';
 import GroupedTabBar from '../../components/common/GroupedTabBar';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { CrudTab, Modal, Field, inputClass, btnPrimary, btnSecondary } from '../../components/common/CrudComponents';
+import { TransaccionesTab, ReglasTab, MapeoTab } from './ContableEventosTabs';
 
 const fmt = (v) => new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2 }).format(Number(v || 0));
 const hoy = () => new Date().toISOString().slice(0, 10);
 const anioActual = new Date().getFullYear();
 
 const TABS = [
+  { key: 'transacciones', label: 'Transacciones' },
   { key: 'asientos', label: 'Asientos' },
   { key: 'diario', label: 'Libro Diario' },
   { key: 'mayor', label: 'Libro Mayor' },
   { key: 'balance', label: 'Balance' },
+  { key: 'reglas', label: 'Reglas de Imputación' },
+  { key: 'mapeo', label: 'Mapeo de Cuentas' },
   { key: 'plan', label: 'Plan de Cuentas' },
   { key: 'ejercicios', label: 'Ejercicios' },
 ];
 const GRUPOS = [
-  { label: 'Registración', keys: ['asientos', 'diario', 'mayor', 'balance'] },
+  { label: 'Registración', keys: ['transacciones', 'asientos', 'diario', 'mayor', 'balance'] },
+  { label: 'Imputación', keys: ['reglas', 'mapeo'] },
   { label: 'Configuración', keys: ['plan', 'ejercicios'] },
 ];
 
@@ -32,6 +37,9 @@ export default function Contabilidad() {
     <div>
       <PageHeader title="Contabilidad — Partida Doble" subtitle="Plan de cuentas, ejercicios, asientos y libros contables" />
       <GroupedTabBar grupos={GRUPOS} tabsMeta={TABS} tab={tab} setTab={setTab} />
+      {tab === 'transacciones' && <TransaccionesTab />}
+      {tab === 'reglas' && <ReglasTab />}
+      {tab === 'mapeo' && <MapeoTab />}
       {tab === 'asientos' && <AsientosTab />}
       {tab === 'diario' && <LibroDiarioTab />}
       {tab === 'mayor' && <LibroMayorTab />}

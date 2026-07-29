@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from shared.database import Base
 from database import engine, SessionLocal
 from models.contabilidad import PlanCuenta, EjercicioContable
+from models.transacciones import ReglaImputacion, ReglaLinea
 import models  # noqa: F401
 
 
@@ -38,6 +39,34 @@ PLAN = [
 ]
 
 
+# Reglas de imputación base: tipo -> (descripción, [(orden, lado, cuenta_codigo, importe_campo)])
+# El importe usa el campo 'importe' de la transacción; las cuentas son fijas (se pueden
+# cambiar a 'derivada' + mapeo desde la UI cuando se quiera imputar por objeto de gasto/tributo).
+REGLAS = [
+    ("gasto.devengado", "Devengado del gasto: Gasto a Proveedores", [
+        (1, "debe",  "5.1.01"), (2, "haber", "2.1.01")]),
+    ("gasto.pagado", "Pago del gasto: Proveedores a Banco", [
+        (1, "debe",  "2.1.01"), (2, "haber", "1.1.01")]),
+    ("recurso.emitido", "Emisión de deuda tributaria: Deudores a Recursos", [
+        (1, "debe",  "1.1.20"), (2, "haber", "4.1.01")]),
+    ("recurso.cobrado", "Cobro de tributo: Recaudación a depositar a Deudores", [
+        (1, "debe",  "1.1.03"), (2, "haber", "1.1.20")]),
+    ("retencion.practicada", "Retención practicada: Proveedores a Fondos de terceros", [
+        (1, "debe",  "2.1.01"), (2, "haber", "2.2.01")]),
+]
+
+
+def _seed_reglas(db):
+    for tipo, desc, lineas in REGLAS:
+        if db.query(ReglaImputacion).filter(ReglaImputacion.tipo == tipo).first():
+            continue
+        r = ReglaImputacion(tipo=tipo, descripcion=desc, activo=True)
+        db.add(r); db.flush()
+        for orden, lado, codigo in lineas:
+            db.add(ReglaLinea(id_regla=r.id, orden=orden, lado=lado, origen_cuenta="fija",
+                              cuenta_codigo=codigo, importe_campo="importe"))
+
+
 def run():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
@@ -62,8 +91,9 @@ def run():
         if not db.query(EjercicioContable).filter(EjercicioContable.anio == 2026).first():
             db.add(EjercicioContable(anio=2026, estado="abierto", fecha_apertura=date(2026, 1, 1)))
 
+        _seed_reglas(db)
         db.commit()
-        print("Seed contabilidad OK: plan de cuentas base + ejercicio 2026 abierto")
+        print("Seed contabilidad OK: plan de cuentas + ejercicio 2026 + reglas de imputación base")
     finally:
         db.close()
 

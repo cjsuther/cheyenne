@@ -37,6 +37,40 @@ def _proximo_numero(db, anio):
     return ultimo + 1
 
 
+def _cuenta_por_codigo(db, codigo, crear=True):
+    """Resuelve un código a PlanCuenta; si no existe y crear=True, lo crea imputable placeholder."""
+    c = db.query(PlanCuenta).filter(PlanCuenta.codigo == str(codigo).strip()).first()
+    if not c and crear:
+        c = PlanCuenta(codigo=str(codigo).strip(), nombre=f"(auto) {str(codigo).strip()}",
+                       tipo="orden", imputable=True, nivel=3, activo=True)
+        db.add(c); db.flush()
+    return c
+
+
+def _crear_asiento(db, anio, fecha, concepto, tipo, origen_modulo, origen_ref, lineas_cod, creado_por):
+    """Crea un asiento CONFIRMADO balanceado a partir de líneas con cuenta_codigo.
+    lineas_cod: [{cuenta_codigo, debe, haber, detalle}]. Devuelve (asiento, None) o (None, motivo)."""
+    td = th = CERO
+    resueltas = []
+    for ln in lineas_cod:
+        d, h = _dec(ln.get("debe")), _dec(ln.get("haber"))
+        if d < 0 or h < 0:
+            return None, "Debe/haber no pueden ser negativos"
+        c = _cuenta_por_codigo(db, ln["cuenta_codigo"])
+        resueltas.append((c.id, d, h, ln.get("detalle")))
+        td += d; th += h
+    if td != th:
+        return None, f"No balancea: debe {td} ≠ haber {th}"
+    numero = _proximo_numero(db, anio)
+    a = Asiento(anio=anio, numero=numero, fecha=fecha, tipo=tipo, concepto=concepto,
+                origen_modulo=origen_modulo, origen_ref=origen_ref, estado="confirmado",
+                total_debe=td, total_haber=th, creado_por=creado_por)
+    db.add(a); db.flush()
+    for id_cuenta, d, h, det in resueltas:
+        db.add(AsientoItem(id_asiento=a.id, id_cuenta=id_cuenta, debe=d, haber=h, detalle=det))
+    return a, None
+
+
 def _cuentas_map(db, ids):
     if not ids:
         return {}

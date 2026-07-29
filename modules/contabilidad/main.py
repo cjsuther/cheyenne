@@ -9,7 +9,10 @@ from config import get_settings
 from database import engine
 from shared.database import Base
 from shared.audit_middleware import AuditMiddleware
-from routers import cuentas_router, ejercicios_router, asientos_router, libros_router
+from routers import (
+    cuentas_router, ejercicios_router, asientos_router, libros_router,
+    transacciones_router, reglas_router, mapeo_router,
+)
 import models  # noqa: F401
 
 settings = get_settings()
@@ -19,7 +22,8 @@ app = FastAPI(title="Cheyenne - Módulo Contabilidad",
 app.add_middleware(CORSMiddleware, allow_origins=["*"] if settings.environment == "development" else [],
                    allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 app.add_middleware(AuditMiddleware, modulo="contabilidad")
-for r in (cuentas_router, ejercicios_router, asientos_router, libros_router):
+for r in (cuentas_router, ejercicios_router, asientos_router, libros_router,
+          transacciones_router, reglas_router, mapeo_router):
     app.include_router(r)
 
 

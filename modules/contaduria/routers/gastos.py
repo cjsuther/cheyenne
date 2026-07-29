@@ -70,39 +70,41 @@ def _presupuesto(metodo: str, path: str, token: str, json_body: dict = None):
     return resp.json()
 
 
-def _asiento_automatico(g: GastoExpediente, etapa: str, importe, token: str):
-    """POST best-effort a Contabilidad para generar el asiento del ciclo del gasto.
-    DEVENGADO: Debe 5.1.01 (gasto) / Haber 2.1.01 (deuda a pagar).
-    PAGADO:    Debe 2.1.01 (deuda a pagar) / Haber 1.1.01 (banco/caja).
+def _postear_transaccion(g: GastoExpediente, etapa: str, importe, token: str):
+    """POST best-effort a Contabilidad del HECHO ECONÓMICO (no del asiento). El contable
+    decide cómo convertirlo en asiento según sus reglas de imputación.
+    DEVENGADO -> tipo 'gasto.devengado' ; PAGADO -> tipo 'gasto.pagado'.
     Idempotente por origen_ref. NUNCA rompe el flujo si contabilidad no responde."""
     referencia = f"GEX-{g.anio}-{g.numero:04d}"
     if etapa == "devengar":
-        origen_ref = f"devengado-{g.id}"
-        lineas = [
-            {"cuenta": "5.1.01", "debe": float(importe), "haber": 0},
-            {"cuenta": "2.1.01", "debe": 0, "haber": float(importe)},
-        ]
-        glosa = f"Devengado {referencia} — {g.descripcion}"
+        tipo, origen_ref = "gasto.devengado", f"devengado-{g.id}"
     elif etapa == "pagar":
-        origen_ref = f"pagado-{g.id}"
-        lineas = [
-            {"cuenta": "2.1.01", "debe": float(importe), "haber": 0},
-            {"cuenta": "1.1.01", "debe": 0, "haber": float(importe)},
-        ]
-        glosa = f"Pagado {referencia} — {g.descripcion}"
+        tipo, origen_ref = "gasto.pagado", f"pagado-{g.id}"
     else:
         return None
+    contexto = {
+        "expediente": referencia,
+        "objeto_gasto": g.id_partida,          # dimensión para derivar la cuenta de gasto
+        "partida": g.partida_etiqueta,
+        "proveedor": g.proveedor,
+        "oc_numero": g.oc_numero,
+        "factura_numero": g.factura_numero,
+    }
     try:
         with httpx.Client(timeout=8) as client:
             resp = client.post(
-                f"{settings.contabilidad_url}/asientos/automatico",
-                json={"origen_modulo": "contaduria", "origen_ref": origen_ref,
-                      "fecha": None, "glosa": glosa, "importe": float(importe), "lineas": lineas},
+                f"{settings.contabilidad_url}/transacciones",
+                json={"origen_modulo": "contaduria", "origen_ref": origen_ref, "tipo": tipo,
+                      "fecha": None, "importe": float(importe),
+                      "concepto": f"{tipo} {referencia} — {g.descripcion}", "contexto": contexto},
                 headers={"Authorization": token} if token else {})
         if resp.status_code >= 400:
-            return f"Contabilidad no generó el asiento: HTTP {resp.status_code}"
+            return f"Contabilidad no registró la transacción: HTTP {resp.status_code}"
+        estado = resp.json().get("estado")
+        if estado and estado != "imputada":
+            return f"Transacción registrada en Contabilidad como '{estado}' (pendiente de definir imputación)"
     except Exception as e:
-        return f"No se pudo generar el asiento en Contabilidad: {e}"
+        return f"No se pudo registrar la transacción en Contabilidad: {e}"
     return None
 
 
@@ -287,10 +289,10 @@ def avanzar(id: int, request: Request, data: dict = Body(default={}),
         except Exception as e:
             tes_msg = f"No se pudo generar la OP en Tesorería: {e}"
 
-    # cierre del ciclo contable: asiento automático best-effort (devengar/pagar)
+    # cierre del ciclo contable: postea el hecho económico; Contabilidad arma el asiento
     asiento_msg = None
     if etapa in ("devengar", "pagar"):
-        asiento_msg = _asiento_automatico(g, etapa, importe, token)
+        asiento_msg = _postear_transaccion(g, etapa, importe, token)
 
     db.commit(); db.refresh(g)
     out = _serializar(g)

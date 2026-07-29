@@ -63,8 +63,9 @@ export const NAV = [
 
   // ── Contabilidad ──
   { label: 'Contabilidad — Partida Doble', path: '/contabilidad', module: 'contabilidad', tabs: [
-    { k: 'asientos', l: 'Asientos' }, { k: 'diario', l: 'Libro Diario' }, { k: 'mayor', l: 'Libro Mayor' },
-    { k: 'balance', l: 'Balance' }, { k: 'plan', l: 'Plan de Cuentas' }, { k: 'ejercicios', l: 'Ejercicios' },
+    { k: 'transacciones', l: 'Transacciones' }, { k: 'asientos', l: 'Asientos' }, { k: 'diario', l: 'Libro Diario' }, { k: 'mayor', l: 'Libro Mayor' },
+    { k: 'balance', l: 'Balance' }, { k: 'reglas', l: 'Reglas de Imputación' }, { k: 'mapeo', l: 'Mapeo de Cuentas' },
+    { k: 'plan', l: 'Plan de Cuentas' }, { k: 'ejercicios', l: 'Ejercicios' },
   ] },
 
   // ── Contaduría ──
