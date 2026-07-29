@@ -35,12 +35,17 @@ class Transaccion(Base):
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
 
+LIBROS = ("patrimonial", "presupuestaria", "financiera", "orden")
+
+
 class ReglaImputacion(Base):
-    """Plantilla de asiento para un tipo de transacción. Definida por el contable."""
+    """Plantilla de asiento para un tipo de transacción y un LIBRO contable (RAFAM).
+    Un mismo tipo puede tener una regla por libro: el hecho impacta varios libros a la vez."""
     __tablename__ = "contabilidad_reglas_imputacion"
-    __table_args__ = (UniqueConstraint("tipo", name="uq_cont_regla_tipo"),)
+    __table_args__ = (UniqueConstraint("tipo", "libro", name="uq_cont_regla_tipo_libro"),)
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     tipo = Column(String(80), nullable=False)
+    libro = Column(String(15), nullable=False, default="patrimonial")
     descripcion = Column(String(250), nullable=True)
     activo = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

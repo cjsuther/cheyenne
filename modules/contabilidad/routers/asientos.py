@@ -58,7 +58,7 @@ def _ejercicio_abierto_o_error(db, anio):
 
 @asientos_router.get("")
 def listar(request: Request, anio: int = Query(None), tipo: str = Query(None), estado: str = Query(None),
-           skip: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=200),
+           libro: str = Query(None), skip: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=200),
            db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     _requiere(current_user, "contabilidad_read")
     q = db.query(Asiento)
@@ -68,8 +68,10 @@ def listar(request: Request, anio: int = Query(None), tipo: str = Query(None), e
         q = q.filter(Asiento.tipo == tipo)
     if estado:
         q = q.filter(Asiento.estado == estado)
+    if libro:
+        q = q.filter(Asiento.libro == libro)
     q = filtered_query(q, Asiento, dict(request.query_params),
-                       exclude={"skip", "limit", "anio", "tipo", "estado"},
+                       exclude={"skip", "limit", "anio", "tipo", "estado", "libro"},
                        default_sort="id", default_dir="desc")
     return [_ser_asiento(a, db, con_items=False) for a in q.offset(skip).limit(limit).all()]
 

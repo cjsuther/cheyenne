@@ -19,11 +19,13 @@ libros_router = APIRouter(prefix="/libros", tags=["Libros contables"])
 
 @libros_router.get("/libro-diario")
 def libro_diario(desde: Optional[date] = Query(None), hasta: Optional[date] = Query(None),
-                 anio: Optional[int] = Query(None),
+                 anio: Optional[int] = Query(None), libro: Optional[str] = Query(None),
                  db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
-    """Asientos confirmados en el rango de fechas, con sus items."""
+    """Asientos confirmados en el rango de fechas, con sus items. Filtrable por libro (RAFAM)."""
     _requiere(current_user, "contabilidad_read")
     q = db.query(Asiento).filter(Asiento.estado == "confirmado")
+    if libro:
+        q = q.filter(Asiento.libro == libro)
     if anio:
         q = q.filter(Asiento.anio == anio)
     if desde:
@@ -53,6 +55,7 @@ def libro_diario(desde: Optional[date] = Query(None), hasta: Optional[date] = Qu
 @libros_router.get("/libro-mayor")
 def libro_mayor(id_cuenta: Optional[int] = Query(None), cuenta_codigo: Optional[str] = Query(None),
                 anio: Optional[int] = Query(None), desde: Optional[date] = Query(None), hasta: Optional[date] = Query(None),
+                libro: Optional[str] = Query(None),
                 db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     """Movimientos de una cuenta (asientos confirmados) ordenados con saldo acumulado (debe - haber)."""
     _requiere(current_user, "contabilidad_read")
@@ -68,6 +71,8 @@ def libro_mayor(id_cuenta: Optional[int] = Query(None), cuenta_codigo: Optional[
 
     q = db.query(AsientoItem, Asiento).join(Asiento, Asiento.id == AsientoItem.id_asiento) \
         .filter(AsientoItem.id_cuenta == cuenta.id, Asiento.estado == "confirmado")
+    if libro:
+        q = q.filter(Asiento.libro == libro)
     if anio:
         q = q.filter(Asiento.anio == anio)
     if desde:
@@ -96,16 +101,20 @@ def libro_mayor(id_cuenta: Optional[int] = Query(None), cuenta_codigo: Optional[
 
 
 @libros_router.get("/balance")
-def balance(anio: int = Query(...), db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
-    """Balance de sumas y saldos por cuenta imputable, sobre asientos confirmados del año."""
+def balance(anio: int = Query(...), libro: Optional[str] = Query(None),
+            db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    """Balance de sumas y saldos por cuenta imputable, sobre asientos confirmados del año.
+    Filtrable por libro (patrimonial / presupuestaria / financiera) para los estados RAFAM."""
     _requiere(current_user, "contabilidad_read")
-    filas = db.query(
+    base = db.query(
         AsientoItem.id_cuenta,
         func.coalesce(func.sum(AsientoItem.debe), 0),
         func.coalesce(func.sum(AsientoItem.haber), 0),
     ).join(Asiento, Asiento.id == AsientoItem.id_asiento) \
-        .filter(Asiento.estado == "confirmado", Asiento.anio == anio) \
-        .group_by(AsientoItem.id_cuenta).all()
+        .filter(Asiento.estado == "confirmado", Asiento.anio == anio)
+    if libro:
+        base = base.filter(Asiento.libro == libro)
+    filas = base.group_by(AsientoItem.id_cuenta).all()
 
     cuentas = _cuentas_map(db, {r[0] for r in filas})
     out = []

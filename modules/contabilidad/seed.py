@@ -77,6 +77,15 @@ PLAN = [
     ("5.1.09", "Otros gastos de funcionamiento", "gasto",       True,  "5.1", 3),
     ("5.2",    "Gastos de capital",              "gasto",       False, "5",   2),
     ("5.2.01", "Bienes de capital / obras",      "gasto",       True,  "5.2", 3),
+    # ── CUENTAS DE ORDEN (libros presupuestario y financiero, RAFAM) ──
+    ("0",      "Cuentas de orden",               "orden",       False, None,  1),
+    ("0.1",    "Ejecución presupuestaria",       "orden",       False, "0",   2),
+    ("0.1.01", "Crédito presupuestario",         "orden",       True,  "0.1", 3),
+    ("0.1.02", "Compromisos",                    "orden",       True,  "0.1", 3),
+    ("0.1.03", "Devengado",                      "orden",       True,  "0.1", 3),
+    ("0.2",    "Movimiento financiero",          "orden",       False, "0",   2),
+    ("0.2.01", "Fondos",                         "orden",       True,  "0.2", 3),
+    ("0.2.02", "Pagos financieros",              "orden",       True,  "0.2", 3),
 ]
 
 # Mapeo de derivación de cuentas: (dimensión, clave) -> código de cuenta.
@@ -131,16 +140,33 @@ REGLAS = [
         (1, "debe",  "5.1.06"), (2, "haber", "1.1.01")]),
 ]
 
+# Reglas de OTROS LIBROS (RAFAM): (tipo, libro, descripción, líneas).
+# Un mismo hecho económico impacta varios libros a la vez.
+REGLAS_LIBROS = [
+    ("gasto.devengado", "presupuestaria", "Ejecución del crédito (devengado): Devengado a Crédito", [
+        (1, "debe",  "0.1.03"), (2, "haber", "0.1.01")]),
+    ("gasto.pagado", "financiera", "Movimiento de fondos (pago): Pagos financieros a Fondos", [
+        (1, "debe",  "0.2.02"), (2, "haber", "0.2.01")]),
+    ("recurso.cobrado", "financiera", "Movimiento de fondos (cobro): Fondos a Pagos financieros", [
+        (1, "debe",  "0.2.01"), (2, "haber", "0.2.02")]),
+]
+
+
+def _crear_regla(db, tipo, libro, desc, lineas):
+    if db.query(ReglaImputacion).filter(ReglaImputacion.tipo == tipo, ReglaImputacion.libro == libro).first():
+        return
+    r = ReglaImputacion(tipo=tipo, libro=libro, descripcion=desc, activo=True)
+    db.add(r); db.flush()
+    for orden, lado, codigo in lineas:
+        db.add(ReglaLinea(id_regla=r.id, orden=orden, lado=lado, origen_cuenta="fija",
+                          cuenta_codigo=codigo, importe_campo="importe"))
+
 
 def _seed_reglas(db):
     for tipo, desc, lineas in REGLAS:
-        if db.query(ReglaImputacion).filter(ReglaImputacion.tipo == tipo).first():
-            continue
-        r = ReglaImputacion(tipo=tipo, descripcion=desc, activo=True)
-        db.add(r); db.flush()
-        for orden, lado, codigo in lineas:
-            db.add(ReglaLinea(id_regla=r.id, orden=orden, lado=lado, origen_cuenta="fija",
-                              cuenta_codigo=codigo, importe_campo="importe"))
+        _crear_regla(db, tipo, "patrimonial", desc, lineas)
+    for tipo, libro, desc, lineas in REGLAS_LIBROS:
+        _crear_regla(db, tipo, libro, desc, lineas)
 
 
 def run():

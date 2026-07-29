@@ -272,10 +272,20 @@ function LibroMayorTab() {
 // ═══ Balance ═════════════════════════════════════════════════════════
 function BalanceTab() {
   const [anio, setAnio] = useState(anioActual);
-  const { data, isLoading } = useQuery({ queryKey: ['cont-balance', anio], queryFn: () => contabilidadAPI.libros.balance({ anio }).then((r) => r.data) });
+  const [libro, setLibro] = useState('');
+  const { data, isLoading } = useQuery({ queryKey: ['cont-balance', anio, libro], queryFn: () => contabilidadAPI.libros.balance({ anio, ...(libro ? { libro } : {}) }).then((r) => r.data) });
   return (
     <div>
-      <div className="mb-3"><Field label="Ejercicio"><input type="number" className={`${inputClass} w-32`} value={anio} onChange={(e) => setAnio(Number(e.target.value))} /></Field></div>
+      <div className="mb-3 flex items-end gap-3">
+        <Field label="Ejercicio"><input type="number" className={`${inputClass} w-32`} value={anio} onChange={(e) => setAnio(Number(e.target.value))} /></Field>
+        <Field label="Libro (RAFAM)"><select className={`${inputClass} w-48`} value={libro} onChange={(e) => setLibro(e.target.value)}>
+          <option value="">Todos los libros</option>
+          <option value="patrimonial">Patrimonial</option>
+          <option value="presupuestaria">Presupuestario</option>
+          <option value="financiera">Financiero</option>
+          <option value="orden">Orden</option>
+        </select></Field>
+      </div>
       {isLoading ? <LoadingSpinner /> : (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto">
           <table className="min-w-full text-left text-xs">

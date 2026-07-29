@@ -30,6 +30,7 @@ class LineaReglaIn(BaseModel):
 
 class ReglaIn(BaseModel):
     tipo: str
+    libro: str = "patrimonial"
     descripcion: Optional[str] = None
     activo: bool = True
     lineas: List[LineaReglaIn] = []
@@ -38,7 +39,7 @@ class ReglaIn(BaseModel):
 def _ser_regla(r: ReglaImputacion, db):
     lineas = db.query(ReglaLinea).filter(ReglaLinea.id_regla == r.id).order_by(ReglaLinea.orden).all()
     return {
-        "id": r.id, "tipo": r.tipo, "descripcion": r.descripcion, "activo": r.activo,
+        "id": r.id, "tipo": r.tipo, "libro": r.libro, "descripcion": r.descripcion, "activo": r.activo,
         "lineas": [{"id": l.id, "orden": l.orden, "lado": l.lado, "origen_cuenta": l.origen_cuenta,
                     "cuenta_codigo": l.cuenta_codigo, "dimension": l.dimension,
                     "importe_campo": l.importe_campo, "detalle": l.detalle} for l in lineas],
@@ -60,16 +61,17 @@ def _validar_lineas(lineas):
 @reglas_router.get("")
 def listar_reglas(db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     _requiere(current_user, "contabilidad_read")
-    return [_ser_regla(r, db) for r in db.query(ReglaImputacion).order_by(ReglaImputacion.tipo).all()]
+    return [_ser_regla(r, db) for r in db.query(ReglaImputacion).order_by(ReglaImputacion.tipo, ReglaImputacion.libro).all()]
 
 
 @reglas_router.post("", status_code=201)
 def crear_regla(data: ReglaIn, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     _requiere(current_user, "contabilidad_reglas")
     _validar_lineas(data.lineas)
-    if db.query(ReglaImputacion).filter(ReglaImputacion.tipo == data.tipo.strip()).first():
-        raise HTTPException(status_code=409, detail=f"Ya existe una regla para el tipo '{data.tipo}'")
-    r = ReglaImputacion(tipo=data.tipo.strip(), descripcion=data.descripcion, activo=data.activo)
+    libro = (data.libro or "patrimonial").strip()
+    if db.query(ReglaImputacion).filter(ReglaImputacion.tipo == data.tipo.strip(), ReglaImputacion.libro == libro).first():
+        raise HTTPException(status_code=409, detail=f"Ya existe una regla para '{data.tipo}' en el libro '{libro}'")
+    r = ReglaImputacion(tipo=data.tipo.strip(), libro=libro, descripcion=data.descripcion, activo=data.activo)
     db.add(r); db.flush()
     for l in data.lineas:
         db.add(ReglaLinea(id_regla=r.id, orden=l.orden, lado=l.lado, origen_cuenta=l.origen_cuenta,
@@ -86,7 +88,8 @@ def editar_regla(id: int, data: ReglaIn, db: Session = Depends(get_db), current_
     if not r:
         raise HTTPException(status_code=404, detail="Regla inexistente")
     _validar_lineas(data.lineas)
-    r.tipo = data.tipo.strip(); r.descripcion = data.descripcion; r.activo = data.activo
+    r.tipo = data.tipo.strip(); r.libro = (data.libro or "patrimonial").strip()
+    r.descripcion = data.descripcion; r.activo = data.activo
     db.query(ReglaLinea).filter(ReglaLinea.id_regla == r.id).delete(synchronize_session=False)
     for l in data.lineas:
         db.add(ReglaLinea(id_regla=r.id, orden=l.orden, lado=l.lado, origen_cuenta=l.origen_cuenta,

@@ -47,8 +47,9 @@ def _cuenta_por_codigo(db, codigo, crear=True):
     return c
 
 
-def _crear_asiento(db, anio, fecha, concepto, tipo, origen_modulo, origen_ref, lineas_cod, creado_por):
-    """Crea un asiento CONFIRMADO balanceado a partir de líneas con cuenta_codigo.
+def _crear_asiento(db, anio, fecha, concepto, tipo, origen_modulo, origen_ref, lineas_cod, creado_por,
+                   libro="patrimonial"):
+    """Crea un asiento CONFIRMADO balanceado a partir de líneas con cuenta_codigo, en el LIBRO dado.
     lineas_cod: [{cuenta_codigo, debe, haber, detalle}]. Devuelve (asiento, None) o (None, motivo)."""
     td = th = CERO
     resueltas = []
@@ -62,7 +63,7 @@ def _crear_asiento(db, anio, fecha, concepto, tipo, origen_modulo, origen_ref, l
     if td != th:
         return None, f"No balancea: debe {td} ≠ haber {th}"
     numero = _proximo_numero(db, anio)
-    a = Asiento(anio=anio, numero=numero, fecha=fecha, tipo=tipo, concepto=concepto,
+    a = Asiento(anio=anio, numero=numero, fecha=fecha, tipo=tipo, libro=libro, concepto=concepto,
                 origen_modulo=origen_modulo, origen_ref=origen_ref, estado="confirmado",
                 total_debe=td, total_haber=th, creado_por=creado_por)
     db.add(a); db.flush()
@@ -86,7 +87,7 @@ def _ser_asiento(a: Asiento, db, con_items=True):
     out = {
         "id": a.id, "anio": a.anio, "numero": a.numero,
         "asiento": f"AS-{a.anio}-{a.numero:05d}",
-        "fecha": a.fecha, "tipo": a.tipo, "concepto": a.concepto,
+        "fecha": a.fecha, "tipo": a.tipo, "libro": a.libro, "concepto": a.concepto,
         "origen_modulo": a.origen_modulo, "origen_ref": a.origen_ref,
         "estado": a.estado, "total_debe": float(a.total_debe), "total_haber": float(a.total_haber),
         "creado_por": a.creado_por, "created_at": a.created_at,

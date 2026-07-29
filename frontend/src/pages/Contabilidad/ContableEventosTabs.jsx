@@ -116,7 +116,7 @@ export function ReglasTab() {
           {reglas?.length ? reglas.map((r) => (
             <div key={r.id} className="bg-white rounded-xl border border-gray-200 p-4">
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <div><p className="text-sm font-semibold text-gray-800">{r.tipo} {!r.activo && <span className="text-xs text-gray-400">(inactiva)</span>}</p><p className="text-xs text-gray-500">{r.descripcion}</p></div>
+                <div><p className="text-sm font-semibold text-gray-800">{r.tipo} <span className="text-[10px] rounded px-1.5 py-0.5 bg-slate-100 text-slate-600 align-middle">{r.libro}</span> {!r.activo && <span className="text-xs text-gray-400">(inactiva)</span>}</p><p className="text-xs text-gray-500">{r.descripcion}</p></div>
                 <div className="flex gap-2">
                   <button className="text-primary-600 text-xs hover:underline" onClick={() => reprocesar(r.id)}>reprocesar pendientes</button>
                   <button className="text-gray-600 text-xs hover:underline" onClick={() => setModal(r)}>editar</button>
@@ -134,9 +134,11 @@ export function ReglasTab() {
   );
 }
 
+const LIBROS = ['patrimonial', 'presupuestaria', 'financiera', 'orden'];
+
 function ReglaModal({ regla, initialTipo, tx, onClose, onDone }) {
   const tipoLock = !!(regla || initialTipo);
-  const [f, setF] = useState({ tipo: regla?.tipo || initialTipo || '', descripcion: regla?.descripcion || '', activo: regla?.activo ?? true });
+  const [f, setF] = useState({ tipo: regla?.tipo || initialTipo || '', libro: regla?.libro || 'patrimonial', descripcion: regla?.descripcion || '', activo: regla?.activo ?? true });
   const [lineas, setLineas] = useState(regla?.lineas?.length ? regla.lineas.map((l) => ({ ...l })) : [
     { orden: 1, lado: 'debe', origen_cuenta: 'fija', cuenta_codigo: '', dimension: '', importe_campo: 'importe' },
     { orden: 2, lado: 'haber', origen_cuenta: 'fija', cuenta_codigo: '', dimension: '', importe_campo: 'importe' },
@@ -145,7 +147,7 @@ function ReglaModal({ regla, initialTipo, tx, onClose, onDone }) {
   const setL = (i, k, v) => setLineas((p) => p.map((l, x) => (x === i ? { ...l, [k]: v } : l)));
   const m = useMutation({
     mutationFn: () => {
-      const payload = { tipo: f.tipo, descripcion: f.descripcion, activo: f.activo, lineas };
+      const payload = { tipo: f.tipo, libro: f.libro, descripcion: f.descripcion, activo: f.activo, lineas };
       return regla ? contabilidadAPI.reglasImputacion.update(regla.id, payload) : contabilidadAPI.reglasImputacion.create(payload);
     },
     onSuccess: onDone, onError: (e) => setMsg(e.response?.data?.detail || 'Error'),
@@ -159,8 +161,9 @@ function ReglaModal({ regla, initialTipo, tx, onClose, onDone }) {
           Al guardar la regla, esta transacción se imputa automáticamente.
         </div>
       )}
-      <div className="grid grid-cols-2 gap-3 mb-3">
+      <div className="grid grid-cols-3 gap-3 mb-3">
         <Field label="Tipo de transacción"><input className={inputClass} value={f.tipo} onChange={(e) => setF({ ...f, tipo: e.target.value })} placeholder="ej: gasto.devengado" disabled={tipoLock} /></Field>
+        <Field label="Libro (RAFAM)"><select className={inputClass} value={f.libro} onChange={(e) => setF({ ...f, libro: e.target.value })} disabled={!!regla}>{LIBROS.map((l) => <option key={l} value={l}>{l}</option>)}</select></Field>
         <Field label="Descripción"><input className={inputClass} value={f.descripcion} onChange={(e) => setF({ ...f, descripcion: e.target.value })} /></Field>
       </div>
       <p className="text-xs text-gray-500 mb-1">Líneas del asiento (debe = haber):</p>

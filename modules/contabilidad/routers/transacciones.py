@@ -22,19 +22,51 @@ transacciones_router = APIRouter(prefix="/transacciones", tags=["Transacciones e
 
 
 # ═══ Motor de imputación ═════════════════════════════════════════════
+def _resolver_lineas(db, regla, ctx, importe_tx):
+    """Resuelve las líneas de una regla a códigos de cuenta. Devuelve (lineas_cod, None) o (None, motivo)."""
+    lineas_def = db.query(ReglaLinea).filter(ReglaLinea.id_regla == regla.id).order_by(ReglaLinea.orden).all()
+    if not lineas_def:
+        return None, f"La regla '{regla.tipo}' ({regla.libro}) no tiene líneas definidas"
+    lineas_cod = []
+    for ld in lineas_def:
+        if ld.importe_campo and ld.importe_campo != "importe":
+            v = ctx.get(ld.importe_campo)
+            if v is None:
+                return None, f"Falta el campo de importe '{ld.importe_campo}' en el contexto"
+            imp = _dec(v)
+        else:
+            imp = _dec(importe_tx)
+        if ld.origen_cuenta == "derivada":
+            clave = ctx.get(ld.dimension)
+            if clave is None:
+                return None, f"Falta la dimensión '{ld.dimension}' en el contexto para derivar la cuenta"
+            mp = db.query(MapeoCuenta).filter(
+                MapeoCuenta.dimension == ld.dimension, MapeoCuenta.clave == str(clave),
+                MapeoCuenta.activo == True).first()
+            if not mp:
+                return None, f"Falta mapeo de cuenta para dimensión '{ld.dimension}' = '{clave}'"
+            codigo = mp.cuenta_codigo
+        else:
+            codigo = ld.cuenta_codigo
+            if not codigo:
+                return None, "Línea fija sin cuenta_codigo"
+        lineas_cod.append({"cuenta_codigo": codigo,
+                           "debe": imp if ld.lado == "debe" else 0,
+                           "haber": imp if ld.lado == "haber" else 0,
+                           "detalle": ld.detalle})
+    return lineas_cod, None
+
+
 def imputar(db: Session, tx: Transaccion, creado_por: str):
-    """Convierte la transacción en un asiento balanceado según la regla de su tipo.
+    """Convierte la transacción en asientos según las reglas de su tipo — UNA por libro contable (RAFAM).
+    Genera un asiento por cada regla activa. Atómico: si alguna regla no resuelve, no genera ninguno.
     Muta tx.estado/motivo/id_asiento. NO commitea (lo hace el caller)."""
-    regla = db.query(ReglaImputacion).filter(
-        ReglaImputacion.tipo == tx.tipo, ReglaImputacion.activo == True).first()
-    if not regla:
+    reglas = db.query(ReglaImputacion).filter(
+        ReglaImputacion.tipo == tx.tipo, ReglaImputacion.activo == True).order_by(ReglaImputacion.libro).all()
+    if not reglas:
         tx.estado = "sin_regla"; tx.id_asiento = None
         tx.motivo = f"No hay regla de imputación definida para el tipo '{tx.tipo}'"
         return
-    lineas_def = db.query(ReglaLinea).filter(
-        ReglaLinea.id_regla == regla.id).order_by(ReglaLinea.orden).all()
-    if not lineas_def:
-        tx.estado = "error"; tx.motivo = "La regla no tiene líneas definidas"; return
 
     ctx = {}
     if tx.contexto:
@@ -43,45 +75,6 @@ def imputar(db: Session, tx: Transaccion, creado_por: str):
         except Exception:
             ctx = {}
 
-    lineas_cod = []
-    for ld in lineas_def:
-        # importe de la línea
-        if ld.importe_campo and ld.importe_campo != "importe":
-            v = ctx.get(ld.importe_campo)
-            if v is None:
-                tx.estado = "error"; tx.id_asiento = None
-                tx.motivo = f"Falta el campo de importe '{ld.importe_campo}' en el contexto"
-                return
-            imp = _dec(v)
-        else:
-            imp = _dec(tx.importe)
-        # cuenta (fija o derivada por mapeo)
-        if ld.origen_cuenta == "derivada":
-            clave = ctx.get(ld.dimension)
-            if clave is None:
-                tx.estado = "error"; tx.id_asiento = None
-                tx.motivo = f"Falta la dimensión '{ld.dimension}' en el contexto para derivar la cuenta"
-                return
-            mp = db.query(MapeoCuenta).filter(
-                MapeoCuenta.dimension == ld.dimension, MapeoCuenta.clave == str(clave),
-                MapeoCuenta.activo == True).first()
-            if not mp:
-                tx.estado = "error"; tx.id_asiento = None
-                tx.motivo = f"Falta mapeo de cuenta para dimensión '{ld.dimension}' = '{clave}'"
-                return
-            codigo = mp.cuenta_codigo
-        else:
-            codigo = ld.cuenta_codigo
-            if not codigo:
-                tx.estado = "error"; tx.id_asiento = None
-                tx.motivo = "Línea fija sin cuenta_codigo"; return
-        lineas_cod.append({
-            "cuenta_codigo": codigo,
-            "debe": imp if ld.lado == "debe" else 0,
-            "haber": imp if ld.lado == "haber" else 0,
-            "detalle": ld.detalle,
-        })
-
     fecha = tx.fecha or date.today()
     anio = fecha.year
     ej = db.query(EjercicioContable).filter(EjercicioContable.anio == anio).first()
@@ -89,12 +82,26 @@ def imputar(db: Session, tx: Transaccion, creado_por: str):
         tx.estado = "error"; tx.id_asiento = None
         tx.motivo = f"El ejercicio {anio} está cerrado"; return
 
-    asiento, err = _crear_asiento(
-        db, anio, fecha, tx.concepto or f"{tx.tipo} · {tx.origen_ref}", "automatico",
-        tx.origen_modulo, f"tx-{tx.id}", lineas_cod, creado_por)
-    if err:
-        tx.estado = "error"; tx.id_asiento = None; tx.motivo = err; return
-    tx.estado = "imputada"; tx.motivo = None; tx.id_asiento = asiento.id
+    # 1) resolver TODAS las reglas primero (atomicidad)
+    planes = []
+    for regla in reglas:
+        lineas_cod, err = _resolver_lineas(db, regla, ctx, tx.importe)
+        if err:
+            tx.estado = "error"; tx.id_asiento = None
+            tx.motivo = f"[{regla.libro}] {err}"; return
+        planes.append((regla, lineas_cod))
+
+    # 2) crear un asiento por libro
+    primero = None
+    for regla, lineas_cod in planes:
+        asiento, err = _crear_asiento(
+            db, anio, fecha, tx.concepto or f"{tx.tipo} · {tx.origen_ref}", "automatico",
+            tx.origen_modulo, f"tx-{tx.id}-{regla.libro}", lineas_cod, creado_por, libro=regla.libro)
+        if err:
+            tx.estado = "error"; tx.id_asiento = None; tx.motivo = f"[{regla.libro}] {err}"; return
+        if primero is None:
+            primero = asiento
+    tx.estado = "imputada"; tx.motivo = None; tx.id_asiento = primero.id if primero else None
 
 
 def _ser_tx(tx: Transaccion, db, con_asiento=False):
@@ -111,8 +118,14 @@ def _ser_tx(tx: Transaccion, db, con_asiento=False):
         "creado_por": tx.creado_por, "created_at": tx.created_at,
     }
     if con_asiento and tx.id_asiento:
-        a = db.query(Asiento).filter(Asiento.id == tx.id_asiento).first()
-        out["asiento"] = _ser_asiento(a, db) if a else None
+        asientos = db.query(Asiento).filter(
+            Asiento.origen_modulo == tx.origen_modulo,
+            Asiento.origen_ref.like(f"tx-{tx.id}-%")).order_by(Asiento.libro).all()
+        if not asientos:
+            a = db.query(Asiento).filter(Asiento.id == tx.id_asiento).first()
+            asientos = [a] if a else []
+        out["asientos"] = [_ser_asiento(a, db) for a in asientos]
+        out["asiento"] = out["asientos"][0] if out["asientos"] else None
     return out
 
 

@@ -51,6 +51,7 @@ class Asiento(Base):
     numero = Column(Integer, nullable=False)
     fecha = Column(Date, nullable=False)
     tipo = Column(String(15), nullable=False, default="manual")     # manual/automatico/apertura/cierre
+    libro = Column(String(15), nullable=False, default="patrimonial")  # patrimonial/presupuestaria/financiera/orden
     concepto = Column(String(250), nullable=True)
     origen_modulo = Column(String(60), nullable=True, index=True)   # idempotencia de integraciones
     origen_ref = Column(String(120), nullable=True, index=True)
