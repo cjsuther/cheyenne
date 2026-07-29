@@ -20,11 +20,19 @@ jobs:
         run: |
           python -m py_compile $(find modules -name "*.py" -not -path "*/__pycache__/*")
 
-      # Tests de los módulos que los tienen (motor de cálculo). Best-effort hasta estabilizar.
-      - name: Tests de módulos
+      # Gate duro: tests de lógica de negocio (SQLite en memoria, verificados en verde).
+      - name: Tests de negocio (gate)
+        run: |
+          pip install pytest "sqlalchemy>=2" pydantic pydantic-settings fastapi httpx python-jose passlib psycopg2-binary
+          for m in contabilidad presupuesto tesoreria; do
+            echo "== pytest $m =="
+            ( cd "modules/$m" && python -m pytest tests -q )
+          done
+
+      # Best-effort: motor de cálculo (emisiones / ingresos).
+      - name: Tests motor de cálculo (best-effort)
         continue-on-error: true
         run: |
-          pip install pytest
           for m in emisiones ingresos_publicos; do
             if [ -d "modules/$m/tests" ]; then
               echo "== pytest $m =="
