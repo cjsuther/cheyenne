@@ -633,13 +633,13 @@ dmerge(emisionesAPI, {
   },
 
   coeficientes: {
-    ...crud('/emisiones/coeficientes'),
-    recalcularRecargo: (data) => api.post('/emisiones/coeficientes/recalcular-recargo', data),
+    ...crud('/emisiones/emisiones/coeficientes'),
+    recalcularRecargo: (data) => api.post('/emisiones/emisiones/coeficientes/recalcular-recargo', data),
   },
 
   vencimientos: {
-    list: (idComprobante) => api.get(`/emisiones/comprobantes/${idComprobante}/vencimientos`),
-    set: (idComprobante, vencimientos) => api.put(`/emisiones/comprobantes/${idComprobante}/vencimientos`, vencimientos),
+    list: (idComprobante) => api.get(`/emisiones/emisiones/comprobantes/${idComprobante}/vencimientos`),
+    set: (idComprobante, vencimientos) => api.put(`/emisiones/emisiones/comprobantes/${idComprobante}/vencimientos`, vencimientos),
   },
 });
 
