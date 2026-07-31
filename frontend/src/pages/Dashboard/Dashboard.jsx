@@ -20,7 +20,7 @@ export default function Dashboard() {
           Bienvenido, {user?.nombre_apellido || user?.codigo}
         </h1>
         <p className="text-sm text-slate-300 mt-2">
-          Sistema de finanzas y administración pública · Cheyenne
+          Sistema de Gestión Municipal · Cheyenne
         </p>
       </div>
 

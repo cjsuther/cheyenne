@@ -200,3 +200,18 @@ export const IconFormulas = (p) => (
     <path d="M9 11.2h5.7" />
   </Svg>
 );
+
+// Sede municipal: frontón + columnas + mástil con bandera
+export const IconMunicipio = (p) => (
+  <Svg {...p}>
+    <path d="M12 2.2V4" />
+    <path d="M12 2.2l2.6 .8-2.6 .8" />
+    <polygon points="12 4 21 8.5 3 8.5" />
+    <line x1="5" x2="5" y1="8.5" y2="18" />
+    <line x1="9.7" x2="9.7" y1="8.5" y2="18" />
+    <line x1="14.3" x2="14.3" y1="8.5" y2="18" />
+    <line x1="19" x2="19" y1="8.5" y2="18" />
+    <line x1="3.5" x2="20.5" y1="18" y2="18" />
+    <line x1="2.5" x2="21.5" y1="21" y2="21" />
+  </Svg>
+);

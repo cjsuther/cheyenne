@@ -1,7 +1,7 @@
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth';
 import MenuSearch from './MenuSearch';
-import { IconIngresos } from '../common/icons';
+import { IconMunicipio } from '../common/icons';
 import { SUPER_MODULES, superModuleForPath } from '../../config/superModules';
 
 export default function Sidebar({ onNavigate }) {
@@ -23,7 +23,7 @@ export default function Sidebar({ onNavigate }) {
       <div className="px-5 py-5 border-b border-white/10 flex items-center justify-between">
         <Link to="/" onClick={onNavigate} className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-lg shadow-primary-900/40">
-            <IconIngresos className="w-5 h-5 text-white" />
+            <IconMunicipio className="w-5 h-5 text-white" />
           </div>
           <div>
             <h2 className="text-lg font-bold tracking-tight leading-none">Cheyenne</h2>

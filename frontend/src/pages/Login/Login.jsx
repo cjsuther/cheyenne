@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth';
 import { authAPI } from '../../services/api';
+import { IconMunicipio } from '../../components/common/icons';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -46,8 +47,11 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 w-full max-w-md">
         <div className="text-center mb-8">
+          <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-lg shadow-primary-900/30">
+            <IconMunicipio className="w-8 h-8 text-white" />
+          </div>
           <h1 className="text-3xl font-bold text-gray-800">Cheyenne</h1>
-          <p className="text-gray-500 mt-2">Sistema de Administracion</p>
+          <p className="text-gray-500 mt-2">Sistema de Gestión Municipal</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
