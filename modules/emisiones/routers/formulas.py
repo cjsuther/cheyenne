@@ -35,6 +35,36 @@ def list_formulas(
     return FormulaTasaService(db).list(skip, limit, tipo_tributo, ttas_tasa)
 
 
+@router.get("/tasas")
+def tasas_disponibles(
+    tipo_tributo: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Tasas distintas que tienen fórmula definida (para elegir en el alta de una emisión).
+    Devuelve una fila por (tipo_tributo, ttas_tasa, ttas_subtasa) con una descripción representativa."""
+    from sqlalchemy import func
+    from models.formula_tasa import FormulaTasa
+    # Una fila por ttas_tasa (código único), con descripción y tipo representativos.
+    q = db.query(
+        FormulaTasa.ttas_tasa,
+        func.max(FormulaTasa.fort_descripcion),
+        func.max(FormulaTasa.tipo_tributo),
+    ).filter(FormulaTasa.activo == True)
+    if tipo_tributo:
+        q = q.filter(FormulaTasa.tipo_tributo == tipo_tributo)
+    rows = (
+        q.group_by(FormulaTasa.ttas_tasa)
+        .order_by(FormulaTasa.ttas_tasa)
+        .all()
+    )
+    out = []
+    for tasa, desc, tt in rows:
+        etiqueta = f"{tasa}" + (f" · {desc}" if desc else "") + (f" ({tt})" if tt else "")
+        out.append({"ttas_tasa": tasa, "tipo_tributo": tt, "descripcion": desc, "label": etiqueta})
+    return out
+
+
 @router.post("/probar", response_model=ProbarFormulaResponse)
 def probar_formula(
     data: ProbarFormulaRequest,
