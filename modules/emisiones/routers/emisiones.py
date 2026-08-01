@@ -20,6 +20,7 @@ from models.liquidacion import Liquidacion
 from models.ordenamiento import Ordenamiento, OrdenamientoItem
 from models.cuenta_corriente import CuentaCorriente
 from models.comprobante import Comprobante
+from models.vencimiento_comprobante import VencimientoComprobante
 from models.pago_recibo import PagoRecibo
 from models.paso_workflow import PasoWorkflow
 from services.emision_service import EmisionService
@@ -241,13 +242,21 @@ def ejecutar_paso(
         usuario_nombre=current_user.get("nombre_apellido"),
         usuario_codigo=current_user.get("codigo"),
     )
+    # Reejecución: el paso ya estaba completado. Se invalida todo lo generado por los pasos posteriores.
+    es_reejecucion = (emision.paso_actual or 0) >= numero
     try:
+        if es_reejecucion:
+            _limpiar_posteriores(db, id, numero)
         resultado = handler(db, emision, data or {}, token)
-        emision.paso_actual = max(emision.paso_actual or 0, numero)
+        if es_reejecucion:
+            emision.paso_actual = numero  # retrocede: los pasos siguientes deben re-ejecutarse
+        else:
+            emision.paso_actual = max(emision.paso_actual or 0, numero)
         db.commit()
         _registrar_paso(db, id, numero, "completado", resultado=str(resultado)[:480],
                         metadata_paso=(data or None), **quien)
-        return {"paso": numero, "nombre": paso["nombre"], "estado": "completado", "resultado": resultado}
+        return {"paso": numero, "nombre": paso["nombre"], "estado": "completado",
+                "resultado": resultado, "reejecucion": es_reejecucion}
     except HTTPException:
         db.rollback(); raise
     except Exception as e:
@@ -676,6 +685,45 @@ def _validar_paso(db: Session, id_emision: int, paso_requerido: int):
             detail=f"Debe completar el paso {paso_requerido - 1} antes de ejecutar el paso {paso_requerido}",
         )
     return emision
+
+
+def _limpiar_posteriores(db: Session, id_emision: int, numero: int):
+    """Al REEJECUTAR el paso `numero`, elimina la información de los pasos POSTERIORES.
+    Cada artefacto se borra si algún paso que lo genera está después de `numero`:
+      - cuenta corriente (paso 16)        -> numero < 16
+      - comprobantes + vencimientos (8/14)-> numero < 14
+      - ordenamiento + items (7/12)       -> numero < 12
+      - liquidaciones (3/5)               -> numero < 5 (el handler de cálculo igual las regenera)
+    También borra el historial de pasos ejecutados posteriores al reejecutado.
+    """
+    borrados = {}
+    if numero < 16:
+        borrados["cuenta_corriente"] = (
+            db.query(CuentaCorriente).filter(CuentaCorriente.id_emision == id_emision)
+            .delete(synchronize_session=False))
+    if numero < 14:
+        borrados["vencimientos"] = (
+            db.query(VencimientoComprobante).filter(VencimientoComprobante.id_emision == id_emision)
+            .delete(synchronize_session=False))
+        borrados["comprobantes"] = (
+            db.query(Comprobante).filter(Comprobante.id_emision == id_emision)
+            .delete(synchronize_session=False))
+    if numero < 12:
+        ord_ids = [o.id for o in db.query(Ordenamiento.id).filter(Ordenamiento.id_emision == id_emision)]
+        if ord_ids:
+            db.query(OrdenamientoItem).filter(OrdenamientoItem.id_ordenamiento.in_(ord_ids)).delete(synchronize_session=False)
+        borrados["ordenamientos"] = (
+            db.query(Ordenamiento).filter(Ordenamiento.id_emision == id_emision)
+            .delete(synchronize_session=False))
+    if numero < 5:
+        borrados["liquidaciones"] = (
+            db.query(Liquidacion).filter(Liquidacion.id_emision == id_emision)
+            .delete(synchronize_session=False))
+    db.query(PasoWorkflow).filter(
+        PasoWorkflow.id_emision == id_emision,
+        PasoWorkflow.numero_paso > numero,
+    ).delete(synchronize_session=False)
+    return {k: v for k, v in borrados.items() if v}
 
 
 # Step 1: Validar parametros
