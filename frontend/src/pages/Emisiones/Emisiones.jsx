@@ -5,7 +5,7 @@ import { useTabParam } from '../../hooks/useTabParam';
 import PageHeader from '../../components/common/PageHeader';
 import GroupedTabBar from '../../components/common/GroupedTabBar';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import { CrudTab, Modal, Field, inputClass, btnPrimary, btnSecondary } from '../../components/common/CrudComponents';
+import { CrudTab, Modal, Field, inputClass, btnPrimary, btnSecondary, apiErrorMessage } from '../../components/common/CrudComponents';
 
 const fmtDate = (v) => (v ? new Date(v).toLocaleDateString() : '');
 const fmtDateTime = (v) => (v ? new Date(v).toLocaleString() : '-');
@@ -117,7 +117,7 @@ function WorkflowModal({ emision, onClose }) {
       queryClient.invalidateQueries({ queryKey: ['emisiones-recibospdf', emision.id] });
       queryClient.invalidateQueries({ queryKey: ['emi-emisiones'] });
     },
-    onError: (e) => setActionError(e.response?.data?.detail || 'Error al ejecutar el paso'),
+    onError: (e) => setActionError(apiErrorMessage(e, 'Error al ejecutar el paso')),
   });
 
   const handleAction = (step) => {

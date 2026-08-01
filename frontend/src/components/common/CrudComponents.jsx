@@ -3,6 +3,24 @@ import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/rea
 import DataTable from './DataTable';
 import LoadingSpinner from './LoadingSpinner';
 
+// ── Normalización de errores de API ─────────────────────────────────
+// El `detail` de FastAPI puede ser: string (HTTPException), array de objetos
+// (validación Pydantic 422) u objeto. Siempre devolvemos un string para no
+// romper el render de React (un objeto como hijo tira la pantalla en blanco).
+export function apiErrorMessage(e, fallback = 'Error al guardar') {
+  const d = e?.response?.data?.detail;
+  if (typeof d === 'string') return d;
+  if (Array.isArray(d)) {
+    return d.map((x) => {
+      if (typeof x === 'string') return x;
+      const loc = Array.isArray(x?.loc) ? x.loc.filter((p) => p !== 'body').join('.') : '';
+      return (loc ? `${loc}: ` : '') + (x?.msg || JSON.stringify(x));
+    }).join(' · ') || fallback;
+  }
+  if (d && typeof d === 'object') return d.msg || JSON.stringify(d);
+  return e?.response?.data?.message || e?.message || fallback;
+}
+
 // ── Estilos ─────────────────────────────────────────────────────────
 export const inputClass = 'mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500';
 export const btnPrimary = 'bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium';
@@ -367,7 +385,7 @@ export function CrudFormModal({ title, item, formFields, apiFns, queryKey, onClo
   const mutation = useMutation({
     mutationFn: (data) => isEdit ? apiFns.update(item.id, data) : apiFns.create(data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: [queryKey] }); onClose(); },
-    onError: (e) => setError(e.response?.data?.detail || 'Error al guardar'),
+    onError: (e) => setError(apiErrorMessage(e)),
   });
 
   const handleSubmit = (e) => {
@@ -463,7 +481,7 @@ export function CrudFormModal({ title, item, formFields, apiFns, queryKey, onClo
               <Field key={f.key} label={f.label}>
                 <input
                   type={f.type === 'number' || f.type === 'int' || f.type === 'decimal' ? 'number' : f.type || 'text'}
-                  step={f.type === 'decimal' ? '0.01' : undefined}
+                  step={f.type === 'decimal' ? '0.01' : f.type === 'int' ? '1' : undefined}
                   value={form[f.key] ?? ''}
                   onChange={set(f.key)}
                   required={f.required && !isEdit}
