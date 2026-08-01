@@ -165,6 +165,35 @@ def delete_emision(
 
 # --- Estado ---
 
+@router.get("/{id}/referencias")
+def listar_referencias(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Emisiones anteriores del MISMO tipo de tributo (para el paso 1 'Importar cálculo anterior').
+    Excluye la emisión actual. Si la lista viene vacía, no hay de dónde importar (primera del tipo)."""
+    emision = EmisionService(db).find_by_id(id)
+    refs = (
+        db.query(Emision)
+        .filter(
+            Emision.tipo_tributo == emision.tipo_tributo,
+            Emision.id != emision.id,
+            Emision.activo == True,
+        )
+        .order_by(Emision.id.desc())
+        .limit(100)
+        .all()
+    )
+    return [
+        {
+            "id": r.id, "periodo": r.periodo, "numero_cuota": r.numero_cuota,
+            "estado": r.estado, "paso_actual": r.paso_actual, "created_at": r.created_at,
+        }
+        for r in refs
+    ]
+
+
 @router.get("/{id}/estado")
 def get_estado(
     id: int,

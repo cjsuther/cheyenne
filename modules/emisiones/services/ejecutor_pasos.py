@@ -57,10 +57,17 @@ def _liquidar(db: Session, emision: Emision, token: Optional[str], modo: str, so
 def h_importar(db, emision, data, token):
     ref_id = data.get("id_referencia") or data.get("id_emision_referencia")
     if not ref_id:
-        raise ValueError("Indicá la emisión de referencia (id_referencia)")
+        # Sin referencia: no hay de dónde importar (primera emisión del tipo o importación omitida).
+        # No es un error: el paso se completa y se sigue configurando manualmente en el paso 2.
+        return {"importado": False, "motivo": "Sin emisión de referencia: se continúa sin importar."}
     ref = db.query(Emision).filter(Emision.id == int(ref_id)).first()
     if not ref:
         raise ValueError(f"No existe la emisión de referencia {ref_id}")
+    if ref.tipo_tributo != emision.tipo_tributo:
+        raise ValueError(
+            f"La emisión de referencia #{ref.id} es de otro tipo de tributo ({ref.tipo_tributo}); "
+            f"solo se puede importar de una del mismo tipo ({emision.tipo_tributo})."
+        )
     emision.tipo_tributo = ref.tipo_tributo
     emision.ttas_tasa = ref.ttas_tasa
     emision.ttas_subtasa = ref.ttas_subtasa

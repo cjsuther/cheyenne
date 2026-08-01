@@ -258,6 +258,7 @@ export const emisionesAPI = {
   emisiones: {
     ...crud('/emisiones/emisiones'),
     estado: (id) => api.get(`/emisiones/emisiones/${id}/estado`),
+    referencias: (id) => api.get(`/emisiones/emisiones/${id}/referencias`),
     ejecutarPaso: (id, numero, data) => api.post(`/emisiones/emisiones/${id}/pasos/${numero}/ejecutar`, data || {}),
     resumen: (id) => api.get(`/emisiones/emisiones/${id}/resumen`),
     recibosPdf: (id) => api.get(`/emisiones/emisiones/${id}/recibos-pdf`),

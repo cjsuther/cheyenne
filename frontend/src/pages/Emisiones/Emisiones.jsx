@@ -48,6 +48,12 @@ function WorkflowModal({ emision, onClose }) {
     queryFn: () => emisionesAPI.emisiones.estado(emision.id).then((r) => r.data),
   });
 
+  // Emisiones anteriores del mismo tipo de tributo (para importar en el paso 1)
+  const { data: referencias } = useQuery({
+    queryKey: ['emi-referencias', emision.id],
+    queryFn: () => emisionesAPI.emisiones.referencias(emision.id).then((r) => r.data),
+  });
+
   const pasoActual = estadoData?.paso_actual ?? emision.paso_actual ?? 0;
   const pasos = estadoData?.pasos ?? [];
 
@@ -134,8 +140,24 @@ function WorkflowModal({ emision, onClose }) {
 
   const renderStepInput = (step) => {
     if (step.numero === 1) return (
-      <Field label="Emisión de referencia (ID) — para importar sus parámetros">
-        <input type="number" value={refId} onChange={(e) => setRefId(e.target.value)} placeholder="ID de la emisión anterior" className={inputClass} />
+      <Field label={`Emisión de referencia — importa los parámetros de una emisión anterior de "${emision.tipo_tributo}"`}>
+        {referencias?.length > 0 ? (
+          <>
+            <select value={refId} onChange={(e) => setRefId(e.target.value)} className={inputClass}>
+              <option value="">— No importar (configurar manualmente) —</option>
+              {referencias.map((r) => (
+                <option key={r.id} value={r.id}>
+                  #{r.id} · período {r.periodo || 's/período'}{r.numero_cuota ? ` · cuota ${r.numero_cuota}` : ''} · {r.estado}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-400 mt-1">Si no elegís ninguna, la emisión se ejecuta sin importar (arrancás de cero y configurás en el paso 2).</p>
+          </>
+        ) : (
+          <p className="text-sm text-gray-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+            No hay emisiones anteriores del tipo <b>{emision.tipo_tributo}</b>. Es la primera de su tipo: ejecutá este paso para continuar <b>sin importar</b> y configurá los parámetros en el paso siguiente.
+          </p>
+        )}
       </Field>
     );
     if (step.key === 'editar_calculo') return (
@@ -477,7 +499,6 @@ function EmisionesTab() {
           { key: 'descripcion', label: 'Descripcion' },
           { key: 'fecha_vencimiento_1', label: '1er Vencimiento', type: 'date' },
           { key: 'fecha_vencimiento_2', label: '2do Vencimiento', type: 'date' },
-          { key: 'id_emision_base', label: 'Emision Base (ID)', type: 'int' },
         ]}
       />
       {workflowEmision && <WorkflowModal emision={workflowEmision} onClose={() => setWorkflowEmision(null)} />}
