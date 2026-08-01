@@ -57,20 +57,35 @@ export function Field({ label, children }) {
 }
 
 // ── DynamicSelect (campo select con datos remotos) ──────────────────
-function DynamicSelect({ field, value, onChange }) {
+function DynamicSelect({ field, value, onChange, depValue }) {
+  const hasDep = field.dependsOn != null;
+  const depReady = !hasDep || (depValue != null && depValue !== '');
   const { data: options, isLoading } = useQuery({
-    queryKey: [field.queryKey],
-    queryFn: field.queryFn,
+    queryKey: [field.queryKey, hasDep ? depValue ?? null : undefined],
+    queryFn: () => field.queryFn(depValue),
     staleTime: 5 * 60 * 1000,
+    enabled: depReady,
   });
 
   const vk = field.optionValue || 'id';
   const lk = field.optionLabel || 'nombre';
 
+  // Si cambió la dependencia y el valor elegido ya no está entre las opciones, lo limpio.
+  useEffect(() => {
+    if (!options || value == null || value === '') return;
+    if (!options.some((o) => String(o[vk]) === String(value))) {
+      onChange({ target: { value: '' } });
+    }
+  }, [options]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const placeholder = isLoading ? 'Cargando...'
+    : !depReady ? 'Elegí primero el campo requerido…'
+    : (options && options.length === 0) ? 'Sin opciones' : 'Seleccionar...';
+
   return (
     <Field label={field.label}>
-      <select value={value ?? ''} onChange={onChange} className={inputClass} required={field.required} disabled={isLoading}>
-        <option value="">{isLoading ? 'Cargando...' : 'Seleccionar...'}</option>
+      <select value={value ?? ''} onChange={onChange} className={inputClass} required={field.required} disabled={isLoading || !depReady}>
+        <option value="">{placeholder}</option>
         {options?.map((o) => (
           <option key={o[vk]} value={o[vk]}>{o[lk]}</option>
         ))}
@@ -433,6 +448,7 @@ export function CrudFormModal({ title, item, formFields, apiFns, queryKey, onClo
                   field={f}
                   value={form[f.key]}
                   onChange={set(f.key)}
+                  depValue={f.dependsOn ? form[f.dependsOn] : undefined}
                 />
               );
             }

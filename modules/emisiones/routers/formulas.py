@@ -43,7 +43,7 @@ def tasas_disponibles(
 ):
     """Tasas distintas que tienen fórmula definida (para elegir en el alta de una emisión).
     Devuelve una fila por (tipo_tributo, ttas_tasa, ttas_subtasa) con una descripción representativa."""
-    from sqlalchemy import func
+    from sqlalchemy import func, or_
     from models.formula_tasa import FormulaTasa
     # Una fila por ttas_tasa (código único), con descripción y tipo representativos.
     q = db.query(
@@ -52,7 +52,8 @@ def tasas_disponibles(
         func.max(FormulaTasa.tipo_tributo),
     ).filter(FormulaTasa.activo == True)
     if tipo_tributo:
-        q = q.filter(FormulaTasa.tipo_tributo == tipo_tributo)
+        # Las del tipo elegido + las que no tienen tipo asignado (aplican a cualquiera).
+        q = q.filter(or_(FormulaTasa.tipo_tributo == tipo_tributo, FormulaTasa.tipo_tributo.is_(None)))
     rows = (
         q.group_by(FormulaTasa.ttas_tasa)
         .order_by(FormulaTasa.ttas_tasa)
