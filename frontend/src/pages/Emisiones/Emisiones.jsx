@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { emisionesAPI } from '../../services/api';
+import { emisionesAPI, ingresosPublicosAPI } from '../../services/api';
 import { useTabParam } from '../../hooks/useTabParam';
 import PageHeader from '../../components/common/PageHeader';
 import GroupedTabBar from '../../components/common/GroupedTabBar';
@@ -21,10 +21,53 @@ function EstadoBadge({ estado }) {
   return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${estadoColors[estado] || 'bg-yellow-100 text-yellow-800'}`}>{estado || 'N/A'}</span>;
 }
 
+// Buscador de contribuyentes con chips (para las cuentas de prueba del paso 3)
+function ContribuyentePicker({ value, onChange }) {
+  const [q, setQ] = useState('');
+  const { data: resultados, isFetching } = useQuery({
+    queryKey: ['emi-contrib-search', q],
+    queryFn: () => ingresosPublicosAPI.contribuyentes.search(q).then((r) => r.data),
+    enabled: q.trim().length >= 2,
+    staleTime: 60000,
+  });
+  const yaElegido = (id) => value.some((c) => c.id === id);
+  const agregar = (c) => { if (!yaElegido(c.id)) onChange([...value, c]); setQ(''); };
+  const quitar = (id) => onChange(value.filter((c) => c.id !== id));
+  return (
+    <div>
+      {value.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {value.map((c) => (
+            <span key={c.id} className="inline-flex items-center gap-1 bg-primary-50 text-primary-700 border border-primary-200 rounded-full pl-2 pr-1 py-0.5 text-xs">
+              #{c.id} · {c.nombre_completo || c.numero_documento}
+              <button type="button" onClick={() => quitar(c.id)} className="hover:text-primary-900 leading-none" title="Quitar">✕</button>
+            </span>
+          ))}
+        </div>
+      )}
+      <input type="text" value={q} onChange={(e) => setQ(e.target.value)}
+        placeholder="Buscar por nombre, apellido o documento (mín. 2 caracteres)…" className={inputClass} />
+      {q.trim().length >= 2 && (
+        <div className="mt-1 border border-gray-200 rounded-lg max-h-48 overflow-y-auto divide-y divide-gray-50">
+          {isFetching && <p className="px-3 py-2 text-xs text-gray-400">Buscando…</p>}
+          {!isFetching && resultados?.length === 0 && <p className="px-3 py-2 text-xs text-gray-400">Sin resultados</p>}
+          {resultados?.map((c) => (
+            <button type="button" key={c.id} onClick={() => agregar(c)} disabled={yaElegido(c.id)}
+              className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 ${yaElegido(c.id) ? 'opacity-40 cursor-default' : ''}`}>
+              #{c.id} · {c.nombre_completo} <span className="text-gray-400">· {c.numero_documento}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {value.length === 0 && <p className="text-xs text-gray-400 mt-1">Agregá al menos un contribuyente.</p>}
+    </div>
+  );
+}
+
 function WorkflowModal({ emision, onClose }) {
   const [approvalNote, setApprovalNote] = useState('');
   const [refId, setRefId] = useState('');
-  const [cuentasPrueba, setCuentasPrueba] = useState('');
+  const [cuentasPrueba, setCuentasPrueba] = useState([]); // contribuyentes de prueba elegidos {id, nombre_completo, numero_documento}
   const [directorio, setDirectorio] = useState('');
   const [criterioOrd, setCriterioOrd] = useState(['codigo_postal', 'barrio', 'calle', 'numero']);
   const [editParams, setEditParams] = useState({
@@ -125,7 +168,7 @@ function WorkflowModal({ emision, onClose }) {
     if (step.tipo === 'aprobacion') { data.aprobado = true; data.observaciones = approvalNote; }
     if (step.numero === 1) { data.id_referencia = Number(refId) || null; }
     if (step.key === 'editar_calculo') { Object.assign(data, editParams); }
-    if (step.key === 'calculo_prueba') { data.cuentas = cuentasPrueba; }
+    if (step.key === 'calculo_prueba') { data.cuentas = cuentasPrueba.map((c) => c.id); }
     if (step.key === 'ordenamiento_prueba' || step.key === 'ordenamiento_general') {
       data.criterio = ['codigo_postal', 'barrio', 'calle', 'numero'].filter((k) => criterioOrd.includes(k)).join(',');
     }
@@ -189,8 +232,8 @@ function WorkflowModal({ emision, onClose }) {
       </Field>
     );
     if (step.key === 'calculo_prueba') return (
-      <Field label="Cuentas de prueba — IDs de contribuyente separados por coma">
-        <input type="text" value={cuentasPrueba} onChange={(e) => setCuentasPrueba(e.target.value)} placeholder="ej: 1, 2, 13" className={inputClass} />
+      <Field label="Contribuyentes de prueba — buscá y agregá los que quieras calcular">
+        <ContribuyentePicker value={cuentasPrueba} onChange={setCuentasPrueba} />
       </Field>
     );
     if (step.key === 'impresion_prueba' || step.key === 'impresion_general') {
