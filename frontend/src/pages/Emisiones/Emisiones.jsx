@@ -40,6 +40,7 @@ function WorkflowModal({ emision, onClose }) {
   const setEP = (k) => (e) => setEditParams((p) => ({ ...p, [k]: e.target.value }));
   const [actionError, setActionError] = useState('');
   const [reejecutar, setReejecutar] = useState(null); // numero de paso completado que se está reejecutando
+  const [wtab, setWtab] = useState('proceso'); // tab interno del modal
   const queryClient = useQueryClient();
 
   const { data: estadoData, isLoading } = useQuery({
@@ -187,10 +188,18 @@ function WorkflowModal({ emision, onClose }) {
     return null;
   };
 
+  const WTABS = [
+    { key: 'proceso', label: 'Proceso' },
+    { key: 'liquidaciones', label: `Liquidaciones${liquidaciones?.length ? ` (${liquidaciones.length})` : ''}` },
+    { key: 'ctacte', label: `Cuenta corriente${ctaCte?.length ? ` (${ctaCte.length})` : ''}` },
+    { key: 'comprobantes', label: `Comprobantes${comprobantes?.length ? ` (${comprobantes.length})` : ''}` },
+    { key: 'historial', label: 'Historial' },
+  ];
+
   return (
-    <Modal title={`Emision #${emision.id} - Workflow`} onClose={onClose} wide>
+    <Modal title={`Emision #${emision.id} - Workflow`} onClose={onClose} size="xl">
       {isLoading ? <div className="text-center py-8 text-gray-500">Cargando...</div> : (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {actionError && (
             <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 flex items-start gap-2">
               <span className="shrink-0">⚠</span>
@@ -198,12 +207,23 @@ function WorkflowModal({ emision, onClose }) {
               <button onClick={() => setActionError('')} className="text-red-500 hover:text-red-700 shrink-0" title="Cerrar">✕</button>
             </div>
           )}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-gray-50 rounded-lg p-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-gray-50 rounded-lg p-4">
             <div><span className="text-xs text-gray-500">Tributo</span><p className="text-sm font-medium capitalize">{emision.tipo_tributo}</p></div>
             <div><span className="text-xs text-gray-500">Periodo</span><p className="text-sm font-medium">{emision.periodo}</p></div>
             <div><span className="text-xs text-gray-500">Estado</span><p><EstadoBadge estado={estadoData?.estado ?? emision.estado} /></p></div>
+            <div><span className="text-xs text-gray-500">Progreso</span><p className="text-sm font-medium">{pasoActual}/{totalPasos}</p></div>
           </div>
 
+          <div className="flex flex-wrap gap-1 border-b border-gray-200 sticky top-14 bg-white z-10">
+            {WTABS.map((t) => (
+              <button key={t.key} onClick={() => setWtab(t.key)}
+                className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px whitespace-nowrap ${wtab === t.key ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {wtab === 'proceso' && (<>
           <div>
             <h4 className="text-sm font-semibold text-gray-700 mb-3">Progreso ({pasoActual}/{totalPasos})</h4>
             <div className="space-y-1">
@@ -268,8 +288,9 @@ function WorkflowModal({ emision, onClose }) {
               )}
             </div>
           )}
+          </>)}
 
-          {recibosPdf?.length > 0 && (
+          {wtab === 'comprobantes' && recibosPdf?.length > 0 && (
             <div>
               <h4 className="text-sm font-semibold text-gray-700 mb-2">Recibos generados ({recibosPdf.length})</h4>
               <div className="max-h-48 overflow-y-auto border border-gray-100 rounded-lg divide-y divide-gray-50">
@@ -284,7 +305,7 @@ function WorkflowModal({ emision, onClose }) {
           )}
 
 
-          {pasoActual >= 3 && (
+          {wtab === 'liquidaciones' && (
             <div>
               <div className="flex items-center justify-between mb-2">
                 <h4 className="text-sm font-semibold text-gray-700">Liquidaciones ({liquidaciones?.length || 0})</h4>
@@ -318,7 +339,7 @@ function WorkflowModal({ emision, onClose }) {
             </div>
           )}
 
-          {pasoActual >= 16 && (
+          {wtab === 'ctacte' && (
             <div>
               <div className="flex items-center justify-between mb-2">
                 <h4 className="text-sm font-semibold text-gray-700">Cuenta corriente ({ctaCte?.length || 0})</h4>
@@ -349,7 +370,7 @@ function WorkflowModal({ emision, onClose }) {
             </div>
           )}
 
-          {pasoActual >= 8 && (
+          {wtab === 'comprobantes' && (
             <div>
               <h4 className="text-sm font-semibold text-gray-700 mb-2">Comprobantes / Recibos ({comprobantes?.length || 0})</h4>
               {comprobantes?.length > 0 ? (
@@ -384,12 +405,14 @@ function WorkflowModal({ emision, onClose }) {
             </div>
           )}
 
-          {pasos.length > 0 && (
+          {wtab === 'historial' && (
+            pasos.length > 0 ? (
             <div>
               <h4 className="text-sm font-semibold text-gray-700 mb-2">Historial</h4>
               <div className="overflow-x-auto"><table className="w-full text-xs"><thead><tr className="border-b text-left text-gray-500"><th className="pb-2 pr-3">#</th><th className="pb-2 pr-3">Nombre</th><th className="pb-2 pr-3">Estado</th><th className="pb-2 pr-3">Usuario</th><th className="pb-2 pr-3">Fecha de ejecución</th><th className="pb-2">Detalle</th></tr></thead>
               <tbody>{pasos.map((p, i) => (<tr key={i} className="border-b border-gray-100"><td className="py-1.5 pr-3">{p.numero_paso}</td><td className="py-1.5 pr-3">{p.nombre_paso}</td><td className="py-1.5 pr-3"><EstadoBadge estado={p.estado} /></td><td className="py-1.5 pr-3">{p.usuario_nombre || p.usuario_codigo || (p.id_usuario ? `#${p.id_usuario}` : '-')}{p.usuario_nombre && p.usuario_codigo ? <span className="text-gray-400"> ({p.usuario_codigo})</span> : null}</td><td className="py-1.5 pr-3 whitespace-nowrap">{fmtDateTime(p.ejecutado_en)}</td><td className="py-1.5 text-gray-500 max-w-xs truncate" title={p.error || p.resultado || ''}>{p.error || p.resultado || '-'}</td></tr>))}</tbody></table></div>
             </div>
+            ) : <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-3">Sin historial de pasos ejecutados.</p>
           )}
         </div>
       )}

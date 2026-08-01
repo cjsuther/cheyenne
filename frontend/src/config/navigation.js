@@ -20,7 +20,7 @@ export const NAV = [
       { k: 'comercioDdjj', l: 'Comercio - DD.JJ.' }, { k: 'inmuebles', l: 'Inmuebles' },
       { k: 'valuaciones', l: 'Valuaciones' }, { k: 'superficies', l: 'Superficies' }, { k: 'frentes', l: 'Frentes' },
       { k: 'vehiculos', l: 'Vehículos' }, { k: 'vehiculoVal', l: 'Valuación Vehicular' },
-      { k: 'emisiones', l: 'Emisiones' }, { k: 'emisionDef', l: 'Definiciones de Emisión' },
+      { k: 'emisiones', l: 'Deuda emitida' }, { k: 'emisionDef', l: 'Definiciones de deuda' },
       { k: 'planesPago', l: 'Planes de Pago' }, { k: 'simularPlan', l: 'Simular Plan' },
       { k: 'cuotasPlan', l: 'Cuotas de Plan' }, { k: 'planPagoDef', l: 'Definiciones de Plan' },
       { k: 'certificados', l: 'Certificados' }, { k: 'multas', l: 'Multas' },

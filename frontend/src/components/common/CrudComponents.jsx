@@ -10,11 +10,12 @@ export const btnDanger = 'bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rou
 export const btnSecondary = 'bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded text-xs font-medium';
 
 // ── Modal ───────────────────────────────────────────────────────────
-export function Modal({ title, onClose, children, wide }) {
+export function Modal({ title, onClose, children, wide, size }) {
+  const maxW = size === 'xl' ? 'sm:max-w-6xl' : wide ? 'sm:max-w-2xl' : 'sm:max-w-lg';
   return (
     <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50" onClick={onClose}>
       <div
-        className={`bg-white sm:rounded-lg shadow-xl w-full ${wide ? 'sm:max-w-2xl' : 'sm:max-w-lg'} max-h-[95vh] sm:max-h-[90vh] overflow-y-auto rounded-t-xl`}
+        className={`bg-white sm:rounded-lg shadow-xl w-full ${maxW} max-h-[95vh] sm:max-h-[90vh] overflow-y-auto rounded-t-xl`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b sticky top-0 bg-white z-10">

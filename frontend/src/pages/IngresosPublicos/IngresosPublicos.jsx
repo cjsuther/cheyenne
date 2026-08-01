@@ -72,8 +72,8 @@ const TABS = [
   { key: 'frentes', label: 'Frentes' },
   { key: 'vehiculos', label: 'Vehiculos' },
   { key: 'vehiculoVal', label: 'Val. Vehic.' },
-  { key: 'emisiones', label: 'Emisiones' },
-  { key: 'emisionDef', label: 'Def. Emisiones' },
+  { key: 'emisiones', label: 'Deuda emitida' },
+  { key: 'emisionDef', label: 'Definiciones' },
   { key: 'planesPago', label: 'Planes Pago' },
   { key: 'simularPlan', label: 'Simular Plan' },
   { key: 'cuotasPlan', label: 'Cuotas Plan' },
@@ -103,7 +103,7 @@ const GRUPOS = [
   { label: 'Inmuebles', keys: ['inmuebles', 'valuaciones', 'superficies', 'frentes'] },
   { label: 'Comercios', keys: ['comercios', 'comercioRubros', 'comercioDdjj'] },
   { label: 'Vehículos', keys: ['vehiculos', 'vehiculoVal'] },
-  { label: 'Emisiones', keys: ['emisiones', 'emisionDef'] },
+  { label: 'Deuda emitida', keys: ['emisiones', 'emisionDef'] },
   { label: 'Planes de pago', keys: ['planesPago', 'simularPlan', 'cuotasPlan', 'planPagoDef', 'regimenes', 'simMoratoria'] },
   { label: 'Tributos', keys: ['tasas', 'subTasas', 'certificados', 'libreDeuda', 'exenciones', 'titulares', 'prescripcion', 'transferenciasDominio', 'multas'] },
   { label: 'Tributos Marginales', keys: ['fondeaderos', 'serviciosMedidos', 'puestosMercado', 'derechosConstruccion'] },
@@ -115,7 +115,7 @@ export default function IngresosPublicos() {
   const [tab, setTab] = useTabParam('contribuyentes');
   return (
     <div>
-      <PageHeader title="Ingresos Publicos" subtitle="Contribuyentes, cuentas, emisiones, planes de pago y tributos" />
+      <PageHeader title="Ingresos Publicos" subtitle="Contribuyentes, cuentas, deuda emitida, planes de pago y tributos" />
       <GroupedTabBar grupos={GRUPOS} tabsMeta={TABS} tab={tab} setTab={setTab} />
       {tab === 'contribuyentes' && <ContribuyentesTab />}
       {tab === 'cuentas' && <CuentasTab />}
