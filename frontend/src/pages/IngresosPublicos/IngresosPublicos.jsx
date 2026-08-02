@@ -63,6 +63,7 @@ const cuentaSearchField = {
 const TABS = [
   { key: 'contribuyentes', label: 'Contribuyentes' },
   { key: 'cuentas', label: 'Cuentas' },
+  { key: 'quienEs', label: '¿De quién es?' },
   { key: 'comercios', label: 'Comercios' },
   { key: 'comercioRubros', label: 'Com. Rubros' },
   { key: 'comercioDdjj', label: 'Com. DD.JJ.' },
@@ -99,7 +100,7 @@ const TABS = [
 ];
 
 const GRUPOS = [
-  { label: 'Contribuyentes', keys: ['contribuyentes', 'cuentas'] },
+  { label: 'Contribuyentes', keys: ['contribuyentes', 'cuentas', 'quienEs'] },
   { label: 'Inmuebles', keys: ['inmuebles', 'valuaciones', 'superficies', 'frentes'] },
   { label: 'Comercios', keys: ['comercios', 'comercioRubros', 'comercioDdjj'] },
   { label: 'Vehículos', keys: ['vehiculos', 'vehiculoVal'] },
@@ -119,6 +120,7 @@ export default function IngresosPublicos() {
       <GroupedTabBar grupos={GRUPOS} tabsMeta={TABS} tab={tab} setTab={setTab} />
       {tab === 'contribuyentes' && <ContribuyentesTab />}
       {tab === 'cuentas' && <CuentasTab />}
+      {tab === 'quienEs' && <QuienEsTab />}
       {tab === 'comercios' && <ComerciosTab />}
       {tab === 'comercioRubros' && <ComercioRubrosTab />}
       {tab === 'comercioDdjj' && <ComercioDdjjTab />}
@@ -157,6 +159,75 @@ export default function IngresosPublicos() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// ── ¿De quién es? — consulta inversa objeto -> titular(es) ───────────
+const TIPO_OBJETO_BADGE = {
+  vehiculo: 'bg-sky-100 text-sky-700',
+  inmueble: 'bg-emerald-100 text-emerald-700',
+  comercio: 'bg-amber-100 text-amber-700',
+};
+function QuienEsTab() {
+  const [q, setQ] = useState('');
+  const [tipo, setTipo] = useState('');
+  const [buscado, setBuscado] = useState('');
+  const { data: resultados, isFetching } = useQuery({
+    queryKey: ['ip-quien-es', buscado, tipo],
+    queryFn: () => ingresosPublicosAPI.objetos.buscar(buscado, tipo).then((r) => r.data),
+    enabled: buscado.trim().length >= 2,
+  });
+  const buscar = (e) => { e?.preventDefault?.(); setBuscado(q); };
+  return (
+    <div>
+      <form onSubmit={buscar} className="flex flex-wrap items-end gap-2 mb-4">
+        <label className="text-xs text-gray-500 flex-1 min-w-[240px]">Buscar objeto
+          <input type="text" value={q} onChange={(e) => setQ(e.target.value)}
+            placeholder="Dominio, nomenclatura, nombre de comercio, CUIT o N° de cuenta…" className={inputClass} />
+        </label>
+        <label className="text-xs text-gray-500">Tipo
+          <select value={tipo} onChange={(e) => setTipo(e.target.value)} className={inputClass}>
+            <option value="">Todos</option>
+            <option value="inmuebles">Inmuebles</option>
+            <option value="vehiculos">Vehículos</option>
+            <option value="comercios">Comercios</option>
+          </select>
+        </label>
+        <button type="submit" className={btnPrimary} disabled={q.trim().length < 2}>Buscar</button>
+      </form>
+
+      {!buscado ? <p className="text-sm text-gray-400">Ingresá un dato del objeto (mín. 2 caracteres) para ver a quién pertenece.</p>
+        : isFetching ? <LoadingSpinner />
+        : !resultados || resultados.length === 0 ? <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-3">Sin resultados para “{buscado}”.</p>
+        : (
+          <div className="space-y-2">
+            {resultados.map((r) => (
+              <div key={`${r.tipo}-${r.id_objeto}`} className="bg-white border border-gray-200 rounded-xl p-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`text-[10px] uppercase tracking-wide rounded px-1.5 py-0.5 font-semibold ${TIPO_OBJETO_BADGE[r.tipo] || 'bg-gray-100 text-gray-600'}`}>{r.tipo}</span>
+                  <span className="font-medium text-gray-800">{r.descripcion}</span>
+                  {r.cuenta && <span className="text-xs text-gray-400">· Cuenta {r.cuenta.numero_cuenta} (#{r.cuenta.id})</span>}
+                </div>
+                <div className="mt-2 pl-1">
+                  <p className="text-xs text-gray-500 mb-1">Titular{r.titulares.length > 1 ? 'es' : ''}:</p>
+                  {r.titulares.length === 0 ? <p className="text-xs text-gray-400">Sin titular registrado.</p> : (
+                    <ul className="space-y-0.5">
+                      {r.titulares.map((t) => (
+                        <li key={t.id} className="text-sm text-gray-800 flex items-center gap-2">
+                          <span className="font-medium">{t.nombre_completo}</span>
+                          <span className="text-xs text-gray-400">Doc {t.numero_documento || '—'}</span>
+                          {t.rol && <span className="text-[10px] uppercase bg-gray-100 text-gray-600 rounded px-1.5 py-0.5">{t.rol}</span>}
+                          {t.porcentaje != null && <span className="text-xs text-gray-500">{t.porcentaje}%</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+    </div>
+  );
+}
+
 function ContribuyentesTab() {
   return <CrudTab queryKey="ip-contribuyentes" apiFns={ingresosPublicosAPI.contribuyentes} entityName="Contribuyente" wide
     columns={[

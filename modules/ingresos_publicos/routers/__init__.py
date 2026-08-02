@@ -8,6 +8,7 @@ from .padron import router as padron_router
 from .vehiculos import router as vehiculos_router
 from .vehiculo_valuaciones import router as vehiculo_valuaciones_router
 from .comercios import router as comercios_router
+from .objetos import router as objetos_router
 from .comercio_rubros import router as comercio_rubros_router
 from .comercio_ddjj import router as comercio_ddjj_router
 from .emisiones import router as emisiones_router

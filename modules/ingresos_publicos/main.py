@@ -24,6 +24,7 @@ from routers import (
     comercio_rubros_router,
     comercio_ddjj_router,
     comercios_router,
+    objetos_router,
     emisiones_router,
     planes_pago_router,
     listas_router,
@@ -80,6 +81,7 @@ app.include_router(vehiculo_valuaciones_router)
 app.include_router(comercio_rubros_router)
 app.include_router(comercio_ddjj_router)
 app.include_router(comercios_router)
+app.include_router(objetos_router)
 app.include_router(emisiones_router)
 app.include_router(planes_pago_router)
 app.include_router(listas_router)

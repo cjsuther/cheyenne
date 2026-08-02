@@ -991,3 +991,10 @@ dmerge(auditoriaAPI, {
     evaluar: () => api.post('/auditoria/alertas/evaluar', {}),
   },
 });
+
+// Consulta inversa: objeto (vehículo/inmueble/comercio) -> titular(es)
+dmerge(ingresosPublicosAPI, {
+  objetos: {
+    buscar: (q, tipo) => api.get('/ingresos-publicos/objetos/buscar', { params: { q, tipo: tipo || undefined } }),
+  },
+});

@@ -10,6 +10,7 @@ from models.cuenta import Cuenta
 from models.inmueble import Inmueble
 from models.comercio import Comercio
 from models.vehiculo import Vehiculo
+from models.titular_cuenta import TitularCuenta
 
 
 class ContribuyenteService:
@@ -63,6 +64,97 @@ class ContribuyenteService:
 
     def count(self) -> int:
         return self.db.query(Contribuyente).count()
+
+    # ── Búsqueda inversa: objeto (vehículo/inmueble/comercio) -> titular(es) ──
+    def _nombre_contribuyente(self, id_contrib: int) -> dict:
+        row = (
+            self.db.query(Contribuyente, Persona)
+            .join(Persona, Persona.id == Contribuyente.id_persona)
+            .filter(Contribuyente.id == id_contrib).first()
+        )
+        if not row:
+            return {"id": id_contrib, "nombre_completo": f"#{id_contrib}", "numero_documento": None}
+        c, p = row
+        nombre = p.denominacion or " ".join(x for x in [p.nombre, p.apellido] if x) or c.numero_documento
+        return {"id": c.id, "nombre_completo": nombre, "numero_documento": c.numero_documento}
+
+    def _titulares_de_cuenta(self, cuenta) -> list:
+        if not cuenta:
+            return []
+        tit = (
+            self.db.query(TitularCuenta)
+            .filter(TitularCuenta.id_cuenta == cuenta.id, TitularCuenta.activo == True).all()
+        )
+        if tit:
+            out = []
+            for t in tit:
+                info = self._nombre_contribuyente(t.id_contribuyente)
+                info["porcentaje"] = float(t.porcentaje) if t.porcentaje is not None else None
+                info["rol"] = t.tipo
+                out.append(info)
+            return out
+        if cuenta.id_contribuyente:  # sin titularidad explícita: titular principal de la cuenta
+            info = self._nombre_contribuyente(cuenta.id_contribuyente)
+            info["porcentaje"] = 100.0
+            info["rol"] = "titular"
+            return [info]
+        return []
+
+    def buscar_objetos(self, q: str, tipo: Optional[str] = None, limit: int = 30) -> list:
+        """Consulta inversa: dado un dominio, nomenclatura, nombre de comercio, CUIT o número de
+        cuenta, devuelve el/los objetos que matchean con su cuenta y titular(es)."""
+        term = f"%{q}%"
+
+        def like(col):
+            return func.unaccent(col).ilike(func.unaccent(term))
+
+        encontrados = {}  # (tipo, id) -> base
+
+        def add(t, oid, desc, id_cuenta):
+            encontrados[(t, oid)] = {"tipo": t, "id_objeto": oid, "descripcion": desc, "id_cuenta": id_cuenta}
+
+        def desc_vehiculo(v):
+            return v.dominio + (f" · {v.modelo}" if v.modelo else "") + (f" ({v.anio})" if v.anio else "")
+
+        def desc_comercio(c):
+            return (c.nombre_fantasia or "s/nombre") + (f" · CUIT {c.cuit}" if c.cuit else "")
+
+        def desc_inmueble(i):
+            return "-".join(x for x in [i.circuito, i.sector, i.fraccion, i.parcela] if x) or f"inmueble #{i.id}"
+
+        if tipo in (None, "vehiculos"):
+            for v in self.db.query(Vehiculo).filter(Vehiculo.activo == True, Vehiculo.dominio.ilike(term)).limit(limit):
+                add("vehiculo", v.id, desc_vehiculo(v), v.id_cuenta)
+        if tipo in (None, "comercios"):
+            for c in self.db.query(Comercio).filter(Comercio.activo == True, or_(like(Comercio.nombre_fantasia), Comercio.cuit.ilike(term))).limit(limit):
+                add("comercio", c.id, desc_comercio(c), c.id_cuenta)
+        if tipo in (None, "inmuebles"):
+            for i in self.db.query(Inmueble).filter(
+                Inmueble.activo == True,
+                or_(like(Inmueble.circuito), like(Inmueble.sector), like(Inmueble.fraccion), like(Inmueble.parcela)),
+            ).limit(limit):
+                add("inmueble", i.id, desc_inmueble(i), i.id_cuenta)
+        # por número de cuenta: trae todos los objetos de las cuentas que matchean
+        for cu in self.db.query(Cuenta).filter(Cuenta.activo == True, Cuenta.numero_cuenta.ilike(term)).limit(limit):
+            for v in self.db.query(Vehiculo).filter(Vehiculo.id_cuenta == cu.id, Vehiculo.activo == True):
+                add("vehiculo", v.id, desc_vehiculo(v), v.id_cuenta)
+            for c in self.db.query(Comercio).filter(Comercio.id_cuenta == cu.id, Comercio.activo == True):
+                add("comercio", c.id, desc_comercio(c), c.id_cuenta)
+            for i in self.db.query(Inmueble).filter(Inmueble.id_cuenta == cu.id, Inmueble.activo == True):
+                add("inmueble", i.id, desc_inmueble(i), i.id_cuenta)
+
+        cache_cuenta = {}
+        resultados = []
+        for base in list(encontrados.values())[:limit]:
+            idc = base.pop("id_cuenta")
+            if idc not in cache_cuenta:
+                cache_cuenta[idc] = self.db.query(Cuenta).filter(Cuenta.id == idc).first()
+            cuenta = cache_cuenta[idc]
+            base["cuenta"] = {"id": cuenta.id, "numero_cuenta": cuenta.numero_cuenta,
+                              "id_tipo_tributo": cuenta.id_tipo_tributo} if cuenta else None
+            base["titulares"] = self._titulares_de_cuenta(cuenta)
+            resultados.append(base)
+        return resultados
 
     @staticmethod
     def _row(obj) -> dict:
