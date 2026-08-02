@@ -15,7 +15,7 @@ export const NAV = [
   // ── Ingresos Públicos ──
   {
     label: 'Ingresos Públicos', path: '/ingresos-publicos', module: 'ingresos_publicos', tabs: [
-      { k: 'contribuyentes', l: 'Contribuyentes' }, { k: 'cuentas', l: 'Cuentas' },
+      { k: 'contribuyentes', l: 'Contribuyentes' }, { k: 'cuentas', l: 'Cuentas' }, { k: 'quienEs', l: '¿De quién es?' },
       { k: 'comercios', l: 'Comercios' }, { k: 'comercioRubros', l: 'Comercio - Rubros' },
       { k: 'comercioDdjj', l: 'Comercio - DD.JJ.' }, { k: 'inmuebles', l: 'Inmuebles' },
       { k: 'valuaciones', l: 'Valuaciones' }, { k: 'superficies', l: 'Superficies' }, { k: 'frentes', l: 'Frentes' },
