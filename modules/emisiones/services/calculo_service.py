@@ -143,10 +143,17 @@ class CalculoService:
         if not contribs:
             raise ValueError("El padrón está vacío: no hay contribuyentes para liquidar")
 
+        if emision.ttas_tasa is None:
+            raise ValueError(
+                "La emisión no tiene una tasa seleccionada. Editá la emisión (paso 2 'Editar cálculo "
+                "anterior') y elegí una tasa del catálogo de fórmulas antes de calcular."
+            )
         formulas = self._load_formulas(emision.tipo_tributo, emision.ttas_tasa, emision.ttas_subtasa or 0)
         if not formulas:
-            objetivo = f"la tasa {emision.ttas_tasa}/{emision.ttas_subtasa or 0}" if emision.ttas_tasa is not None else f"el tributo '{emision.tipo_tributo}'"
-            raise ValueError(f"No hay FormulaTasa activas para {objetivo}")
+            raise ValueError(
+                f"No hay FormulaTasa activas para la tasa {emision.ttas_tasa}/{emision.ttas_subtasa or 0}. "
+                "Verificá que la tasa elegida tenga fórmulas cargadas en 'Tasas y Fórmulas'."
+            )
 
         periodo, mes = self._periodo_mes(emision)
         # variables por defecto de la emisión: completan las @I_* que el padrón no provee

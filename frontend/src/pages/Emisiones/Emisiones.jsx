@@ -128,6 +128,12 @@ function WorkflowModal({ emision, onClose }) {
     queryFn: () => emisionesAPI.emisiones.referencias(emision.id).then((r) => r.data),
   });
 
+  // Catálogo de tasas del tipo (para elegir/corregir la tasa en el paso 2)
+  const { data: tasasCat } = useQuery({
+    queryKey: ['emi-tasas-cat', emision.tipo_tributo],
+    queryFn: () => emisionesAPI.formulas.tasas(emision.tipo_tributo ? { tipo_tributo: emision.tipo_tributo } : undefined).then((r) => r.data),
+  });
+
   const pasoActual = estadoData?.paso_actual ?? emision.paso_actual ?? 0;
   const pasos = estadoData?.pasos ?? [];
 
@@ -242,7 +248,12 @@ function WorkflowModal({ emision, onClose }) {
         <Field label="1er vencimiento"><input type="date" value={editParams.fecha_vencimiento_1} onChange={setEP('fecha_vencimiento_1')} className={inputClass} /></Field>
         <Field label="2do vencimiento"><input type="date" value={editParams.fecha_vencimiento_2} onChange={setEP('fecha_vencimiento_2')} className={inputClass} /></Field>
         <div />
-        <Field label="Tasa"><input type="number" value={editParams.ttas_tasa} onChange={setEP('ttas_tasa')} className={inputClass} /></Field>
+        <Field label="Tasa">
+          <select value={editParams.ttas_tasa ?? ''} onChange={setEP('ttas_tasa')} className={inputClass}>
+            <option value="">— Elegir tasa —</option>
+            {tasasCat?.map((t) => <option key={t.ttas_tasa} value={t.ttas_tasa}>{t.label}</option>)}
+          </select>
+        </Field>
         <Field label="Sub-tasa"><input type="number" value={editParams.ttas_subtasa} onChange={setEP('ttas_subtasa')} className={inputClass} /></Field>
         <div />
         <div className="col-span-2 sm:col-span-3">
@@ -566,7 +577,7 @@ function EmisionesTab() {
             { value: 'comercios', label: 'Comercios' }, { value: 'otro', label: 'Otro' },
           ]},
           { key: 'periodo', label: 'Periodo (ej: 2025-01)', required: true },
-          { key: 'ttas_tasa', label: 'Tasa (del catálogo de fórmulas)', type: 'remote_select',
+          { key: 'ttas_tasa', label: 'Tasa (del catálogo de fórmulas)', type: 'remote_select', required: true,
             dependsOn: 'tipo_tributo', queryKey: 'sel-emi-tasas', optionValue: 'ttas_tasa', optionLabel: 'label',
             queryFn: (tt) => emisionesAPI.formulas.tasas(tt ? { tipo_tributo: tt } : undefined).then((r) => r.data) },
           { key: 'ttas_subtasa', label: 'Sub-tasa', type: 'int', defaultValue: 0 },
