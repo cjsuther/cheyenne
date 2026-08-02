@@ -287,6 +287,7 @@ export const emisionesAPI = {
   formulas: {
     ...crud('/emisiones/formulas'),
     tasas: (params) => api.get('/emisiones/formulas/tasas', { params }),
+    subtasas: (ttas_tasa) => api.get('/emisiones/formulas/subtasas', { params: { ttas_tasa } }),
     probar: (data) => api.post('/emisiones/formulas/probar', data),
     probarCatalogo: (id, data) => api.post(`/emisiones/formulas/${id}/probar-catalogo`, data),
   },

@@ -133,6 +133,11 @@ function WorkflowModal({ emision, onClose }) {
     queryKey: ['emi-tasas-cat', emision.tipo_tributo],
     queryFn: () => emisionesAPI.formulas.tasas(emision.tipo_tributo ? { tipo_tributo: emision.tipo_tributo } : undefined).then((r) => r.data),
   });
+  const { data: subtasasCat } = useQuery({
+    queryKey: ['emi-subtasas-cat', editParams.ttas_tasa],
+    queryFn: () => emisionesAPI.formulas.subtasas(editParams.ttas_tasa).then((r) => r.data),
+    enabled: editParams.ttas_tasa != null && editParams.ttas_tasa !== '',
+  });
 
   const pasoActual = estadoData?.paso_actual ?? emision.paso_actual ?? 0;
   const pasos = estadoData?.pasos ?? [];
@@ -254,7 +259,12 @@ function WorkflowModal({ emision, onClose }) {
             {tasasCat?.map((t) => <option key={t.ttas_tasa} value={t.ttas_tasa}>{t.label}</option>)}
           </select>
         </Field>
-        <Field label="Sub-tasa"><input type="number" value={editParams.ttas_subtasa} onChange={setEP('ttas_subtasa')} className={inputClass} /></Field>
+        <Field label="Sub-tasa">
+          <select value={editParams.ttas_subtasa ?? ''} onChange={setEP('ttas_subtasa')} className={inputClass} disabled={!editParams.ttas_tasa}>
+            <option value="">{editParams.ttas_tasa ? '— Elegir sub-tasa —' : 'Elegí primero la tasa'}</option>
+            {subtasasCat?.map((s) => <option key={s.ttas_subtasa} value={s.ttas_subtasa}>{s.label}</option>)}
+          </select>
+        </Field>
         <div />
         <div className="col-span-2 sm:col-span-3">
           <Field label="Criterios de selección"><input type="text" value={editParams.criterio_seleccion} onChange={setEP('criterio_seleccion')} placeholder="ej: zona=centro; estado=activo" className={inputClass} /></Field>
@@ -580,7 +590,9 @@ function EmisionesTab() {
           { key: 'ttas_tasa', label: 'Tasa (del catálogo de fórmulas)', type: 'remote_select', required: true,
             dependsOn: 'tipo_tributo', queryKey: 'sel-emi-tasas', optionValue: 'ttas_tasa', optionLabel: 'label',
             queryFn: (tt) => emisionesAPI.formulas.tasas(tt ? { tipo_tributo: tt } : undefined).then((r) => r.data) },
-          { key: 'ttas_subtasa', label: 'Sub-tasa', type: 'int', defaultValue: 0 },
+          { key: 'ttas_subtasa', label: 'Sub-tasa', type: 'remote_select', required: true, autoSingle: true,
+            dependsOn: 'ttas_tasa', queryKey: 'sel-emi-subtasas', optionValue: 'ttas_subtasa', optionLabel: 'label',
+            queryFn: (t) => emisionesAPI.formulas.subtasas(t).then((r) => r.data) },
           { key: 'variables_default', label: 'Variables del padrón (JSON, opcional)', type: 'textarea',
             placeholder: '{"I_CUOTA_ANUAL":"N","I_ZONATARI":"2"}' },
           { key: 'descripcion', label: 'Descripcion' },

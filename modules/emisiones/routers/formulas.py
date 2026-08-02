@@ -66,6 +66,28 @@ def tasas_disponibles(
     return out
 
 
+@router.get("/subtasas")
+def subtasas_disponibles(
+    ttas_tasa: int = Query(..., description="Código de tasa"),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Sub-tasas con fórmula definida para una tasa dada (para el desplegable dependiente)."""
+    from sqlalchemy import func
+    from models.formula_tasa import FormulaTasa
+    rows = (
+        db.query(FormulaTasa.ttas_subtasa, func.max(FormulaTasa.fort_descripcion))
+        .filter(FormulaTasa.activo == True, FormulaTasa.ttas_tasa == ttas_tasa)
+        .group_by(FormulaTasa.ttas_subtasa)
+        .order_by(FormulaTasa.ttas_subtasa)
+        .all()
+    )
+    return [
+        {"ttas_subtasa": s, "label": (f"{s}" if s else "0 (única)") + (f" · {d}" if d and s else "")}
+        for s, d in rows
+    ]
+
+
 @router.post("/probar", response_model=ProbarFormulaResponse)
 def probar_formula(
     data: ProbarFormulaRequest,

@@ -71,10 +71,13 @@ function DynamicSelect({ field, value, onChange, depValue }) {
   const lk = field.optionLabel || 'nombre';
 
   // Si cambió la dependencia y el valor elegido ya no está entre las opciones, lo limpio.
+  // Y si autoSingle y hay una única opción, la selecciono sola.
   useEffect(() => {
-    if (!options || value == null || value === '') return;
-    if (!options.some((o) => String(o[vk]) === String(value))) {
+    if (!options) return;
+    if (value != null && value !== '' && !options.some((o) => String(o[vk]) === String(value))) {
       onChange({ target: { value: '' } });
+    } else if (field.autoSingle && options.length === 1 && (value == null || value === '')) {
+      onChange({ target: { value: options[0][vk] } });
     }
   }, [options]); // eslint-disable-line react-hooks/exhaustive-deps
 
