@@ -21,8 +21,42 @@ function EstadoBadge({ estado }) {
   return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${estadoColors[estado] || 'bg-yellow-100 text-yellow-800'}`}>{estado || 'N/A'}</span>;
 }
 
-// Buscador de contribuyentes con chips (para las cuentas de prueba del paso 3)
-function ContribuyentePicker({ value, onChange }) {
+// Describe un objeto imponible de forma compacta según su tipo
+const describeObjeto = (o) => o.dominio
+  ? o.dominio
+  : (o.nombre_fantasia || o.razon_social)
+    ? (o.nombre_fantasia || o.razon_social)
+    : ([o.circuito, o.sector, o.fraccion, o.parcela].filter((x) => x != null && x !== '').join('-') || `cuenta #${o.id_cuenta || o.id}`);
+
+// Contribuyente elegido: muestra sus objetos (inmueble/comercio/vehículo) del tipo de la emisión
+function ContribSeleccionado({ c, tipoTributo, onQuitar }) {
+  const { data: obj, isLoading } = useQuery({
+    queryKey: ['emi-contrib-obj', c.id],
+    queryFn: () => ingresosPublicosAPI.contribuyentes.objetos(c.id).then((r) => r.data),
+    staleTime: 60000,
+  });
+  const key = tipoTributo === 'inmuebles' ? 'inmuebles'
+    : tipoTributo === 'vehiculos' ? 'vehiculos'
+    : tipoTributo === 'comercios' ? 'comercios' : null;
+  const items = obj ? (key ? (obj[key] || []) : [...(obj.inmuebles || []), ...(obj.comercios || []), ...(obj.vehiculos || [])]) : null;
+  return (
+    <div className="flex items-start justify-between gap-2 border border-gray-200 rounded-lg px-3 py-2">
+      <div className="text-xs min-w-0">
+        <p className="font-medium text-gray-800">#{c.id} · {c.nombre_completo || c.numero_documento} <span className="text-gray-400 font-normal">· {c.numero_documento}</span></p>
+        <p className="text-gray-500 mt-0.5 truncate">
+          {isLoading ? 'Cargando objetos…'
+            : items && items.length > 0
+              ? `${items.length} ${key || 'objeto'}${items.length > 1 ? 's' : ''}: ${items.slice(0, 3).map(describeObjeto).join(' · ')}${items.length > 3 ? '…' : ''}`
+              : `Sin ${key || 'objetos'} registrados`}
+        </p>
+      </div>
+      <button type="button" onClick={() => onQuitar(c.id)} className="text-gray-400 hover:text-red-600 shrink-0" title="Quitar">✕</button>
+    </div>
+  );
+}
+
+// Buscador de contribuyentes (para las cuentas de prueba del paso 3)
+function ContribuyentePicker({ value, onChange, tipoTributo }) {
   const [q, setQ] = useState('');
   const { data: resultados, isFetching } = useQuery({
     queryKey: ['emi-contrib-search', q],
@@ -36,12 +70,9 @@ function ContribuyentePicker({ value, onChange }) {
   return (
     <div>
       {value.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-2">
+        <div className="space-y-1.5 mb-2">
           {value.map((c) => (
-            <span key={c.id} className="inline-flex items-center gap-1 bg-primary-50 text-primary-700 border border-primary-200 rounded-full pl-2 pr-1 py-0.5 text-xs">
-              #{c.id} · {c.nombre_completo || c.numero_documento}
-              <button type="button" onClick={() => quitar(c.id)} className="hover:text-primary-900 leading-none" title="Quitar">✕</button>
-            </span>
+            <ContribSeleccionado key={c.id} c={c} tipoTributo={tipoTributo} onQuitar={quitar} />
           ))}
         </div>
       )}
@@ -233,7 +264,7 @@ function WorkflowModal({ emision, onClose }) {
     );
     if (step.key === 'calculo_prueba') return (
       <Field label="Contribuyentes de prueba — buscá y agregá los que quieras calcular">
-        <ContribuyentePicker value={cuentasPrueba} onChange={setCuentasPrueba} />
+        <ContribuyentePicker value={cuentasPrueba} onChange={setCuentasPrueba} tipoTributo={emision.tipo_tributo} />
       </Field>
     );
     if (step.key === 'impresion_prueba' || step.key === 'impresion_general') {
