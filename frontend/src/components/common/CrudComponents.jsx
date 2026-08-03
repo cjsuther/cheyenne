@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import DataTable from './DataTable';
 import LoadingSpinner from './LoadingSpinner';
+import { usePersistentSort } from '../../hooks/usePersistentSort';
 
 // ── Normalización de errores de API ─────────────────────────────────
 // El `detail` de FastAPI puede ser: string (HTTPException), array de objetos
@@ -247,7 +248,7 @@ export function CrudTab({ queryKey, apiFns, columns, formFields, entityName, wid
   const [page, setPage] = useState(0);
   const [filterInputs, setFilterInputs] = useState({});
   const [filters, setFilters] = useState({});
-  const [sort, setSort] = useState({ by: 'id', dir: 'asc' });
+  const [sort, setSort] = usePersistentSort(String(queryKey), columns);
   const queryClient = useQueryClient();
 
   const handleSort = (key) => {

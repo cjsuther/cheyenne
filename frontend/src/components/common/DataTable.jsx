@@ -1,10 +1,17 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
+import { usePersistentSort } from '../../hooks/usePersistentSort';
 
-export default function DataTable({ columns, data, onRowClick, sort, onSort }) {
+export default function DataTable({ columns, data, onRowClick, sort, onSort, storageKey }) {
   // Modo cliente: si el contenedor no controla el orden (no pasa onSort),
-  // DataTable ordena localmente los datos ya cargados. Default: por id ascendente.
-  const [localSort, setLocalSort] = useState({ by: 'id', dir: 'asc' });
+  // DataTable ordena localmente los datos ya cargados.
+  // Default: PRIMER campo en forma DESCENDENTE; el orden elegido se recuerda por pantalla.
   const serverMode = !!onSort;
+  const clientKey = serverMode
+    ? null
+    : (storageKey || (typeof window !== 'undefined'
+        ? `${window.location.pathname}${window.location.search}::${(columns || []).map((c) => c.key).join(',')}`
+        : null));
+  const [localSort, setLocalSort] = usePersistentSort(clientKey, columns);
   const effSort = serverMode ? sort : localSort;
   const effOnSort = serverMode ? onSort : (key) => setLocalSort((prev) => prev.by === key
     ? { by: key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }

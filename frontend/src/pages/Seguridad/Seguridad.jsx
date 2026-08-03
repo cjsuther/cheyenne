@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTabParam } from '../../hooks/useTabParam';
+import { usePersistentSort } from '../../hooks/usePersistentSort';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { seguridadAPI } from '../../services/api';
 import PageHeader from '../../components/common/PageHeader';
@@ -71,7 +72,7 @@ function UsuariosTab() {
   const [page, setPage] = useState(0);
   const [filterInputs, setFilterInputs] = useState({});
   const [filters, setFilters] = useState({});
-  const [sort, setSort] = useState({ by: 'id', dir: 'asc' });
+  const [sort, setSort] = usePersistentSort('seguridad-usuarios');
   const pageSize = 10;
   const queryClient = useQueryClient();
 
@@ -414,7 +415,7 @@ function UsuarioPerfilesModal({ usuario, onClose }) {
 function PerfilesTab() {
   const [modal, setModal] = useState(null);
   const [page, setPage] = useState(0);
-  const [sort, setSort] = useState({ by: 'id', dir: 'asc' });
+  const [sort, setSort] = usePersistentSort('seguridad-perfiles');
   const pageSize = 10;
   const queryClient = useQueryClient();
 
@@ -581,7 +582,7 @@ function PerfilPermisosModal({ perfil, onClose }) {
 // ═══════════════════════════════════════════════════════════════════════
 function PermisosTab() {
   const [page, setPage] = useState(0);
-  const [sort, setSort] = useState({ by: 'id', dir: 'asc' });
+  const [sort, setSort] = usePersistentSort('seguridad-permisos');
   const pageSize = 10;
 
   const handleSort = (key) => {
