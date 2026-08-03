@@ -141,6 +141,21 @@ def h_ordenamiento(db, emision, data, token, ambito):
 def h_impresion(db, emision, data, token, ambito):
     # 1) asegura los comprobantes (numerados, con código de barras)
     r = ComprobanteService(db).generar_comprobantes(emision.id)
+    if not r.get("comprobantes_generados"):
+        n_liq = db.query(Liquidacion).filter(
+            Liquidacion.id_emision == emision.id, Liquidacion.activo == True
+        ).count()
+        if n_liq == 0:
+            raise ValueError(
+                "No hay nada para imprimir: el cálculo no generó liquidaciones. "
+                "Ejecutá los pasos de cálculo (3 y 5) y verificá que produzcan importes. "
+                "Causa típica: las cuentas no tienen base imponible (p. ej. los vehículos sin "
+                "valuación) o la tasa elegida no tiene fórmula aplicable a este tributo."
+            )
+        raise ValueError(
+            "No hay comprobantes: todas las liquidaciones dieron importe 0. "
+            "Revisá la base imponible (valuación de los objetos) y la fórmula de la tasa elegida."
+        )
     r["ambito"] = ambito
     # 2) genera los PDF de los recibos en el directorio
     from services.pdf_service import generar_recibos_pdf

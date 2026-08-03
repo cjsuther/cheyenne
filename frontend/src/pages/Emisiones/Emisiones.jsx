@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { emisionesAPI, ingresosPublicosAPI } from '../../services/api';
 import { useTabParam } from '../../hooks/useTabParam';
@@ -113,6 +113,10 @@ function WorkflowModal({ emision, onClose }) {
   });
   const setEP = (k) => (e) => setEditParams((p) => ({ ...p, [k]: e.target.value }));
   const [actionError, setActionError] = useState('');
+  const errorRef = useRef(null);
+  useEffect(() => {
+    if (actionError && errorRef.current) errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [actionError]);
   const [reejecutar, setReejecutar] = useState(null); // numero de paso completado que se está reejecutando
   const [wtab, setWtab] = useState('proceso'); // tab interno del modal
   const queryClient = useQueryClient();
@@ -318,7 +322,7 @@ function WorkflowModal({ emision, onClose }) {
       {isLoading ? <div className="text-center py-8 text-gray-500">Cargando...</div> : (
         <div className="space-y-4">
           {actionError && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 flex items-start gap-2">
+            <div ref={errorRef} className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 flex items-start gap-2 sticky top-14 z-20 shadow-sm">
               <span className="shrink-0">⚠</span>
               <span className="flex-1">{actionError}</span>
               <button onClick={() => setActionError('')} className="text-red-500 hover:text-red-700 shrink-0" title="Cerrar">✕</button>
