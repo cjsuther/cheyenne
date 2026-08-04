@@ -670,10 +670,52 @@ function CompensarModal({ idContribuyente, saldoAFavor, onClose, onDone }) {
   );
 }
 
+// Buscador de UN contribuyente (single-select) — mismo endpoint que el resto del sistema
+function ContribuyenteBuscador({ seleccionado, onSelect }) {
+  const [q, setQ] = useState('');
+  const [abierto, setAbierto] = useState(false);
+  const { data: resultados, isFetching } = useQuery({
+    queryKey: ['emi-contrib-search', q],
+    queryFn: () => ingresosPublicosAPI.contribuyentes.search(q).then((r) => r.data),
+    enabled: q.trim().length >= 2,
+    staleTime: 60000,
+  });
+  if (seleccionado) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="inline-flex items-center bg-primary-50 text-primary-700 border border-primary-200 rounded-lg px-3 py-2 text-sm">
+          #{seleccionado.id} · {seleccionado.nombre_completo || seleccionado.numero_documento}
+          <span className="text-primary-400 ml-1">· Doc {seleccionado.numero_documento}</span>
+        </span>
+        <button type="button" onClick={() => onSelect(null)} className="text-xs text-gray-500 hover:text-gray-700 underline">Cambiar</button>
+      </div>
+    );
+  }
+  return (
+    <div className="relative">
+      <input type="text" value={q} onChange={(e) => { setQ(e.target.value); setAbierto(true); }} onFocus={() => setAbierto(true)}
+        placeholder="Buscar por nombre, apellido o documento (mín. 2)…" className={inputClass} />
+      {abierto && q.trim().length >= 2 && (
+        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto divide-y divide-gray-50">
+          {isFetching && <p className="px-3 py-2 text-xs text-gray-400">Buscando…</p>}
+          {!isFetching && resultados?.length === 0 && <p className="px-3 py-2 text-xs text-gray-400">Sin resultados</p>}
+          {resultados?.map((c) => (
+            <button type="button" key={c.id} onClick={() => { onSelect(c); setQ(''); setAbierto(false); }}
+              className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50">
+              #{c.id} · {c.nombre_completo} <span className="text-gray-400">· {c.numero_documento}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Cuenta corriente / Libro mayor del contribuyente ─────────────────────
 function LibroMayorTab() {
-  const [idContribuyente, setIdContribuyente] = useState('');
+  const [sel, setSel] = useState(null);
   const [buscado, setBuscado] = useState(null);
+  const elegir = (c) => { setSel(c); setBuscado(c ? c.id : null); };
   const [compensando, setCompensando] = useState(false);
   const qc = useQueryClient();
 
@@ -696,22 +738,19 @@ function LibroMayorTab() {
     qc.invalidateQueries({ queryKey: ['emi-deuda-comp', buscado] });
   };
 
-  const buscar = (e) => { e.preventDefault(); const n = Number(idContribuyente); if (n) setBuscado(n); };
-
   return (
     <div>
-      <form onSubmit={buscar} className="mb-4 flex items-end gap-2">
-        <Field label="ID de contribuyente">
-          <input type="number" value={idContribuyente} onChange={(e) => setIdContribuyente(e.target.value)}
-            placeholder="ej: 1024" className={inputClass} />
-        </Field>
-        <button type="submit" className={btnPrimary}>Ver libro mayor</button>
+      <div className="mb-4 flex items-end gap-2 flex-wrap">
+        <div className="flex-1 min-w-[280px]">
+          <label className="block text-xs text-gray-500 mb-1">Contribuyente</label>
+          <ContribuyenteBuscador seleccionado={sel} onSelect={elegir} />
+        </div>
         {buscado != null && disponible > 0 && (
           <button type="button" className={btnSecondary} onClick={() => setCompensando(true)}>
             Compensar saldo a favor ({fmtMoney(disponible)})
           </button>
         )}
-      </form>
+      </div>
 
       {compensando && (
         <CompensarModal idContribuyente={buscado} saldoAFavor={disponible}
