@@ -1,6 +1,6 @@
 // Registro central de los super-módulos (dashboard) y sus sub-menús.
 import {
-  IconContribuyente360, IconIngresos, IconSeguridad, IconContaduria, IconConfig, IconPresupuesto, IconTesoreria, IconCompras, IconContabilidad, IconPatrimonio, IconCredito, IconCementerio, IconApremios, IconReportes, IconFirma,
+  IconContribuyente360, IconIngresos, IconSeguridad, IconContaduria, IconConfig, IconPresupuesto, IconTesoreria, IconCompras, IconContabilidad, IconPatrimonio, IconCredito, IconCementerio, IconApremios, IconReportes, IconFirma, IconRRHH,
 } from '../components/common/icons';
 
 export const SUPER_MODULES = [
@@ -81,6 +81,13 @@ export const SUPER_MODULES = [
     Icon: IconFirma, chip: 'bg-violet-50 text-violet-700',
     items: [
       { path: '/firma', label: 'Firma Digital', module: 'firma' },
+    ],
+  },
+  {
+    key: 'rrhh', label: 'Recursos Humanos', desc: 'Legajos, cargos, antigüedad, familiares y planta de personal',
+    Icon: IconRRHH, chip: 'bg-teal-50 text-teal-700',
+    items: [
+      { path: '/rrhh', label: 'Legajos y planta', module: 'rrhh' },
     ],
   },
   {

@@ -28,6 +28,7 @@ import Reportes from './pages/Reportes/Reportes';
 import Patrimonio from './pages/Patrimonio/Patrimonio';
 import CreditoPublico from './pages/CreditoPublico/CreditoPublico';
 import Firma from './pages/Firma/Firma';
+import Rrhh from './pages/Rrhh/Rrhh';
 import Perfil from './pages/Perfil/Perfil';
 
 const queryClient = new QueryClient({
@@ -83,6 +84,7 @@ export default function App() {
             <Route path="patrimonio" element={<Patrimonio />} />
             <Route path="credito-publico" element={<CreditoPublico />} />
             <Route path="firma" element={<Firma />} />
+            <Route path="rrhh" element={<Rrhh />} />
             {/* Contaduría */}
             <Route path="contaduria" element={<Contaduria />} />
             {/* Configuración (maestros) */}

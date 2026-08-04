@@ -1027,3 +1027,27 @@ dmerge(firmaAPI, {
 dmerge(seguridadAPI, {
   usuarios: { firmaReset: (id) => api.post(`/seguridad/usuarios/${id}/firma-reset`, {}) },
 });
+
+export const rrhhAPI = {
+  categorias: crud('/rrhh/categorias'),
+  tiposCargo: crud('/rrhh/tipos-cargo'),
+  cargosFunciones: crud('/rrhh/cargos-funciones'),
+  nivelesLaboral: crud('/rrhh/niveles-laboral'),
+  tiposRelacion: crud('/rrhh/tipos-relacion'),
+  oficinas: crud('/rrhh/oficinas'),
+  parentescos: crud('/rrhh/parentescos'),
+  tiposAntiguedad: crud('/rrhh/tipos-antiguedad'),
+  sindicatos: crud('/rrhh/sindicatos'),
+  obrasSociales: crud('/rrhh/obras-sociales'),
+  legajos: {
+    ...crud('/rrhh/legajos'),
+    ficha: (id) => api.get(`/rrhh/legajos/${id}/ficha`),
+    cargos: (id) => api.get(`/rrhh/legajos/${id}/cargos`),
+    antiguedades: (id) => api.get(`/rrhh/legajos/${id}/antiguedades`),
+    familiares: (id) => api.get(`/rrhh/legajos/${id}/familiares`),
+  },
+  legajoCargos: crud('/rrhh/legajo-cargos'),
+  antiguedades: crud('/rrhh/antiguedades'),
+  familiares: crud('/rrhh/familiares'),
+  presupuestoCargos: crud('/rrhh/presupuesto-cargos'),
+};

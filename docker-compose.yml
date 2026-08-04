@@ -264,6 +264,22 @@ services:
     networks:
       - cheyenne-net
 
+  # ─── MÓDULO RECURSOS HUMANOS ──────────────────────────────────────
+  rrhh:
+    build:
+      context: ./modules
+      dockerfile: rrhh/Dockerfile
+    container_name: cheyenne-rrhh
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cheyenne}:${POSTGRES_PASSWORD:-cheyenne123}@postgres:5432/${POSTGRES_DB:-cheyenne}
+      SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+      SEGURIDAD_URL: http://seguridad:8000
+    depends_on:
+      - seguridad
+    networks:
+      - cheyenne-net
+
   # ─── MÓDULO IMPORTACIÓN ───────────────────────────────────────────
   importacion:
     build:
@@ -401,6 +417,7 @@ services:
       - patrimonio
       - credito_publico
       - firma
+      - rrhh
       - wav
     networks:
       - cheyenne-net
