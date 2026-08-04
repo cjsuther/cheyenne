@@ -1,6 +1,6 @@
 // Registro central de los super-módulos (dashboard) y sus sub-menús.
 import {
-  IconContribuyente360, IconIngresos, IconSeguridad, IconContaduria, IconConfig, IconPresupuesto, IconTesoreria, IconCompras, IconContabilidad, IconPatrimonio, IconCredito, IconCementerio, IconApremios, IconReportes,
+  IconContribuyente360, IconIngresos, IconSeguridad, IconContaduria, IconConfig, IconPresupuesto, IconTesoreria, IconCompras, IconContabilidad, IconPatrimonio, IconCredito, IconCementerio, IconApremios, IconReportes, IconFirma,
 } from '../components/common/icons';
 
 export const SUPER_MODULES = [
@@ -74,6 +74,13 @@ export const SUPER_MODULES = [
     Icon: IconCredito, chip: 'bg-rose-50 text-rose-700',
     items: [
       { path: '/credito-publico', label: 'Empréstitos', module: 'credito_publico' },
+    ],
+  },
+  {
+    key: 'firma', label: 'Firma Digital', desc: 'Bandeja de firma y firma múltiple de órdenes de pago y documentos',
+    Icon: IconFirma, chip: 'bg-violet-50 text-violet-700',
+    items: [
+      { path: '/firma', label: 'Firma Digital', module: 'firma' },
     ],
   },
   {

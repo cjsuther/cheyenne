@@ -999,3 +999,15 @@ dmerge(ingresosPublicosAPI, {
     buscar: (q, tipo) => api.get('/ingresos-publicos/objetos/buscar', { params: { q, tipo: tipo || undefined } }),
   },
 });
+
+export const firmaAPI = {
+  documentos: {
+    list: (params) => api.get('/firma/documentos', { params }),
+    get: (id) => api.get(`/firma/documentos/${id}`),
+    registrar: (data) => api.post('/firma/documentos', data),
+    firmar: (id, data) => api.post(`/firma/documentos/${id}/firmar`, data || {}),
+    anular: (id) => api.post(`/firma/documentos/${id}/anular`, {}),
+    verificar: (id) => api.get(`/firma/documentos/${id}/verificar`),
+  },
+  bandeja: (params) => api.get('/firma/bandeja', { params }),
+};

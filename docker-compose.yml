@@ -248,6 +248,22 @@ services:
     networks:
       - cheyenne-net
 
+  # ─── MÓDULO FIRMA DIGITAL ─────────────────────────────────────────
+  firma:
+    build:
+      context: ./modules
+      dockerfile: firma/Dockerfile
+    container_name: cheyenne-firma
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cheyenne}:${POSTGRES_PASSWORD:-cheyenne123}@postgres:5432/${POSTGRES_DB:-cheyenne}
+      SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+      SEGURIDAD_URL: http://seguridad:8000
+    depends_on:
+      - seguridad
+    networks:
+      - cheyenne-net
+
   # ─── MÓDULO IMPORTACIÓN ───────────────────────────────────────────
   importacion:
     build:
@@ -384,6 +400,7 @@ services:
       - reportes
       - patrimonio
       - credito_publico
+      - firma
       - wav
     networks:
       - cheyenne-net

@@ -215,3 +215,12 @@ export const IconMunicipio = (p) => (
     <line x1="2.5" x2="21.5" y1="21" y2="21" />
   </Svg>
 );
+
+// Firma digital: lápiz firmando sobre una línea
+export const IconFirma = (p) => (
+  <Svg {...p}>
+    <path d="M3 17c3 0 3-3 5-3s2 3 4 3 2-4 4-4" />
+    <path d="M15.5 7.5l3 3L11 18l-3.5.5L8 15z" />
+    <line x1="3" x2="21" y1="21" y2="21" />
+  </Svg>
+);
