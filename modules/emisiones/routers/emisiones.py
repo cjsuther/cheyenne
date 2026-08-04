@@ -367,7 +367,7 @@ def descargar_recibo_pdf(
 def get_liquidaciones(
     id: int,
     skip: int = Query(0, ge=0),
-    limit: int = Query(10, ge=1, le=100),
+    limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
