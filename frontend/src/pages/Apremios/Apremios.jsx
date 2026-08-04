@@ -4,6 +4,7 @@ import { apremiosAPI } from '../../services/api';
 import PageHeader from '../../components/common/PageHeader';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { Modal, Field, inputClass, btnPrimary, btnSecondary } from '../../components/common/CrudComponents';
+import ContribuyenteSearch from '../../components/common/ContribuyenteSearch';
 
 const fmt = (v) => new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2 }).format(Number(v || 0));
 const fdate = (v) => (v ? new Date(v).toLocaleDateString('es-AR') : '—');
@@ -89,6 +90,7 @@ function ListaJuicios({ onSelect }) {
 
 function JuicioModal({ onClose, onDone }) {
   const [f, setF] = useState({ caratula: '', id_contribuyente: '', contribuyente_nombre: '', juzgado: '', expediente_judicial: '', deuda_capital: '' });
+  const [contrib, setContrib] = useState(null);
   const [msg, setMsg] = useState('');
   const m = useMutation({
     mutationFn: () => apremiosAPI.juicios.create({
@@ -106,8 +108,10 @@ function JuicioModal({ onClose, onDone }) {
     <Modal title="Nuevo juicio de apremio" onClose={onClose} wide>
       <div className="grid grid-cols-2 gap-3">
         <div className="col-span-2"><Field label="Carátula"><input className={inputClass} value={f.caratula} onChange={(e) => setF({ ...f, caratula: e.target.value })} placeholder="Municipalidad c/ Pérez Juan s/ Apremio" /></Field></div>
-        <Field label="ID Contribuyente"><input type="number" className={inputClass} value={f.id_contribuyente} onChange={(e) => setF({ ...f, id_contribuyente: e.target.value })} placeholder="para consultar deuda" /></Field>
-        <Field label="Nombre contribuyente"><input className={inputClass} value={f.contribuyente_nombre} onChange={(e) => setF({ ...f, contribuyente_nombre: e.target.value })} /></Field>
+        <Field label="Contribuyente">
+          <ContribuyenteSearch seleccionado={contrib} onSelect={(c) => { setContrib(c); setF({ ...f, id_contribuyente: c ? c.id : '', contribuyente_nombre: c ? (c.nombre_completo || '') : f.contribuyente_nombre }); }} />
+        </Field>
+        <Field label="Nombre contribuyente"><input className={inputClass} value={f.contribuyente_nombre} onChange={(e) => setF({ ...f, contribuyente_nombre: e.target.value })} placeholder="se completa al elegir" /></Field>
         <Field label="Juzgado"><input className={inputClass} value={f.juzgado} onChange={(e) => setF({ ...f, juzgado: e.target.value })} /></Field>
         <Field label="Expediente judicial"><input className={inputClass} value={f.expediente_judicial} onChange={(e) => setF({ ...f, expediente_judicial: e.target.value })} /></Field>
         <Field label="Deuda capital (opc.)"><input type="number" className={inputClass} value={f.deuda_capital} onChange={(e) => setF({ ...f, deuda_capital: e.target.value })} placeholder="se consulta si se deja vacío" /></Field>

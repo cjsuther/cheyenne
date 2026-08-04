@@ -8,6 +8,7 @@ import { ValorTierraTab, AlicuotaRubroTab } from './MotoresValuacionTabs';
 import DataTable from '../../components/common/DataTable';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { CrudTab, inputClass, btnPrimary, btnSecondary, Field } from '../../components/common/CrudComponents';
+import ContribuyenteSearch from '../../components/common/ContribuyenteSearch';
 
 // ── Helpers ─────────────────────────────────────────────────────────
 const listaQuery = (tipo) => () => ingresosPublicosAPI.listas.list({ tipo }).then((r) => r.data);
@@ -1050,6 +1051,7 @@ function SimularMoratoriaTab() {
 function LibreDeudaTab() {
   const [modo, setModo] = useState('cuenta');
   const [id, setId] = useState('');
+  const [contrib, setContrib] = useState(null);
   const [dias, setDias] = useState(30);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
@@ -1080,12 +1082,16 @@ function LibreDeudaTab() {
     <div className="space-y-5">
       <form onSubmit={submit} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
         <Field label="Buscar por">
-          <select className={inputClass} value={modo} onChange={(e) => { setModo(e.target.value); setId(''); }}>
+          <select className={inputClass} value={modo} onChange={(e) => { setModo(e.target.value); setId(''); setContrib(null); }}>
             <option value="cuenta">Cuenta</option>
             <option value="contribuyente">Contribuyente</option>
           </select>
         </Field>
-        <Field label={modo === 'cuenta' ? 'ID Cuenta' : 'ID Contribuyente'}><input className={inputClass} type="number" value={id} onChange={(e) => setId(e.target.value)} required /></Field>
+        <Field label={modo === 'cuenta' ? 'ID Cuenta' : 'Contribuyente'}>
+          {modo === 'cuenta'
+            ? <input className={inputClass} type="number" value={id} onChange={(e) => setId(e.target.value)} required />
+            : <ContribuyenteSearch seleccionado={contrib} onSelect={(c) => { setContrib(c); setId(c ? c.id : ''); }} />}
+        </Field>
         <Field label="Días de validez"><input className={inputClass} type="number" min="1" value={dias} onChange={(e) => setDias(e.target.value)} /></Field>
         <button className={btnPrimary} type="submit" disabled={loading || !id}>{loading ? 'Consultando...' : 'Emitir libre deuda'}</button>
       </form>
