@@ -221,6 +221,7 @@ export const tesoreriaAPI = {
     create: (data) => api.post('/tesoreria/ordenes-pago', data),
     pagar: (id, data) => api.post(`/tesoreria/ordenes-pago/${id}/pagar`, data),
     anular: (id) => api.post(`/tesoreria/ordenes-pago/${id}/anular`, {}),
+    enviarAFirma: (id, data) => api.post(`/tesoreria/ordenes-pago/${id}/enviar-a-firma`, data || {}),
   },
   parteEgresos: (fecha) => api.get('/tesoreria/egresos/parte-diario', { params: fecha ? { fecha } : {} }),
   chequeras: {

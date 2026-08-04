@@ -12,6 +12,7 @@ export function OrdenesPagoTab() {
   const qc = useQueryClient();
   const [modal, setModal] = useState(null);
   const [error, setError] = useState('');
+  const [ok, setOk] = useState('');
   const { data: ops, isLoading } = useQuery({
     queryKey: ['tes-op'],
     queryFn: () => tesoreriaAPI.ordenesPago.list({ limit: 100 }).then((r) => r.data),
@@ -21,6 +22,7 @@ export function OrdenesPagoTab() {
   return (
     <div>
       {error && <div className="mb-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-2 flex justify-between"><span>⚠ {error}</span><button onClick={() => setError('')} className="text-red-500">✕</button></div>}
+      {ok && <div className="mb-3 bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-2 flex justify-between"><span>✓ {ok}</span><button onClick={() => setOk('')} className="text-green-600">✕</button></div>}
       <div className="mb-3 flex justify-end"><button className={btnPrimary} onClick={() => setModal('nueva')}>Nueva orden de pago</button></div>
       {isLoading ? <LoadingSpinner /> : (
         <div className="space-y-2">
@@ -36,6 +38,7 @@ export function OrdenesPagoTab() {
                   <span className="text-sm font-bold text-gray-800">{fmt(op.importe)}</span>
                   <span className={`px-2 py-0.5 rounded text-xs font-medium ${ESTADO[op.estado]}`}>{op.estado}</span>
                   {op.estado === 'pendiente' && <button className={btnPrimary.replace('px-4 py-2', 'px-3 py-1.5')} onClick={() => setModal({ pagar: op })}>Pagar</button>}
+                  {op.estado !== 'anulada' && <button className={btnSecondary} onClick={() => { setError(''); setOk(''); tesoreriaAPI.ordenesPago.enviarAFirma(op.id).then((r) => setOk(`${op.orden_pago} enviada a firma (requiere ${r.data?.documento?.cantidad_firmas || 2} firmas).`)).catch((e) => setError(e.response?.data?.detail || 'No se pudo enviar a firma')); }}>Enviar a firma</button>}
                   {op.estado !== 'anulada' && <button className={btnSecondary} onClick={() => { if (confirm('¿Anular la OP?')) tesoreriaAPI.ordenesPago.anular(op.id).then(refetch).catch((e) => setError(e.response?.data?.detail)); }}>Anular</button>}
                 </div>
               </div>

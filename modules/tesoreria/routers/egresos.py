@@ -320,6 +320,38 @@ def crear_op(data: OrdenPagoIn, request: Request, db: Session = Depends(get_db),
     return _ser_op(op, db)
 
 
+@op_router.post("/{id}/enviar-a-firma")
+def enviar_a_firma(id: int, request: Request, data: dict = Body(default={}),
+                   db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    """Registra la orden de pago en el módulo de Firma Digital (para su firma múltiple)."""
+    _requiere(current_user, "tesoreria_write")
+    op = db.query(OrdenPago).filter(OrdenPago.id == id, OrdenPago.activo == True).first()
+    if not op:
+        raise HTTPException(status_code=404, detail="Orden de pago inexistente")
+    import httpx, hashlib
+    numero_op = f"OP-{op.anio}-{op.numero:05d}"
+    contenido = f"{numero_op}|{op.beneficiario_nombre or ''}|{op.importe}|{op.concepto or ''}"
+    contenido_hash = hashlib.sha256(contenido.encode("utf-8")).hexdigest()
+    payload = {
+        "origen_modulo": "tesoreria", "origen_tipo": "orden_pago", "origen_ref": numero_op,
+        "titulo": f"Orden de Pago {numero_op} — {op.beneficiario_nombre or 's/beneficiario'} (${float(op.importe):,.2f})",
+        "descripcion": op.concepto, "contenido_hash": contenido_hash,
+        "cantidad_firmas": int(data.get("cantidad_firmas") or 2),
+    }
+    token = request.headers.get("authorization")
+    try:
+        with httpx.Client(timeout=8) as c:
+            r = c.post(f"{settings.firma_url}/documentos", json=payload,
+                       headers={"Authorization": token} if token else {})
+        if r.status_code >= 400:
+            raise HTTPException(status_code=502, detail=f"El módulo de firma rechazó el envío: {r.text[:200]}")
+        return {"enviado": True, "documento": r.json()}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"No se pudo conectar con el módulo de firma: {e}")
+
+
 @op_router.post("/{id}/pagar")
 def pagar_op(id: int, data: dict = Body(...), db: Session = Depends(get_db),
              current_user: dict = Depends(get_current_user)):
