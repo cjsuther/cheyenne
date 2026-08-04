@@ -60,6 +60,10 @@ export const authAPI = {
   logout: () => api.post('/seguridad/auth/logout'),
   updateProfile: (data) => api.put('/seguridad/auth/profile', data),
   changeOwnPassword: (data) => api.post('/seguridad/auth/change-own-password', data),
+  firmaConfig: {
+    get: () => api.get('/seguridad/auth/firma-config'),
+    set: (data) => api.post('/seguridad/auth/firma-config', data),
+  },
 };
 
 export const seguridadAPI = {
@@ -1012,3 +1016,14 @@ export const firmaAPI = {
   },
   bandeja: (params) => api.get('/firma/bandeja', { params }),
 };
+
+// Firma digital: configuración de modo (sistema) + reset de credencial (admin)
+dmerge(firmaAPI, {
+  configuracion: {
+    get: () => api.get('/firma/configuracion'),
+    update: (data) => api.put('/firma/configuracion', data),
+  },
+});
+dmerge(seguridadAPI, {
+  usuarios: { firmaReset: (id) => api.post(`/seguridad/usuarios/${id}/firma-reset`, {}) },
+});

@@ -18,6 +18,8 @@ class DocumentoCreate(BaseModel):
 
 
 class FirmarRequest(BaseModel):
+    """La clave es el PIN de firma del usuario; se valida contra seguridad antes de firmar."""
+    clave: str
     computadora: Optional[str] = None
 
 
@@ -32,7 +34,25 @@ class FirmaResponse(BaseModel):
     computadora: Optional[str] = None
     fecha_hora: datetime
     hash_firma: str
+    metodo: str = "hmac"
+    aclaracion: Optional[str] = None
     estado: str
+
+
+class ConfiguracionFirmaResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    modo: str
+    gendoc_url: str
+    tsa_url: str
+    actualizado_por: Optional[str] = None
+    updated_at: Optional[datetime] = None
+
+
+class ConfiguracionFirmaIn(BaseModel):
+    modo: str
+    gendoc_url: Optional[str] = None
+    tsa_url: Optional[str] = None
 
 
 class DocumentoFirmableResponse(BaseModel):

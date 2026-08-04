@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { firmaAPI } from '../../services/api';
+import { useAuthStore } from '../../store/auth';
 import PageHeader from '../../components/common/PageHeader';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { Modal, btnPrimary, btnSecondary, inputClass, apiErrorMessage } from '../../components/common/CrudComponents';
@@ -29,6 +30,7 @@ function DetalleModal({ id, onClose }) {
   const qc = useQueryClient();
   const [error, setError] = useState('');
   const [verif, setVerif] = useState(null);
+  const [clave, setClave] = useState('');
   const { data: doc, isLoading } = useQuery({
     queryKey: ['firma-doc', id],
     queryFn: () => firmaAPI.documentos.get(id).then((r) => r.data),
@@ -39,8 +41,8 @@ function DetalleModal({ id, onClose }) {
     qc.invalidateQueries({ queryKey: ['firma-docs'] });
   };
   const firmar = useMutation({
-    mutationFn: () => firmaAPI.documentos.firmar(id, { computadora: 'web' }),
-    onSuccess: () => { setError(''); refrescar(); },
+    mutationFn: () => firmaAPI.documentos.firmar(id, { clave, computadora: 'web' }),
+    onSuccess: () => { setError(''); setClave(''); refrescar(); },
     onError: (e) => setError(apiErrorMessage(e, 'No se pudo firmar')),
   });
   const anular = useMutation({
@@ -101,15 +103,19 @@ function DetalleModal({ id, onClose }) {
             </div>
           )}
 
-          <div className="flex flex-wrap justify-end gap-2 pt-2 border-t">
+          <div className="flex flex-wrap items-end justify-between gap-2 pt-2 border-t">
             <button className={btnSecondary} onClick={() => verificar.mutate()} disabled={verificar.isPending}>Verificar firmas</button>
             {doc.estado === 'pendiente' && (
-              <>
+              <div className="flex items-end gap-2 flex-wrap">
+                <label className="text-xs text-gray-500">Clave de firma
+                  <input type="password" value={clave} onChange={(e) => setClave(e.target.value)} placeholder="tu PIN de firma" className={`${inputClass} w-40`} />
+                </label>
                 <button className={btnSecondary} onClick={() => anular.mutate()} disabled={anular.isPending}>Anular</button>
-                <button className={btnPrimary} onClick={() => firmar.mutate()} disabled={firmar.isPending}>{firmar.isPending ? 'Firmando…' : 'Firmar'}</button>
-              </>
+                <button className={btnPrimary} onClick={() => firmar.mutate()} disabled={firmar.isPending || !clave}>{firmar.isPending ? 'Firmando…' : 'Firmar'}</button>
+              </div>
             )}
           </div>
+          {doc.estado === 'pendiente' && <p className="text-[11px] text-gray-400 text-right">Configurá tu clave de firma en <b>Mi Perfil › Firma</b>.</p>}
         </div>
       )}
     </Modal>
@@ -142,7 +148,53 @@ function Lista({ items, onOpen, vacio }) {
   );
 }
 
+const MODO_LABEL = { hmac: 'Firma electrónica de registro (HMAC)', pades: 'PAdES (firma cualificada sobre PDF)', gendoc: 'GenDoc (servicio de firma externo)' };
+
+function ConfigFirma() {
+  const qc = useQueryClient();
+  const [msg, setMsg] = useState('');
+  const { data: cfg } = useQuery({ queryKey: ['firma-config'], queryFn: () => firmaAPI.configuracion.get().then((r) => r.data) });
+  const [form, setForm] = useState(null);
+  const actual = form || cfg || { modo: 'hmac', gendoc_url: '', tsa_url: '' };
+  const guardar = useMutation({
+    mutationFn: () => firmaAPI.configuracion.update({ modo: actual.modo, gendoc_url: actual.gendoc_url || '', tsa_url: actual.tsa_url || '' }),
+    onSuccess: () => { setMsg('Configuración guardada.'); qc.invalidateQueries({ queryKey: ['firma-config'] }); },
+    onError: (e) => setMsg(apiErrorMessage(e, 'No se pudo guardar')),
+  });
+  const set = (k, v) => setForm({ ...actual, [k]: v });
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 max-w-2xl space-y-4">
+      {msg && <div className="bg-blue-50 border border-blue-100 text-blue-700 text-sm rounded-lg px-4 py-2">{msg}</div>}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Modo de firma del sistema</label>
+        <select value={actual.modo} onChange={(e) => set('modo', e.target.value)} className={inputClass}>
+          {Object.entries(MODO_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+        </select>
+        <p className="text-xs text-gray-400 mt-1">
+          {actual.modo === 'hmac' && 'Firma electrónica de registro con la clave del servidor. Funcional hoy.'}
+          {actual.modo === 'pades' && 'Firma cualificada del PDF con certificado/token del firmante + sellado de tiempo. Requiere cargar la credencial en el perfil del usuario y la CA/TSA abajo.'}
+          {actual.modo === 'gendoc' && 'Firma vía servicio externo GenDoc (como el legacy). Requiere la URL del servicio abajo.'}
+        </p>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">URL del servicio GenDoc</label>
+        <input value={actual.gendoc_url || ''} onChange={(e) => set('gendoc_url', e.target.value)} placeholder="https://gendoc.municipio.gob.ar/firmar" className={inputClass} />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">URL del sellado de tiempo (TSA)</label>
+        <input value={actual.tsa_url || ''} onChange={(e) => set('tsa_url', e.target.value)} placeholder="http://tsa.municipio.gob.ar/tsa" className={inputClass} />
+      </div>
+      <div className="flex justify-end">
+        <button className={btnPrimary} onClick={() => { setMsg(''); guardar.mutate(); }} disabled={guardar.isPending}>{guardar.isPending ? 'Guardando…' : 'Guardar configuración'}</button>
+      </div>
+    </div>
+  );
+}
+
 export default function Firma() {
+  const user = useAuthStore((s) => s.user);
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const esAdmin = user?.superuser || hasPermission?.('firma', 'admin');
   const [tab, setTab] = useState('bandeja');
   const [estado, setEstado] = useState('');
   const [detalle, setDetalle] = useState(null);
@@ -160,6 +212,7 @@ export default function Firma() {
   const TABS = [
     { key: 'bandeja', label: `Bandeja de firma${bandeja?.length ? ` (${bandeja.length})` : ''}` },
     { key: 'todos', label: 'Todos los documentos' },
+    ...(esAdmin ? [{ key: 'config', label: 'Configuración' }] : []),
   ];
 
   return (
@@ -189,6 +242,8 @@ export default function Firma() {
           <Lista items={docs} onOpen={setDetalle} vacio="No hay documentos." />
         </div>
       )}
+
+      {tab === 'config' && esAdmin && <ConfigFirma />}
 
       {detalle && <DetalleModal id={detalle} onClose={() => setDetalle(null)} />}
     </div>

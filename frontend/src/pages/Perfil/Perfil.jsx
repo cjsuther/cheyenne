@@ -17,6 +17,46 @@ export default function Perfil() {
         <ProfileInfoCard />
         <ChangePasswordCard />
         <TwoFactorCard />
+        <FirmaCard />
+      </div>
+    </div>
+  );
+}
+
+function FirmaCard() {
+  const qc = useQueryClient();
+  const [clave, setClave] = useState('');
+  const [clave2, setClave2] = useState('');
+  const [aclaracion, setAclaracion] = useState('');
+  const [seeded, setSeeded] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const { data: cfg } = useQuery({ queryKey: ['mi-firma'], queryFn: () => authAPI.firmaConfig.get().then((r) => r.data) });
+  if (cfg && !seeded) { setAclaracion(cfg.aclaracion || ''); setSeeded(true); }
+  const guardar = useMutation({
+    mutationFn: () => authAPI.firmaConfig.set({ clave, aclaracion }),
+    onSuccess: () => { setMsg({ type: 'success', text: 'Clave de firma guardada.' }); setClave(''); setClave2(''); qc.invalidateQueries({ queryKey: ['mi-firma'] }); },
+    onError: (e) => setMsg({ type: 'error', text: e.response?.data?.detail || 'No se pudo guardar' }),
+  });
+  const puede = clave.length >= 4 && clave === clave2;
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+      <h3 className="text-lg font-semibold text-gray-800">Firma digital</h3>
+      <p className="text-sm text-gray-500 mt-1 mb-4">
+        Tu <b>clave de firma</b> (distinta de tu contraseña) se te pedirá al firmar documentos.{' '}
+        {cfg?.tiene_clave ? 'Ya tenés una clave configurada.' : 'Todavía no configuraste tu clave.'}
+      </p>
+      {msg && <div className={`mb-3 text-sm rounded-lg px-4 py-2 ${msg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{msg.text}</div>}
+      <div className="space-y-3">
+        <div><label className="text-sm text-gray-600">Aclaración de firma</label>
+          <input value={aclaracion} onChange={(e) => setAclaracion(e.target.value)} placeholder="Cont. Juan Pérez — Tesorero" className={inputClass} /></div>
+        <div><label className="text-sm text-gray-600">{cfg?.tiene_clave ? 'Nueva clave de firma' : 'Clave de firma'} (mín. 4 caracteres)</label>
+          <input type="password" value={clave} onChange={(e) => setClave(e.target.value)} className={inputClass} /></div>
+        <div><label className="text-sm text-gray-600">Repetir clave</label>
+          <input type="password" value={clave2} onChange={(e) => setClave2(e.target.value)} className={inputClass} /></div>
+        {clave && clave !== clave2 && <p className="text-xs text-red-500">Las claves no coinciden.</p>}
+        <button className={btnPrimary} onClick={() => { setMsg(null); guardar.mutate(); }} disabled={!puede || guardar.isPending}>
+          {guardar.isPending ? 'Guardando…' : 'Guardar clave de firma'}
+        </button>
       </div>
     </div>
   );

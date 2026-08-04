@@ -159,6 +159,20 @@ def set_permiso_override(
     return {"id": row.id, "id_usuario": row.id_usuario, "id_permiso": row.id_permiso, "tipo": row.tipo}
 
 
+# ── Credencial de firma (reset admin) ────────────────────────────────
+@router.post("/{id}/firma-reset")
+def firma_reset(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_permission("seguridad_permisos_usuario")),
+):
+    service = UsuarioService(db)
+    usuario = service.find_by_id(id)
+    usuario.clave_firma_hash = None
+    db.commit()
+    return {"reset": True}
+
+
 @router.delete("/{id}/permisos-override/{id_permiso}")
 def clear_permiso_override(
     id: int,

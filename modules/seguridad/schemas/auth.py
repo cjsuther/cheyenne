@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 
 
@@ -80,3 +80,18 @@ class UpdateProfileRequest(BaseModel):
 class ChangeOwnPasswordRequest(BaseModel):
     current_password: str
     new_password: str
+
+
+# ── Credencial de firma (clave de firma / PIN + aclaracion) ──────────
+class FirmaConfigIn(BaseModel):
+    clave: str = Field(min_length=4)
+    aclaracion: Optional[str] = None
+
+
+class FirmaVerificarIn(BaseModel):
+    clave: str
+
+
+class FirmaConfigOut(BaseModel):
+    tiene_clave: bool
+    aclaracion: Optional[str] = None

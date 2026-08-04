@@ -39,6 +39,10 @@ class Usuario(Base):
     totp_secret = Column(String(64), nullable=True)
     totp_habilitado = Column(Boolean, nullable=False, default=False, server_default="false")
 
+    # Credencial de firma (PIN de firma + aclaracion) - equivalente al certificado/token del legacy
+    clave_firma_hash = Column(String(200), nullable=True)
+    aclaracion_firma = Column(String(200), nullable=True)
+
     perfiles = relationship("Perfil", secondary=usuario_perfil, back_populates="usuarios", lazy="selectin")
     accesos = relationship("Acceso", back_populates="usuario", lazy="selectin", cascade="all, delete-orphan")
     sesiones = relationship("Sesion", back_populates="usuario", lazy="selectin", cascade="all, delete-orphan")

@@ -3,7 +3,8 @@ import os
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, HTTPException, status, Body
+import httpx
+from fastapi import APIRouter, Depends, Query, HTTPException, status, Body, Request
 from sqlalchemy.orm import Session
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -11,9 +12,10 @@ from shared.base_module import create_auth_dependency
 
 from database import get_db
 from config import get_settings
-from models.firma import DocumentoFirmable, Firma
+from models.firma import DocumentoFirmable, Firma, ConfiguracionFirma
 from schemas.firma import (
     DocumentoCreate, FirmarRequest, DocumentoFirmableResponse, FirmaResponse,
+    ConfiguracionFirmaResponse, ConfiguracionFirmaIn,
 )
 from services import firma_service
 
@@ -57,7 +59,73 @@ def _serializar(db: Session, doc: DocumentoFirmable) -> dict:
     return out
 
 
+def _verificar_pin_firma(request: Request, clave: str) -> dict:
+    """Valida el PIN de firma del usuario contra seguridad (CONTRATO).
+
+    POST {seguridad_url}/auth/firma-verificar  body={"clave": <pin>}
+      reenviando el header Authorization del usuario.
+    Respuesta esperada: {"valido": bool, "aclaracion": str|null}.
+
+    Devuelve la respuesta parseada. Best-effort: si seguridad no responde, error claro 502.
+    """
+    auth = request.headers.get("authorization")
+    if not auth:
+        raise HTTPException(status_code=401, detail="Falta el token de autorización.")
+    try:
+        with httpx.Client(timeout=8) as client:
+            resp = client.post(
+                f"{settings.seguridad_url}/auth/firma-verificar",
+                json={"clave": clave},
+                headers={"Authorization": auth},
+            )
+    except httpx.RequestError:
+        raise HTTPException(status_code=502,
+                            detail="No se pudo validar la clave de firma con seguridad.")
+    if resp.status_code >= 500:
+        raise HTTPException(status_code=502,
+                            detail="No se pudo validar la clave de firma con seguridad.")
+    try:
+        data = resp.json()
+    except ValueError:
+        data = {}
+    if not isinstance(data, dict) or not data.get("valido"):
+        raise HTTPException(
+            status_code=400,
+            detail="Clave de firma incorrecta o no configurada. Configurala en Mi Perfil › Firma.",
+        )
+    return data
+
+
 router = APIRouter(prefix="", tags=["Firma digital"])
+
+
+@router.get("/configuracion", response_model=ConfiguracionFirmaResponse)
+def obtener_configuracion(db: Session = Depends(get_db),
+                          current_user: dict = Depends(get_current_user)):
+    """Configuración de sistema del módulo (fila única). Modo de firma vigente y URLs."""
+    _requiere(current_user, "firma_read")
+    return firma_service.get_config(db)
+
+
+@router.put("/configuracion", response_model=ConfiguracionFirmaResponse)
+def actualizar_configuracion(data: ConfiguracionFirmaIn, db: Session = Depends(get_db),
+                             current_user: dict = Depends(get_current_user)):
+    """Cambia el modo de firma y las URLs de servicios externos. La fila manda sobre el env."""
+    _requiere(current_user, "firma_admin")
+    modo = (data.modo or "").strip().lower()
+    if modo not in firma_service.MODOS_VALIDOS:
+        raise HTTPException(status_code=400,
+                            detail=f"modo inválido; use uno de {firma_service.MODOS_VALIDOS}")
+    cfg = firma_service.get_config(db)
+    cfg.modo = modo
+    if data.gendoc_url is not None:
+        cfg.gendoc_url = data.gendoc_url.strip()
+    if data.tsa_url is not None:
+        cfg.tsa_url = data.tsa_url.strip()
+    cfg.actualizado_por = _quien(current_user)
+    db.commit()
+    db.refresh(cfg)
+    return cfg
 
 
 @router.post("/documentos", status_code=201)
@@ -147,10 +215,13 @@ def obtener_documento(id: int, db: Session = Depends(get_db),
 
 
 @router.post("/documentos/{id}/firmar")
-def firmar(id: int, data: FirmarRequest = Body(default=FirmarRequest()), db: Session = Depends(get_db),
+def firmar(id: int, request: Request, data: FirmarRequest = Body(...),
+           db: Session = Depends(get_db),
            current_user: dict = Depends(get_current_user)):
-    """Agrega la firma del usuario actual. Firma múltiple y secuencial: orden_firma =
-    (firmas existentes) + 1. Si se completan las firmas requeridas, el documento pasa a 'firmado'."""
+    """Agrega la firma del usuario actual. Requiere y valida el PIN de firma (data.clave)
+    contra seguridad antes de firmar. Firma múltiple y secuencial: orden_firma =
+    (firmas existentes) + 1. Si se completan las firmas requeridas, el documento pasa a 'firmado'.
+    El modo de firma (hmac|pades|gendoc) lo determina la configuración de sistema."""
     _requiere(current_user, "firma_firmar")
     doc = (db.query(DocumentoFirmable)
            .filter(DocumentoFirmable.id == id, DocumentoFirmable.activo == True)
@@ -165,9 +236,17 @@ def firmar(id: int, data: FirmarRequest = Body(default=FirmarRequest()), db: Ses
     if any(f.id_usuario == uid for f in firmas):
         raise HTTPException(status_code=400, detail="El usuario ya firmó este documento")
 
+    # Valida el PIN de firma contra seguridad y obtiene la aclaración del firmante.
+    verif = _verificar_pin_firma(request, data.clave)
+    aclaracion = verif.get("aclaracion")
+
     orden = len(firmas) + 1
     ahora = datetime.now(timezone.utc)
-    hash_firma = firma_service.firmar_documento(doc, uid, orden, ahora)
+    try:
+        resultado = firma_service.aplicar_firma(db, doc, current_user, orden, ahora.isoformat())
+    except ValueError as e:
+        # pades/gendoc no integrados o modo inválido -> mensaje claro al cliente.
+        raise HTTPException(status_code=400, detail=str(e))
 
     firma = Firma(
         id_documento=doc.id,
@@ -177,7 +256,9 @@ def firmar(id: int, data: FirmarRequest = Body(default=FirmarRequest()), db: Ses
         firmante_documento=_doc_usuario(current_user),
         computadora=data.computadora,
         fecha_hora=ahora,
-        hash_firma=hash_firma,
+        hash_firma=resultado["hash_firma"],
+        metodo=resultado["metodo"],
+        aclaracion=aclaracion,
         estado="valida",
         created_at=ahora,
     )

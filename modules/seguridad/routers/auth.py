@@ -18,8 +18,15 @@ from schemas.auth import (
     RequestPasswordResetRequest,
     UpdateProfileRequest,
     ChangeOwnPasswordRequest,
+    FirmaConfigIn,
+    FirmaVerificarIn,
+    FirmaConfigOut,
 )
 from models.usuario import Usuario
+
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
+from shared.security import verify_password, get_password_hash
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
 security_scheme = HTTPBearer()
@@ -162,3 +169,44 @@ def revocar_sesion(
 ):
     auth_service = AuthService(db)
     return auth_service.revocar_sesion(current_user, sesion_id)
+
+
+# ── Credencial de firma (clave de firma / PIN + aclaracion) ──────────
+@router.get("/firma-config", response_model=FirmaConfigOut)
+def get_firma_config(
+    current_user: Usuario = Depends(get_current_user),
+):
+    return FirmaConfigOut(
+        tiene_clave=current_user.clave_firma_hash is not None,
+        aclaracion=current_user.aclaracion_firma,
+    )
+
+
+@router.post("/firma-config", response_model=FirmaConfigOut)
+def set_firma_config(
+    request: FirmaConfigIn,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    current_user.clave_firma_hash = get_password_hash(request.clave)
+    current_user.aclaracion_firma = request.aclaracion
+    db.commit()
+    db.refresh(current_user)
+    return FirmaConfigOut(
+        tiene_clave=current_user.clave_firma_hash is not None,
+        aclaracion=current_user.aclaracion_firma,
+    )
+
+
+@router.post("/firma-verificar")
+def verificar_firma(
+    request: FirmaVerificarIn,
+    current_user: Usuario = Depends(get_current_user),
+):
+    if not current_user.clave_firma_hash:
+        return {"valido": False, "aclaracion": None}
+    valido = verify_password(request.clave, current_user.clave_firma_hash)
+    return {
+        "valido": valido,
+        "aclaracion": current_user.aclaracion_firma if valido else None,
+    }
