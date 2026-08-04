@@ -417,7 +417,7 @@ function WorkflowModal({ emision, onClose }) {
               <div className="max-h-48 overflow-y-auto border border-gray-100 rounded-lg divide-y divide-gray-50">
                 {recibosPdf.map((r) => (
                   <div key={r.ambito + r.archivo} className="flex items-center justify-between px-3 py-2 text-xs">
-                    <span className="font-mono truncate">{r.archivo} <span className="text-gray-400">· {r.ambito} · {Math.round(r.bytes / 1024)} KB</span></span>
+                    <span className="font-mono truncate">{r.archivo} <span className="text-gray-400">· {r.ambito} · {Math.round(r.bytes / 1024)} KB · generado {fmtDateTime(r.creado)}</span></span>
                     <button onClick={() => descargarRecibo(r)} className="text-primary-600 hover:underline shrink-0 ml-2">Descargar PDF</button>
                   </div>
                 ))}
@@ -500,6 +500,7 @@ function WorkflowModal({ emision, onClose }) {
                     <thead className="bg-gray-50 sticky top-0"><tr className="text-left text-gray-500">
                       <th className="px-3 py-2">Número</th><th className="px-3 py-2">Contrib.</th>
                       <th className="px-3 py-2">Cód. barras</th><th className="px-3 py-2 text-right">Importe</th>
+                      <th className="px-3 py-2">Generado</th>
                       <th className="px-3 py-2 text-right">Código de pago</th>
                     </tr></thead>
                     <tbody>{comprobantes.map((c) => (
@@ -508,6 +509,7 @@ function WorkflowModal({ emision, onClose }) {
                         <td className="px-3 py-1.5">{c.id_contribuyente}</td>
                         <td className="px-3 py-1.5 font-mono text-gray-500">{c.codigo_barras}</td>
                         <td className="px-3 py-1.5 text-right font-medium">${Number(c.importe_total || 0).toFixed(2)}</td>
+                        <td className="px-3 py-1.5 whitespace-nowrap text-gray-500">{fmtDateTime(c.fecha_emision)}</td>
                         <td className="px-3 py-1.5 text-right whitespace-nowrap">
                           <button className="text-primary-600 hover:underline mr-3"
                             onClick={() => descargarImagen(() => emisionesAPI.comprobantes.barcodePng(c.id), `barcode-${c.numero_comprobante}.png`)}

@@ -68,13 +68,16 @@ def listar_recibos(id_emision: int) -> list:
     base = os.path.join(BASE_DIR, f"emision_{id_emision}")
     out = []
     if os.path.isdir(base):
+        from datetime import datetime, timezone
         for ambito in sorted(os.listdir(base)):
             d = os.path.join(base, ambito)
             if os.path.isdir(d):
                 for f in sorted(os.listdir(d)):
                     if f.endswith(".pdf"):
+                        ruta = os.path.join(d, f)
+                        creado = datetime.fromtimestamp(os.path.getmtime(ruta), tz=timezone.utc).isoformat()
                         out.append({"ambito": ambito, "archivo": f,
-                                    "bytes": os.path.getsize(os.path.join(d, f))})
+                                    "bytes": os.path.getsize(ruta), "creado": creado})
     return out
 
 
