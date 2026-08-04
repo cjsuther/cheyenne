@@ -243,14 +243,14 @@ def seed():
             (num, nombre, cuil, i_tr, i_os, i_sin, f_ing, estado, banco, cbu,
              cargo, antigs, fams) = spec
             leg = Legajo(numero_legajo=num, apellido_nombre=nombre, cuil=cuil,
-                         id_tipo_relacion=trs[i_tr].id, id_obra_social=oss[i_os].id,
-                         id_sindicato=sins[i_sin].id, fecha_ingreso=f_ing,
+                         id_tipo_relacion=trs[i_tr % len(trs)].id, id_obra_social=oss[i_os % len(oss)].id,
+                         id_sindicato=sins[i_sin % len(sins)].id, fecha_ingreso=f_ing,
                          estado=estado, banco=banco, cbu=cbu, created_at=now, activo=True)
             db.add(leg); db.flush(); n_leg += 1
 
             (ic, itc, icf, iof, f_car, letra, anio, numnom, exp, obj) = cargo
-            db.add(LegajoCargo(id_legajo=leg.id, id_categoria=cats[ic].id, id_tipo_cargo=tcs[itc].id,
-                               id_cargo_funcion=cfs[icf].id, id_oficina=ofs[iof].id,
+            db.add(LegajoCargo(id_legajo=leg.id, id_categoria=cats[ic % len(cats)].id, id_tipo_cargo=tcs[itc % len(tcs)].id,
+                               id_cargo_funcion=cfs[icf % len(cfs)].id, id_oficina=ofs[iof % len(ofs)].id,
                                fecha_ingreso_cargo=f_car, letra_nombramiento=letra,
                                anio_nombramiento=anio, numero_nombramiento=numnom, expediente=exp,
                                jurisdiccion="1", estructura="01.00", fuente="11", objeto_gasto=obj,
@@ -258,19 +258,19 @@ def seed():
 
             for (desde, hasta, lugar, i_ta) in antigs:
                 db.add(Antiguedad(id_legajo=leg.id, fecha_desde=desde, fecha_hasta=hasta,
-                                  lugar=lugar, id_tipo_antiguedad=tas[i_ta].id,
+                                  lugar=lugar, id_tipo_antiguedad=tas[i_ta % len(tas)].id,
                                   created_at=now, activo=True)); n_ant += 1
 
             for (fnom, doc, i_par, acg, ded, dis, pct) in fams:
                 db.add(Familiar(id_legajo=leg.id, apellido_nombre=fnom, documento=doc,
-                                id_parentesco=pars[i_par].id, a_cargo=acg, deduce_ganancias=ded,
+                                id_parentesco=pars[i_par % len(pars)].id, a_cargo=acg, deduce_ganancias=ded,
                                 discapacitado=dis, porcentaje_deduccion=_dec(pct),
                                 created_at=now, activo=True)); n_fam += 1
 
         # 3) Planta presupuestaria
         n_pre = 0
         for (anio, ic, itc, obj, cant, costo) in PRESUPUESTO:
-            db.add(PresupuestoCargo(anio=anio, id_categoria=cats[ic].id, id_tipo_cargo=tcs[itc].id,
+            db.add(PresupuestoCargo(anio=anio, id_categoria=cats[ic % len(cats)].id, id_tipo_cargo=tcs[itc % len(tcs)].id,
                                     objeto_gasto=obj, cantidad_cargos=cant, costo_anual=_dec(costo),
                                     created_at=now, activo=True)); n_pre += 1
 
