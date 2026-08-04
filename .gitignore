@@ -40,3 +40,6 @@ generate_perfil.py
 
 # Análisis del sistema legacy (VB6+SQLServer) — NO versionar (archivos enormes)
 legacy/
+
+# Doc de integracion de firma cualificada (SI versionar)
+!modules/firma/INTEGRACION.md
