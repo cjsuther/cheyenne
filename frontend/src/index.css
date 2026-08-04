@@ -9,11 +9,37 @@ body {
   background-color: #f3f4f6;
 }
 
-/* Hide scrollbar but keep scroll functionality */
-.overflow-x-auto {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+/* Barra de scroll SIEMPRE visible y estilizada en tablas/contenedores scrolleables.
+   Muchos usuarios (sobre todo con mouse en Mac) no descubren el scroll lateral si la
+   barra está oculta, así que la hacemos prominente y arrastrable. */
+.overflow-x-auto,
+.overflow-y-auto,
+.overflow-auto {
+  scrollbar-width: thin;                 /* Firefox */
+  scrollbar-color: #94a3b8 #e2e8f0;
 }
-.overflow-x-auto::-webkit-scrollbar {
-  display: none;
+.overflow-x-auto::-webkit-scrollbar,
+.overflow-y-auto::-webkit-scrollbar,
+.overflow-auto::-webkit-scrollbar {
+  height: 12px;                          /* barra horizontal gruesa */
+  width: 12px;                           /* barra vertical */
+  -webkit-appearance: none;
+}
+.overflow-x-auto::-webkit-scrollbar-track,
+.overflow-y-auto::-webkit-scrollbar-track,
+.overflow-auto::-webkit-scrollbar-track {
+  background: #e2e8f0;                    /* slate-200 */
+  border-radius: 6px;
+}
+.overflow-x-auto::-webkit-scrollbar-thumb,
+.overflow-y-auto::-webkit-scrollbar-thumb,
+.overflow-auto::-webkit-scrollbar-thumb {
+  background: #94a3b8;                    /* slate-400 */
+  border-radius: 6px;
+  border: 2px solid #e2e8f0;
+}
+.overflow-x-auto::-webkit-scrollbar-thumb:hover,
+.overflow-y-auto::-webkit-scrollbar-thumb:hover,
+.overflow-auto::-webkit-scrollbar-thumb:hover {
+  background: #64748b;                    /* slate-500 */
 }
