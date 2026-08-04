@@ -84,14 +84,51 @@ def codigo_barras_itf(codigo_numerico: str) -> Dict[str, str]:
     return {"codigo": con_dv, "digito_verificador": str(dv)}
 
 
+# Patrones Interleaved 2 of 5: N=barra/espacio angosto, W=ancho (5 elementos, 2 anchos).
+_ITF_PATTERNS = {
+    "0": "NNWWN", "1": "WNNNW", "2": "NWNNW", "3": "WWNNN", "4": "NNWNW",
+    "5": "WNWNN", "6": "NWWNN", "7": "NNNWW", "8": "WNNWN", "9": "NWNWN",
+}
+
+
+def _itf_elementos(codigo: str):
+    """Lista de (es_barra, es_ancho) del ITF: start + pares intercalados + stop."""
+    elems = [(True, False), (False, False), (True, False), (False, False)]  # start
+    for i in range(0, len(codigo), 2):
+        d1 = _ITF_PATTERNS[codigo[i]]      # dígito impar -> barras
+        d2 = _ITF_PATTERNS[codigo[i + 1]]  # dígito par   -> espacios
+        for k in range(5):
+            elems.append((True, d1[k] == "W"))
+            elems.append((False, d2[k] == "W"))
+    elems += [(True, True), (False, False), (True, False)]  # stop
+    return elems
+
+
 def render_barcode_png(codigo_itf: str) -> bytes:
-    """Renderiza el Interleaved 2 of 5 a PNG usando reportlab."""
-    from reportlab.graphics.barcode import createBarcodeDrawing
-    drawing = createBarcodeDrawing(
-        "I2of5", value=codigo_itf, barHeight=60, barWidth=1.2,
-        checksum=0,  # el DV mod-10 ya está incorporado en el valor
-    )
-    return drawing.asString("png")
+    """Renderiza el Interleaved 2 of 5 a PNG con PIL (sin dependencias de rasterizado nativo)."""
+    from PIL import Image, ImageDraw
+
+    codigo = "".join(c for c in codigo_itf if c.isdigit())
+    if len(codigo) % 2 != 0:  # ITF codifica pares
+        codigo = "0" + codigo
+    narrow, wide, alto, quiet = 2, 6, 60, 20
+    elems = _itf_elementos(codigo)
+    ancho = quiet * 2 + sum(wide if w else narrow for _, w in elems)
+    img = Image.new("RGB", (ancho, alto + 22), "white")
+    draw = ImageDraw.Draw(img)
+    x = quiet
+    for es_barra, es_ancho in elems:
+        w = wide if es_ancho else narrow
+        if es_barra:
+            draw.rectangle([x, 0, x + w - 1, alto], fill="black")
+        x += w
+    try:
+        draw.text((quiet, alto + 6), codigo, fill="black")
+    except Exception:
+        pass
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
 
 
 def construir_payload_qr(comprobante, codigo_pago: str, vencimiento=None) -> Dict[str, Any]:
