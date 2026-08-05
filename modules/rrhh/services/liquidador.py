@@ -349,10 +349,20 @@ def _aplicar_ganancias(db, proc, leg, anio, mes, ctx, es_sac=False):
     res.retencion_mes = Decimal(0)  # se recalcula abajo; se pone en 0 para el cómputo de ya_ret
     db.flush()
 
-    # Acumulado del año a la fecha (incluye la fila actual ya seteada; unifica haberes + SAC)
-    rem_acum = sum((_dec(r[0]) for r in db.query(GananciasResumen.rem_neta_gravada).filter(
-        GananciasResumen.id_legajo == leg.id, GananciasResumen.anio == anio,
-        GananciasResumen.mes <= mes).all()), Decimal(0))
+    # Acumulación unificada haberes + SAC con orden determinístico: cada fila tiene la
+    # clave `mes*2 + es_sac`, de modo que el SAC de un mes se ordena SIEMPRE después del
+    # mensual de ese mismo mes. Así el mensual de junio no absorbe el SAC de junio y la
+    # re-liquidación es repetible aunque el SAC ya exista.
+    cur_ord = mes * 2 + (1 if es_sac else 0)
+    rem_acum = Decimal(0)
+    ya_ret = Decimal(0)
+    for f in db.query(GananciasResumen).filter(
+            GananciasResumen.id_legajo == leg.id, GananciasResumen.anio == anio).all():
+        o = f.mes * 2 + (1 if f.es_sac else 0)
+        if o <= cur_ord:                       # acumulado incluye la fila actual
+            rem_acum += _dec(f.rem_neta_gravada)
+        if o < cur_ord:                        # ya retenido: sólo filas anteriores en el orden
+            ya_ret += _dec(f.retencion_mes)
 
     ded_anual = _deducciones_ganancias_anual(db, leg, anio)
     ded_acum = _r2(ded_anual * _dec(mes) / Decimal(12))
@@ -361,10 +371,6 @@ def _aplicar_ganancias(db, proc, leg, anio, mes, ctx, es_sac=False):
         ganancia_neta = Decimal(0)
     impuesto_acum = _impuesto_escala(db, anio, ganancia_neta)
 
-    # Ya retenido en el año (todas las filas hasta el mes; la actual está en 0)
-    ya_ret = sum((_dec(r[0]) for r in db.query(GananciasResumen.retencion_mes).filter(
-        GananciasResumen.id_legajo == leg.id, GananciasResumen.anio == anio,
-        GananciasResumen.mes <= mes).all()), Decimal(0))
     retencion = _r2(impuesto_acum - ya_ret)
     if retencion < 0:
         retencion = Decimal(0)
