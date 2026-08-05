@@ -33,27 +33,31 @@ from services.liquidador import liquidar
 
 ANIO = date.today().year
 
-# ── Deducciones personales anuales (escaladas a los sueldos DEMO) ──────
+# ── Deducciones personales anuales ─────────────────────────────────────
+#    NOTA DEMO: los sueldos de la demo corren con valor_modulo ≈ 850, por lo que la
+#    remuneración neta gravada mensual es del orden de unos pocos miles. Para que la
+#    retención de Ganancias sea observable, tanto las deducciones como la escala están
+#    escaladas a esa magnitud (en producción se cargan los valores reales de AFIP/ARCA).
 DEDUCCIONES = [
-    ("minimo_no_imponible", "600000"),
-    ("deduccion_especial", "400000"),
-    ("conyuge", "200000"),
-    ("hijo", "150000"),
-    ("hijo_incapacitado", "300000"),
+    ("minimo_no_imponible", "9000"),
+    ("deduccion_especial", "6000"),
+    ("conyuge", "5000"),
+    ("hijo", "3000"),
+    ("hijo_incapacitado", "6000"),
 ]
 
 # ── Escala progresiva (tramo, desde, hasta, fijo, %, excedente_sobre) ──
 #    hasta=None en el último tramo (sin tope). fijo acumulado y consistente.
 ESCALA = [
-    (1, "0",       "200000",  "0",      "5",  "0"),
-    (2, "200000",  "400000",  "10000",  "9",  "200000"),
-    (3, "400000",  "600000",  "28000",  "12", "400000"),
-    (4, "600000",  "900000",  "52000",  "15", "600000"),
-    (5, "900000",  "1300000", "97000",  "19", "900000"),
-    (6, "1300000", "1900000", "173000", "23", "1300000"),
-    (7, "1900000", "2700000", "311000", "27", "1900000"),
-    (8, "2700000", "4000000", "527000", "31", "2700000"),
-    (9, "4000000", None,      "930000", "35", "4000000"),
+    (1, "0",      "10000",  "0",     "5",  "0"),
+    (2, "10000",  "20000",  "500",   "9",  "10000"),
+    (3, "20000",  "35000",  "1400",  "12", "20000"),
+    (4, "35000",  "55000",  "3200",  "15", "35000"),
+    (5, "55000",  "80000",  "6200",  "19", "55000"),
+    (6, "80000",  "120000", "10950", "23", "80000"),
+    (7, "120000", "180000", "20150", "27", "120000"),
+    (8, "180000", "260000", "36350", "31", "180000"),
+    (9, "260000", None,     "61150", "35", "260000"),
 ]
 
 # ── Conceptos de aguinaldo (aguinaldo=True) ────────────────────────────
