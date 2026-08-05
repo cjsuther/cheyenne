@@ -3,6 +3,7 @@ import { rrhhAPI } from '../../services/api';
 import PageHeader from '../../components/common/PageHeader';
 import GroupedTabBar from '../../components/common/GroupedTabBar';
 import { CrudTab } from '../../components/common/CrudComponents';
+import { Empleado360Tab, ConceptosTab, NovedadesTab, TiposLiqTab, LiquidacionTab } from './RrhhFase2';
 
 const bool = (v) => (v ? 'Sí' : 'No');
 const num = (v) => (v == null ? '—' : Number(v).toLocaleString('es-AR'));
@@ -13,6 +14,11 @@ const sel = (key, label, apiFns, optionLabel = 'descripcion', required = false) 
 });
 
 const TABS = [
+  { key: 'empleado360', label: 'Empleado 360' },
+  { key: 'liquidar', label: 'Liquidación' },
+  { key: 'conceptos', label: 'Conceptos' },
+  { key: 'novedades', label: 'Novedades' },
+  { key: 'tiposLiq', label: 'Tipos de Liquidación' },
   { key: 'legajos', label: 'Legajos' },
   { key: 'cargos', label: 'Cargos' },
   { key: 'antiguedad', label: 'Antigüedad' },
@@ -31,6 +37,8 @@ const TABS = [
 ];
 
 const GRUPOS = [
+  { label: 'Empleado 360', keys: ['empleado360'] },
+  { label: 'Liquidación', keys: ['liquidar', 'conceptos', 'novedades', 'tiposLiq'] },
   { label: 'Legajo', keys: ['legajos', 'cargos', 'antiguedad', 'familiares'] },
   { label: 'Maestros', keys: ['categorias', 'tiposCargo', 'cargosFunciones', 'nivelesLaboral', 'tiposRelacion', 'oficinas', 'parentescos', 'tiposAntiguedad', 'sindicatos', 'obrasSociales'] },
   { label: 'Planta', keys: ['planta'] },
@@ -47,11 +55,17 @@ function Catalogo({ apiFns, entity, extraCols = [], extraFields = [] }) {
 }
 
 export default function Rrhh() {
-  const [tab, setTab] = useTabParam('legajos');
+  const [tab, setTab] = useTabParam('empleado360');
   return (
     <div>
       <PageHeader title="Recursos Humanos" subtitle="Legajos, cargos, antigüedad, familiares, planta y maestros de personal" />
       <GroupedTabBar grupos={GRUPOS} tabsMeta={TABS} tab={tab} setTab={setTab} />
+
+      {tab === 'empleado360' && <Empleado360Tab />}
+      {tab === 'liquidar' && <LiquidacionTab />}
+      {tab === 'conceptos' && <ConceptosTab />}
+      {tab === 'novedades' && <NovedadesTab />}
+      {tab === 'tiposLiq' && <TiposLiqTab />}
 
       {tab === 'legajos' && (
         <CrudTab queryKey="rrhh-legajos" apiFns={rrhhAPI.legajos} entityName="Legajo" wide

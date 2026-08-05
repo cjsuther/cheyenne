@@ -1,5 +1,5 @@
 from sqlalchemy import (
-    Column, BigInteger, Integer, String, Boolean, DateTime, Date, Numeric, UniqueConstraint,
+    Column, BigInteger, Integer, String, Boolean, DateTime, Date, Numeric, Text, UniqueConstraint,
 )
 from datetime import datetime, timezone
 
@@ -223,5 +223,111 @@ class PresupuestoCargo(Base):
     objeto_gasto = Column(String(30), nullable=True)
     cantidad_cargos = Column(Integer, nullable=False, default=0)
     costo_anual = Column(Numeric(18, 2), nullable=False, default=0)
+    activo = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+# ─── FASE 2: MOTOR DE CONCEPTOS + LIQUIDACIÓN ─────────────────────────
+TIPOS_CONCEPTO = ("H", "A", "E", "D", "R", "P")  # Haber, Asig.Familiar, Exento, Descuento, Retención/aporte, Aporte patronal
+ESTADOS_PROCESO = ("procesada", "anulada")
+
+
+class Concepto(Base):
+    """Concepto liquidable con fórmulas de texto (condicion/cantidad/base/porcentaje/formula)."""
+    __tablename__ = "rrhh_conceptos"
+    __table_args__ = (UniqueConstraint("codigo", name="uq_rrhh_concepto_codigo"),)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    codigo = Column(String(20), nullable=False, index=True)
+    descripcion = Column(String(200), nullable=False)
+    tipo = Column(String(1), nullable=False, default="H")  # H|A|E|D|R|P
+    orden = Column(Numeric(8, 2), nullable=False, default=0)
+    condicion = Column(Text, nullable=True)
+    cantidad = Column(Text, nullable=True)
+    base = Column(Text, nullable=True)
+    porcentaje = Column(Text, nullable=True)
+    formula = Column(Text, nullable=True)
+    aguinaldo = Column(Boolean, nullable=False, default=False)
+    activo = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class TipoLiquidacion(Base):
+    """Tipo de liquidación: Mensual, Aguinaldo, etc."""
+    __tablename__ = "rrhh_tipos_liquidacion"
+    __table_args__ = (UniqueConstraint("codigo", name="uq_rrhh_tipo_liquidacion_codigo"),)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    codigo = Column(String(10), nullable=False)
+    descripcion = Column(String(200), nullable=False)
+    activo = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class LiquidacionProceso(Base):
+    """Proceso de liquidación de un período (idempotente por anio/mes/tipo_liq activo)."""
+    __tablename__ = "rrhh_liquidacion_procesos"
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    anio = Column(Integer, nullable=False, index=True)
+    mes = Column(Integer, nullable=False, index=True)
+    id_tipo_liquidacion = Column(BigInteger, nullable=True)
+    tipo_liq = Column(String(10), nullable=True)
+    valor_modulo = Column(Numeric(18, 4), nullable=False, default=0)
+    estado = Column(String(20), nullable=False, default="procesada")  # procesada | anulada
+    cantidad_legajos = Column(Integer, nullable=False, default=0)
+    total_haberes = Column(Numeric(18, 2), nullable=False, default=0)
+    total_retenciones = Column(Numeric(18, 2), nullable=False, default=0)
+    total_neto = Column(Numeric(18, 2), nullable=False, default=0)
+    creado_por = Column(String(100), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+    activo = Column(Boolean, nullable=False, default=True)
+
+
+class LiquidacionRenglon(Base):
+    """Renglón de liquidación: un concepto calculado para un legajo dentro de un proceso."""
+    __tablename__ = "rrhh_liquidacion"
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id_proceso = Column(BigInteger, nullable=False, index=True)
+    id_legajo = Column(BigInteger, nullable=False, index=True)
+    id_cargo = Column(BigInteger, nullable=True)
+    concepto_codigo = Column(String(20), nullable=True)
+    concepto_descripcion = Column(String(200), nullable=True)
+    orden = Column(Numeric(8, 2), nullable=False, default=0)
+    tipo_concepto = Column(String(1), nullable=True)
+    cantidad = Column(Numeric(18, 4), nullable=False, default=0)
+    base = Column(Numeric(18, 2), nullable=False, default=0)
+    porcentaje = Column(Numeric(12, 4), nullable=False, default=0)
+    importe = Column(Numeric(18, 2), nullable=False, default=0)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class TotalesLiquidacion(Base):
+    """Totales por legajo dentro de un proceso de liquidación (recibo)."""
+    __tablename__ = "rrhh_totales_liquidacion"
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id_proceso = Column(BigInteger, nullable=False, index=True)
+    id_legajo = Column(BigInteger, nullable=False, index=True)
+    legajo_numero = Column(String(20), nullable=True)
+    apellido_nombre = Column(String(250), nullable=True)
+    haberes = Column(Numeric(18, 2), nullable=False, default=0)
+    asig_familiar = Column(Numeric(18, 2), nullable=False, default=0)
+    exentos = Column(Numeric(18, 2), nullable=False, default=0)
+    retenciones = Column(Numeric(18, 2), nullable=False, default=0)
+    descuentos = Column(Numeric(18, 2), nullable=False, default=0)
+    aportes_patronales = Column(Numeric(18, 2), nullable=False, default=0)
+    neto = Column(Numeric(18, 2), nullable=False, default=0)
+    numero_recibo = Column(String(30), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class Novedad(Base):
+    """Novedad de liquidación: variable que el motor inyecta al contexto del legajo/período.
+    id_legajo null = aplica a todos; anio/mes null = aplica a todo período."""
+    __tablename__ = "rrhh_novedades"
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id_legajo = Column(BigInteger, nullable=True, index=True)
+    variable = Column(String(20), nullable=False)  # ej '@TIENE_TITULO'
+    valor = Column(Numeric(18, 4), nullable=False, default=0)
+    anio = Column(Integer, nullable=True)
+    mes = Column(Integer, nullable=True)
+    descripcion = Column(String(200), nullable=True)
     activo = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), default=_now)

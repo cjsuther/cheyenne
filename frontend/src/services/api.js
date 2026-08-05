@@ -1051,3 +1051,18 @@ export const rrhhAPI = {
   familiares: crud('/rrhh/familiares'),
   presupuestoCargos: crud('/rrhh/presupuesto-cargos'),
 };
+
+// RRHH Fase 2: conceptos, tipos de liquidación, novedades, liquidar, procesos, recibo
+dmerge(rrhhAPI, {
+  conceptos: crud('/rrhh/conceptos'),
+  tiposLiquidacion: crud('/rrhh/tipos-liquidacion'),
+  novedades: crud('/rrhh/novedades'),
+  liquidar: (data) => api.post('/rrhh/liquidar', data),
+  procesos: {
+    list: (params) => api.get('/rrhh/liquidacion-procesos', { params }),
+    get: (id) => api.get(`/rrhh/liquidacion-procesos/${id}`),
+  },
+  legajos: {
+    recibo: (id, params) => api.get(`/rrhh/legajos/${id}/recibo`, { params }),
+  },
+});

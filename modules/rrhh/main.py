@@ -15,13 +15,15 @@ from routers import (
     sindicatos_router, obras_sociales_router,
     legajos_router, legajo_cargos_router, antiguedades_router, familiares_router,
     presupuesto_cargos_router,
+    conceptos_router, tipos_liquidacion_router, novedades_router,
+    liquidar_router, procesos_router,
 )
 import models  # noqa: F401
 
 settings = get_settings()
 app = FastAPI(title="Cheyenne - Módulo Recursos Humanos",
-              description="RRHH Fase 1: maestros, legajo, cargos, antigüedad, familiares y planta",
-              version="1.0.0", redirect_slashes=False)
+              description="RRHH: maestros, legajo, cargos, antigüedad, familiares, planta, conceptos y liquidación",
+              version="2.0.0", redirect_slashes=False)
 app.add_middleware(CORSMiddleware, allow_origins=["*"] if settings.environment == "development" else [],
                    allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 app.add_middleware(AuditMiddleware, modulo="rrhh")
@@ -29,7 +31,9 @@ for r in (categorias_router, tipos_cargo_router, cargos_funciones_router, nivele
           tipos_relacion_router, oficinas_router, parentescos_router, tipos_antiguedad_router,
           sindicatos_router, obras_sociales_router,
           legajos_router, legajo_cargos_router, antiguedades_router, familiares_router,
-          presupuesto_cargos_router):
+          presupuesto_cargos_router,
+          conceptos_router, tipos_liquidacion_router, novedades_router,
+          liquidar_router, procesos_router):
     app.include_router(r)
 
 

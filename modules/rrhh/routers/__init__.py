@@ -7,3 +7,7 @@ from .legajos import (
     legajos_router, legajo_cargos_router, antiguedades_router, familiares_router,
 )
 from .planta import presupuesto_cargos_router
+from .liquidacion import (
+    conceptos_router, tipos_liquidacion_router, novedades_router,
+    liquidar_router, procesos_router,
+)

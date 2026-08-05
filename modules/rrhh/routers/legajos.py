@@ -15,7 +15,12 @@ from shared.filters import filtered_query
 
 from database import get_db
 from config import get_settings
-from models.rrhh import Legajo, LegajoCargo, Antiguedad, Familiar, ESTADOS_LEGAJO
+from models.rrhh import (
+    Legajo, LegajoCargo, Antiguedad, Familiar, ESTADOS_LEGAJO,
+    TipoRelacion, ObraSocial, Sindicato, Categoria, TipoCargo, CargoFuncion,
+    Oficina, TipoAntiguedad, Parentesco,
+    LiquidacionProceso, LiquidacionRenglon, TotalesLiquidacion,
+)
 
 settings = get_settings()
 get_current_user = create_auth_dependency(settings.seguridad_url)
@@ -111,21 +116,123 @@ def familiares_de_legajo(id: int, db: Session = Depends(get_db), current_user: d
     return [_ser(x, _FAM) for x in q.all()]
 
 
+def _label_map(db, model, attr="descripcion"):
+    """Devuelve {id: descripcion/nombre} de un catálogo."""
+    return {r.id: getattr(r, attr) for r in db.query(model).all()}
+
+
+def _anios_entre(desde, hasta):
+    if not desde:
+        return 0.0
+    dias = (hasta - desde).days
+    return round(dias / 365.0, 4) if dias > 0 else 0.0
+
+
 @legajos_router.get("/{id}/ficha")
 def ficha_legajo(id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
-    """Ficha del agente: legajo + cargos + antigüedades + familiares."""
+    """Ficha 360 del agente: legajo + cargos + antigüedades + familiares, con labels resueltos."""
     _requiere(current_user, "rrhh_read")
     x = db.query(Legajo).filter(Legajo.id == id).first()
     if not x:
         raise HTTPException(status_code=404, detail="Legajo inexistente")
+
+    # Mapas de labels (catálogos)
+    tr = _label_map(db, TipoRelacion)
+    os_ = _label_map(db, ObraSocial, "nombre")
+    sin = _label_map(db, Sindicato, "nombre")
+    cat = _label_map(db, Categoria)
+    tc = _label_map(db, TipoCargo)
+    cf = _label_map(db, CargoFuncion)
+    ofi = _label_map(db, Oficina)
+    ta = _label_map(db, TipoAntiguedad)
+    par = _label_map(db, Parentesco)
+    ta_computa = {t.id: t.computa for t in db.query(TipoAntiguedad).all()}
+
     out = _ser(x, _LEG)
-    out["cargos"] = [_ser(c, _CARGO) for c in
-                     db.query(LegajoCargo).filter(LegajoCargo.id_legajo == id, LegajoCargo.activo == True).order_by(LegajoCargo.id).all()]
-    out["antiguedades"] = [_ser(a, _ANTIG) for a in
-                           db.query(Antiguedad).filter(Antiguedad.id_legajo == id, Antiguedad.activo == True).order_by(Antiguedad.id).all()]
-    out["familiares"] = [_ser(f, _FAM) for f in
-                         db.query(Familiar).filter(Familiar.id_legajo == id, Familiar.activo == True).order_by(Familiar.id).all()]
+    out["tipo_relacion_descripcion"] = tr.get(x.id_tipo_relacion)
+    out["obra_social_nombre"] = os_.get(x.id_obra_social)
+    out["sindicato_nombre"] = sin.get(x.id_sindicato)
+
+    cargos = db.query(LegajoCargo).filter(LegajoCargo.id_legajo == id, LegajoCargo.activo == True).order_by(LegajoCargo.id).all()
+    out["cargos"] = []
+    for c in cargos:
+        row = _ser(c, _CARGO)
+        row["categoria_descripcion"] = cat.get(c.id_categoria)
+        row["tipo_cargo_descripcion"] = tc.get(c.id_tipo_cargo)
+        row["cargo_funcion_descripcion"] = cf.get(c.id_cargo_funcion)
+        row["oficina_descripcion"] = ofi.get(c.id_oficina)
+        out["cargos"].append(row)
+
+    antigs = db.query(Antiguedad).filter(Antiguedad.id_legajo == id, Antiguedad.activo == True).order_by(Antiguedad.id).all()
+    out["antiguedades"] = []
+    antig_total = 0.0
+    hoy = date.today()
+    for a in antigs:
+        row = _ser(a, _ANTIG)
+        row["tipo_antiguedad_descripcion"] = ta.get(a.id_tipo_antiguedad)
+        out["antiguedades"].append(row)
+        if a.id_tipo_antiguedad is None or ta_computa.get(a.id_tipo_antiguedad):
+            antig_total += _anios_entre(a.fecha_desde, a.fecha_hasta or hoy)
+
+    fams = db.query(Familiar).filter(Familiar.id_legajo == id, Familiar.activo == True).order_by(Familiar.id).all()
+    out["familiares"] = []
+    for f in fams:
+        row = _ser(f, _FAM)
+        row["parentesco_descripcion"] = par.get(f.id_parentesco)
+        out["familiares"].append(row)
+
+    out["antiguedad_total_anios"] = round(antig_total, 2)
+    out["cantidad_familiares_a_cargo"] = sum(1 for f in fams if f.a_cargo)
+
+    # Último recibo (TotalesLiquidacion más reciente por proceso)
+    ult = (db.query(TotalesLiquidacion, LiquidacionProceso)
+           .join(LiquidacionProceso, TotalesLiquidacion.id_proceso == LiquidacionProceso.id)
+           .filter(TotalesLiquidacion.id_legajo == id, LiquidacionProceso.activo == True)
+           .order_by(LiquidacionProceso.anio.desc(), LiquidacionProceso.mes.desc(),
+                     TotalesLiquidacion.id.desc())
+           .first())
+    if ult:
+        tot, proc = ult
+        out["ultimo_recibo"] = {"anio": proc.anio, "mes": proc.mes, "neto": float(tot.neto)}
+    else:
+        out["ultimo_recibo"] = None
     return out
+
+
+@legajos_router.get("/{id}/recibo")
+def recibo_legajo(id: int, anio: int = Query(...), mes: int = Query(...),
+                  tipo_liq: str = Query(...), db: Session = Depends(get_db),
+                  current_user: dict = Depends(get_current_user)):
+    """Recibo de un legajo en un período: legajo + proceso + renglones + totales."""
+    _requiere(current_user, "rrhh_read")
+    leg = db.query(Legajo).filter(Legajo.id == id).first()
+    if not leg:
+        raise HTTPException(status_code=404, detail="Legajo inexistente")
+    proc = (db.query(LiquidacionProceso)
+            .filter(LiquidacionProceso.anio == anio, LiquidacionProceso.mes == mes,
+                    LiquidacionProceso.tipo_liq == tipo_liq, LiquidacionProceso.activo == True)
+            .first())
+    if not proc:
+        raise HTTPException(status_code=404, detail="No hay liquidación para ese período/tipo")
+    _RENG = ["id", "id_proceso", "id_legajo", "id_cargo", "concepto_codigo",
+             "concepto_descripcion", "orden", "tipo_concepto", "cantidad", "base",
+             "porcentaje", "importe"]
+    _TOTR = ["id", "id_proceso", "id_legajo", "legajo_numero", "apellido_nombre", "haberes",
+             "asig_familiar", "exentos", "retenciones", "descuentos", "aportes_patronales",
+             "neto", "numero_recibo"]
+    renglones = (db.query(LiquidacionRenglon)
+                 .filter(LiquidacionRenglon.id_proceso == proc.id, LiquidacionRenglon.id_legajo == id)
+                 .order_by(LiquidacionRenglon.orden, LiquidacionRenglon.id).all())
+    tot = (db.query(TotalesLiquidacion)
+           .filter(TotalesLiquidacion.id_proceso == proc.id, TotalesLiquidacion.id_legajo == id)
+           .first())
+    _PROC = ["id", "anio", "mes", "tipo_liq", "valor_modulo", "estado", "creado_por"]
+    return {
+        "legajo": _ser(leg, _LEG),
+        "proceso": _ser(proc, _PROC),
+        "renglones": [_ser(r, _RENG) for r in renglones],
+        "totales": _ser(tot, _TOTR) if tot else None,
+    }
 
 
 @legajos_router.post("", status_code=201)
