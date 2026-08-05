@@ -248,6 +248,11 @@ def _aplicar_embargos(db, proc, leg, anio, mes, fin_periodo, ctx):
             restante = _dec(emb.monto_total) - ya
             if cuota > restante:
                 cuota = _r2(restante)
+        # No retener más que el neto disponible en este momento (nunca deja el neto negativo).
+        # Los embargos se procesan por prioridad (alimentos primero); cada uno reduce el disponible
+        # del siguiente vía TN_DESCU. Lo no retenido queda pendiente contra el tope para el mes que viene.
+        if cuota > base_embargable:
+            cuota = _r2(base_embargable)
         if cuota <= 0:
             continue
 
