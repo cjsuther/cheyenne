@@ -464,6 +464,41 @@ class GananciasEscala(Base):
     created_at = Column(DateTime(timezone=True), default=_now)
 
 
+# ─── FASE 5: INTEGRACIÓN CONTABLE / TESORERÍA / FIRMA ─────────────────
+ESTADOS_INTEGRACION = ("pendiente", "ok", "error")
+
+
+class IntegracionProceso(Base):
+    """Estado de las integraciones de un proceso de liquidación con otros módulos:
+    devengado (contabilidad), orden de pago (tesorería) y recibos a firma."""
+    __tablename__ = "rrhh_integracion_procesos"
+    __table_args__ = (UniqueConstraint("id_proceso", name="uq_rrhh_integracion_proceso"),)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id_proceso = Column(BigInteger, nullable=False, index=True)
+    # Devengado en contabilidad
+    devengado_estado = Column(String(20), nullable=False, default="pendiente")
+    devengado_ref = Column(String(80), nullable=True)
+    devengado_transaccion_id = Column(BigInteger, nullable=True)
+    devengado_importe = Column(Numeric(18, 2), nullable=False, default=0)
+    devengado_detalle = Column(String(300), nullable=True)
+    devengado_fecha = Column(DateTime(timezone=True), nullable=True)
+    # Orden de pago en tesorería
+    op_estado = Column(String(20), nullable=False, default="pendiente")
+    op_ref = Column(String(80), nullable=True)
+    op_id = Column(BigInteger, nullable=True)
+    op_numero = Column(String(40), nullable=True)
+    op_importe = Column(Numeric(18, 2), nullable=False, default=0)
+    op_detalle = Column(String(300), nullable=True)
+    op_fecha = Column(DateTime(timezone=True), nullable=True)
+    # Recibos enviados a firma
+    firma_estado = Column(String(20), nullable=False, default="pendiente")
+    firma_cantidad = Column(Integer, nullable=False, default=0)
+    firma_detalle = Column(String(300), nullable=True)
+    firma_fecha = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+    updated_at = Column(DateTime(timezone=True), default=_now, onupdate=_now)
+
+
 class GananciasResumen(Base):
     """Liquidación mensual acumulada del impuesto a las ganancias por legajo/período."""
     __tablename__ = "rrhh_ganancias_resumen"

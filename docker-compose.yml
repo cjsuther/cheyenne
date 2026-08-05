@@ -275,6 +275,9 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-cheyenne}:${POSTGRES_PASSWORD:-cheyenne123}@postgres:5432/${POSTGRES_DB:-cheyenne}
       SECRET_KEY: ${SECRET_KEY:-supersecretkey}
       SEGURIDAD_URL: http://seguridad:8000
+      CONTABILIDAD_URL: http://contabilidad:8000
+      TESORERIA_URL: http://tesoreria:8000
+      FIRMA_URL: http://firma:8000
     depends_on:
       - seguridad
     networks:

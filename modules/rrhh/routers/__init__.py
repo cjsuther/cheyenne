@@ -19,3 +19,4 @@ from .fase4 import (
     ganancias_deducciones_router, ganancias_escala_router, ganancias_resumen_router,
     legajo_ganancias_router,
 )
+from .fase5 import integracion_router

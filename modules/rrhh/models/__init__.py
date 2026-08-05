@@ -6,7 +6,8 @@ from .rrhh import (
     TotalesLiquidacion, Novedad,
     MotivoAusencia, Ausencia, LicenciaAnual, HoraExtra, Embargo, EmbargoLiquidado,
     GananciasDeduccion, GananciasEscala, GananciasResumen,
+    IntegracionProceso,
     ESTADOS_LEGAJO, REGIMENES_ANTIG, TIPOS_CONCEPTO, ESTADOS_PROCESO,
     TIPOS_HORA_EXTRA, TIPOS_EMBARGO, RETIENE_EMBARGO, ESTADOS_EMBARGO,
-    CONCEPTOS_DEDUCCION,
+    CONCEPTOS_DEDUCCION, ESTADOS_INTEGRACION,
 )

@@ -1085,3 +1085,15 @@ dmerge(rrhhAPI, {
     ganancias: (id, params) => api.get(`/rrhh/legajos/${id}/ganancias`, { params }),
   },
 });
+
+// RRHH Fase 5: integración contable/tesorería/firma + exportadores AFIP/banco
+dmerge(rrhhAPI, {
+  integracion: {
+    estado: (idProc) => api.get(`/rrhh/liquidacion-procesos/${idProc}/integracion`),
+    devengar: (idProc) => api.post(`/rrhh/liquidacion-procesos/${idProc}/devengar`),
+    generarOp: (idProc) => api.post(`/rrhh/liquidacion-procesos/${idProc}/generar-op`),
+    enviarRecibosFirma: (idProc, data) => api.post(`/rrhh/liquidacion-procesos/${idProc}/enviar-recibos-firma`, data || {}),
+    sicoss: (idProc) => api.get(`/rrhh/liquidacion-procesos/${idProc}/sicoss`, { responseType: 'blob' }),
+    banco: (idProc, formato = 'cbu') => api.get(`/rrhh/liquidacion-procesos/${idProc}/banco`, { params: { formato }, responseType: 'blob' }),
+  },
+});
