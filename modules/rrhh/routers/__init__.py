@@ -15,3 +15,7 @@ from .fase3 import (
     motivos_ausencia_router, ausencias_router, licencias_anuales_router,
     horas_extra_router, embargos_router,
 )
+from .fase4 import (
+    ganancias_deducciones_router, ganancias_escala_router, ganancias_resumen_router,
+    legajo_ganancias_router,
+)

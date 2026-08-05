@@ -5,6 +5,7 @@ import GroupedTabBar from '../../components/common/GroupedTabBar';
 import { CrudTab } from '../../components/common/CrudComponents';
 import { Empleado360Tab, ConceptosTab, NovedadesTab, TiposLiqTab, LiquidacionTab } from './RrhhFase2';
 import { MotivosAusenciaTab, AusenciasTab, LicenciasTab, HorasExtraTab, EmbargosTab } from './RrhhFase3';
+import { DeduccionesGananciasTab, EscalaGananciasTab, GananciasResumenTab } from './RrhhFase4';
 
 const bool = (v) => (v ? 'Sí' : 'No');
 const num = (v) => (v == null ? '—' : Number(v).toLocaleString('es-AR'));
@@ -20,6 +21,9 @@ const TABS = [
   { key: 'conceptos', label: 'Conceptos' },
   { key: 'novedades', label: 'Novedades' },
   { key: 'tiposLiq', label: 'Tipos de Liquidación' },
+  { key: 'gciasResumen', label: 'Ganancias por Empleado' },
+  { key: 'gciasDeducciones', label: 'Ganancias · Deducciones' },
+  { key: 'gciasEscala', label: 'Ganancias · Escala' },
   { key: 'legajos', label: 'Legajos' },
   { key: 'cargos', label: 'Cargos' },
   { key: 'antiguedad', label: 'Antigüedad' },
@@ -45,6 +49,7 @@ const TABS = [
 const GRUPOS = [
   { label: 'Empleado 360', keys: ['empleado360'] },
   { label: 'Liquidación', keys: ['liquidar', 'conceptos', 'novedades', 'tiposLiq'] },
+  { label: 'Ganancias', keys: ['gciasResumen', 'gciasDeducciones', 'gciasEscala'] },
   { label: 'Legajo', keys: ['legajos', 'cargos', 'antiguedad', 'familiares'] },
   { label: 'Novedades y Embargos', keys: ['ausencias', 'motivos', 'licencias', 'horasExtra', 'embargos'] },
   { label: 'Maestros', keys: ['categorias', 'tiposCargo', 'cargosFunciones', 'nivelesLaboral', 'tiposRelacion', 'oficinas', 'parentescos', 'tiposAntiguedad', 'sindicatos', 'obrasSociales'] },
@@ -73,6 +78,9 @@ export default function Rrhh() {
       {tab === 'conceptos' && <ConceptosTab />}
       {tab === 'novedades' && <NovedadesTab />}
       {tab === 'tiposLiq' && <TiposLiqTab />}
+      {tab === 'gciasResumen' && <GananciasResumenTab />}
+      {tab === 'gciasDeducciones' && <DeduccionesGananciasTab />}
+      {tab === 'gciasEscala' && <EscalaGananciasTab />}
       {tab === 'ausencias' && <AusenciasTab />}
       {tab === 'motivos' && <MotivosAusenciaTab />}
       {tab === 'licencias' && <LicenciasTab />}

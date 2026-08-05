@@ -19,6 +19,8 @@ from routers import (
     liquidar_router, procesos_router,
     motivos_ausencia_router, ausencias_router, licencias_anuales_router,
     horas_extra_router, embargos_router,
+    ganancias_deducciones_router, ganancias_escala_router, ganancias_resumen_router,
+    legajo_ganancias_router,
 )
 import models  # noqa: F401
 
@@ -37,7 +39,9 @@ for r in (categorias_router, tipos_cargo_router, cargos_funciones_router, nivele
           conceptos_router, tipos_liquidacion_router, novedades_router,
           liquidar_router, procesos_router,
           motivos_ausencia_router, ausencias_router, licencias_anuales_router,
-          horas_extra_router, embargos_router):
+          horas_extra_router, embargos_router,
+          ganancias_deducciones_router, ganancias_escala_router, ganancias_resumen_router,
+          legajo_ganancias_router):
     app.include_router(r)
 
 

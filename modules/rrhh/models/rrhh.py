@@ -430,3 +430,52 @@ class EmbargoLiquidado(Base):
     mes = Column(Integer, nullable=True)
     monto = Column(Numeric(18, 2), nullable=False, default=0)
     created_at = Column(DateTime(timezone=True), default=_now)
+
+
+# ─── FASE 4: IMPUESTO A LAS GANANCIAS (4ta categoría) y SAC ───────────
+CONCEPTOS_DEDUCCION = (
+    "minimo_no_imponible", "deduccion_especial", "conyuge", "hijo", "hijo_incapacitado",
+)
+
+
+class GananciasDeduccion(Base):
+    """Deducciones personales anuales del impuesto a las ganancias por año fiscal."""
+    __tablename__ = "rrhh_ganancias_deducciones"
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    anio = Column(Integer, nullable=False, index=True)
+    concepto = Column(String(40), nullable=False)  # ver CONCEPTOS_DEDUCCION
+    importe_anual = Column(Numeric(18, 2), nullable=False, default=0)
+    activo = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class GananciasEscala(Base):
+    """Escala progresiva del art. 94 (Ganancias) por año fiscal."""
+    __tablename__ = "rrhh_ganancias_escala"
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    anio = Column(Integer, nullable=False, index=True)
+    tramo = Column(Integer, nullable=False, default=0)
+    desde = Column(Numeric(18, 2), nullable=False, default=0)
+    hasta = Column(Numeric(18, 2), nullable=True)  # null = sin tope (último tramo)
+    fijo = Column(Numeric(18, 2), nullable=False, default=0)
+    porcentaje = Column(Numeric(6, 2), nullable=False, default=0)
+    excedente_sobre = Column(Numeric(18, 2), nullable=False, default=0)
+    activo = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class GananciasResumen(Base):
+    """Liquidación mensual acumulada del impuesto a las ganancias por legajo/período."""
+    __tablename__ = "rrhh_ganancias_resumen"
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id_legajo = Column(BigInteger, nullable=False, index=True)
+    anio = Column(Integer, nullable=False, index=True)
+    mes = Column(Integer, nullable=False)
+    id_proceso = Column(BigInteger, nullable=True, index=True)
+    rem_neta_gravada = Column(Numeric(18, 2), nullable=False, default=0)
+    deducciones = Column(Numeric(18, 2), nullable=False, default=0)
+    ganancia_neta_acum = Column(Numeric(18, 2), nullable=False, default=0)
+    impuesto_acum = Column(Numeric(18, 2), nullable=False, default=0)
+    retencion_mes = Column(Numeric(18, 2), nullable=False, default=0)
+    es_sac = Column(Boolean, nullable=False, default=False)  # fila del aguinaldo (SAC)
+    created_at = Column(DateTime(timezone=True), default=_now)

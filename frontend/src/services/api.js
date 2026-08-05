@@ -1075,3 +1075,13 @@ dmerge(rrhhAPI, {
   horasExtra: crud('/rrhh/horas-extra'),
   embargos: { ...crud('/rrhh/embargos'), liquidados: (id) => api.get(`/rrhh/embargos/${id}/liquidados`) },
 });
+
+// RRHH Fase 4: Impuesto a las Ganancias (4ta cat.) y SAC
+dmerge(rrhhAPI, {
+  gananciasDeducciones: crud('/rrhh/ganancias-deducciones'),
+  gananciasEscala: crud('/rrhh/ganancias-escala'),
+  gananciasResumen: { list: (params) => api.get('/rrhh/ganancias-resumen', { params }) },
+  legajos: {
+    ganancias: (id, params) => api.get(`/rrhh/legajos/${id}/ganancias`, { params }),
+  },
+});

@@ -50,6 +50,7 @@ from models.rrhh import (
     Concepto, Legajo, LegajoCargo, Categoria, Antiguedad, TipoAntiguedad,
     Novedad, LiquidacionProceso, LiquidacionRenglon, TotalesLiquidacion,
     MotivoAusencia, Ausencia, HoraExtra, Embargo, EmbargoLiquidado,
+    Familiar, Parentesco, GananciasDeduccion, GananciasEscala, GananciasResumen,
 )
 
 Q2 = Decimal("0.01")
@@ -149,6 +150,8 @@ def _reset_proceso(db, proc):
                                             Embargo.estado == "finalizado").all():
             emb.estado = "autorizado"
     db.query(EmbargoLiquidado).filter(EmbargoLiquidado.id_proceso == proc.id).delete()
+    # FASE 4: borrar el resumen de Ganancias generado por este proceso (repetible).
+    db.query(GananciasResumen).filter(GananciasResumen.id_proceso == proc.id).delete()
     db.query(LiquidacionRenglon).filter(LiquidacionRenglon.id_proceso == proc.id).delete()
     db.query(TotalesLiquidacion).filter(TotalesLiquidacion.id_proceso == proc.id).delete()
     db.flush()
@@ -270,6 +273,117 @@ def _aplicar_embargos(db, proc, leg, anio, mes, fin_periodo, ctx):
             emb.estado = "finalizado"
 
 
+# ─── FASE 4: IMPUESTO A LAS GANANCIAS (4ta cat.) — mensualizado acumulado ──
+_KW_CONYUGE = ("conyug", "cónyug", "espos", "concub", "unión conviv", "union conviv")
+
+
+def _deducciones_ganancias_anual(db, leg, anio):
+    """Total ANUAL de deducciones del legajo para el año fiscal:
+    mínimo no imponible + deducción especial (personales) + cargas de familia
+    (cónyuge / hijo / hijo incapacitado) de los Familiares con deduce_ganancias=True."""
+    ded = {d.concepto: _dec(d.importe_anual) for d in db.query(GananciasDeduccion).filter(
+        GananciasDeduccion.anio == anio, GananciasDeduccion.activo == True).all()}
+    total = _dec(ded.get("minimo_no_imponible", 0)) + _dec(ded.get("deduccion_especial", 0))
+    fams = db.query(Familiar).filter(
+        Familiar.id_legajo == leg.id, Familiar.activo == True,
+        Familiar.deduce_ganancias == True).all()
+    if not fams:
+        return total
+    parent = {p.id: (p.descripcion or "").lower() for p in db.query(Parentesco).all()}
+    for f in fams:
+        desc = parent.get(f.id_parentesco, "")
+        if any(k in desc for k in _KW_CONYUGE):
+            total += _dec(ded.get("conyuge", 0))
+        elif f.discapacitado:
+            total += _dec(ded.get("hijo_incapacitado", ded.get("hijo", 0)))
+        else:
+            total += _dec(ded.get("hijo", 0))
+    return total
+
+
+def _impuesto_escala(db, anio, ganancia_neta):
+    """Aplica la escala progresiva del art. 94 (por año) a la ganancia neta acumulada."""
+    if ganancia_neta <= 0:
+        return Decimal(0)
+    tramos = db.query(GananciasEscala).filter(
+        GananciasEscala.anio == anio, GananciasEscala.activo == True).order_by(
+        GananciasEscala.desde.asc()).all()
+    if not tramos:
+        return Decimal(0)
+    elegido = None
+    for t in tramos:
+        desde = _dec(t.desde)
+        hasta = _dec(t.hasta) if t.hasta is not None else None
+        if ganancia_neta >= desde and (hasta is None or ganancia_neta <= hasta):
+            elegido = t
+            break
+    if elegido is None:
+        elegido = tramos[-1]  # último tramo (sin tope)
+    return _r2(_dec(elegido.fijo)
+               + (ganancia_neta - _dec(elegido.excedente_sobre)) * _dec(elegido.porcentaje) / Decimal(100))
+
+
+def _aplicar_ganancias(db, proc, leg, anio, mes, ctx, es_sac=False):
+    """Retención de Impuesto a las Ganancias por el método mensualizado acumulado.
+
+    Se llama tras el loop de conceptos y ANTES de embargos (la retención integra el neto).
+    Acumulación unificada haberes + SAC por (legajo, año): la base gravada del mes es
+    TN_HABER − TN_RETEN (haberes menos aportes), se acumula año a la fecha, se le restan
+    las deducciones proporcionales (anual × mes/12), se aplica la escala y se retiene el
+    excedente sobre lo ya retenido en el año. Idempotente vía _reset_proceso."""
+    h = _dec(ctx.variables["TN_HABER"]); rt = _dec(ctx.variables["TN_RETEN"])
+    rem_neta_mes = h - rt
+    if rem_neta_mes < 0:
+        rem_neta_mes = Decimal(0)
+
+    # Upsert de la fila del período (una por legajo/año/mes/es_sac)
+    res = db.query(GananciasResumen).filter(
+        GananciasResumen.id_legajo == leg.id, GananciasResumen.anio == anio,
+        GananciasResumen.mes == mes, GananciasResumen.es_sac == es_sac).first()
+    if not res:
+        res = GananciasResumen(id_legajo=leg.id, anio=anio, mes=mes, es_sac=es_sac,
+                               created_at=_now())
+        db.add(res)
+    res.id_proceso = proc.id
+    res.rem_neta_gravada = _r2(rem_neta_mes)
+    res.retencion_mes = Decimal(0)  # se recalcula abajo; se pone en 0 para el cómputo de ya_ret
+    db.flush()
+
+    # Acumulado del año a la fecha (incluye la fila actual ya seteada; unifica haberes + SAC)
+    rem_acum = sum((_dec(r[0]) for r in db.query(GananciasResumen.rem_neta_gravada).filter(
+        GananciasResumen.id_legajo == leg.id, GananciasResumen.anio == anio,
+        GananciasResumen.mes <= mes).all()), Decimal(0))
+
+    ded_anual = _deducciones_ganancias_anual(db, leg, anio)
+    ded_acum = _r2(ded_anual * _dec(mes) / Decimal(12))
+    ganancia_neta = rem_acum - ded_acum
+    if ganancia_neta < 0:
+        ganancia_neta = Decimal(0)
+    impuesto_acum = _impuesto_escala(db, anio, ganancia_neta)
+
+    # Ya retenido en el año (todas las filas hasta el mes; la actual está en 0)
+    ya_ret = sum((_dec(r[0]) for r in db.query(GananciasResumen.retencion_mes).filter(
+        GananciasResumen.id_legajo == leg.id, GananciasResumen.anio == anio,
+        GananciasResumen.mes <= mes).all()), Decimal(0))
+    retencion = _r2(impuesto_acum - ya_ret)
+    if retencion < 0:
+        retencion = Decimal(0)
+
+    res.deducciones = ded_acum
+    res.ganancia_neta_acum = _r2(ganancia_neta)
+    res.impuesto_acum = _r2(impuesto_acum)
+    res.retencion_mes = retencion
+
+    if retencion > 0:
+        desc = "Retención Impuesto a las Ganancias" + (" (SAC)" if es_sac else " (4ta cat.)")
+        db.add(LiquidacionRenglon(
+            id_proceso=proc.id, id_legajo=leg.id,
+            concepto_codigo="GANANCIAS", concepto_descripcion=desc,
+            orden=Decimal("150"), tipo_concepto="R",
+            base=_r2(ganancia_neta), importe=retencion, created_at=_now()))
+        ctx.variables["TN_RETEN"] = rt + retencion
+
+
 def liquidar(db, anio, mes, tipo_liq, valor_modulo, legajos_ids=None, quien=None):
     valor_modulo = _dec(valor_modulo)
     anio = int(anio); mes = int(mes)
@@ -295,9 +409,13 @@ def liquidar(db, anio, mes, tipo_liq, valor_modulo, legajos_ids=None, quien=None
         db.add(proc)
         db.flush()
 
-    # 2) Conceptos activos ordenados por orden ASC
-    conceptos = db.query(Concepto).filter(Concepto.activo == True).order_by(
-        Concepto.orden.asc(), Concepto.id.asc()).all()
+    # 2) Conceptos activos ordenados por orden ASC.
+    #    FASE 4: en SAC se liquidan sólo los conceptos marcados aguinaldo=True; en el
+    #    mensual sólo los que NO son de aguinaldo.
+    es_sac = (tipo_liq == "SAC")
+    cq = db.query(Concepto).filter(Concepto.activo == True)
+    cq = cq.filter(Concepto.aguinaldo == True) if es_sac else cq.filter(Concepto.aguinaldo == False)
+    conceptos = cq.order_by(Concepto.orden.asc(), Concepto.id.asc()).all()
 
     # 3) Legajos activos (filtrados)
     lq = db.query(Legajo).filter(Legajo.activo == True, Legajo.estado != "baja")
@@ -328,6 +446,12 @@ def liquidar(db, anio, mes, tipo_liq, valor_modulo, legajos_ids=None, quien=None
             "TN_HABER": Decimal(0), "TN_ASIGN": Decimal(0), "TN_EXENT": Decimal(0),
             "TN_RETEN": Decimal(0), "TN_DESCU": Decimal(0), "TN_APORT": Decimal(0),
         })
+        # FASE 4: en SAC, base del aguinaldo = mejor haber del semestre / 2
+        if es_sac:
+            mejor = _mejor_haber_semestre(db, leg.id, anio, mes)
+            if mejor <= 0:
+                mejor = modulos * valor_modulo  # proxy si no hay mensuales previas
+            ctx.variables["SAC_BRUTO"] = _r2(mejor / Decimal(2))
         # Novedades inyectadas al contexto
         ctx.variables.update(_novedades(db, leg.id, anio, mes))
         # FASE 3: variables de ausencias y horas extra del período
@@ -376,6 +500,9 @@ def liquidar(db, anio, mes, tipo_liq, valor_modulo, legajos_ids=None, quien=None
                 porcentaje=_r4(porcentaje) if porcentaje is not None else Decimal(0),
                 importe=importe, created_at=_now()))
 
+        # FASE 4: retención de Ganancias (antes de embargos: integra el neto)
+        _aplicar_ganancias(db, proc, leg, anio, mes, ctx, es_sac=(tipo_liq == "SAC"))
+
         # FASE 3: aplicar embargos (usa el neto preliminar; suma a TN_DESCU)
         _aplicar_embargos(db, proc, leg, anio, mes, tope, ctx)
 
@@ -411,6 +538,25 @@ def liquidar(db, anio, mes, tipo_liq, valor_modulo, legajos_ids=None, quien=None
         "total_retenciones": float(_r2(tot_reten)),
         "total_neto": float(_r2(tot_neto)),
     }
+
+
+def _mejor_haber_semestre(db, id_legajo, anio, mes):
+    """Mejor 'haberes' de las liquidaciones mensuales (no SAC) del semestre que termina en `mes`."""
+    ini = 1 if mes <= 6 else 7
+    fin = 6 if mes <= 6 else 12
+    q = (db.query(TotalesLiquidacion.haberes)
+         .join(LiquidacionProceso, LiquidacionProceso.id == TotalesLiquidacion.id_proceso)
+         .filter(TotalesLiquidacion.id_legajo == id_legajo,
+                 LiquidacionProceso.activo == True,
+                 LiquidacionProceso.anio == anio,
+                 LiquidacionProceso.mes >= ini, LiquidacionProceso.mes <= fin,
+                 (LiquidacionProceso.tipo_liq != "SAC") | (LiquidacionProceso.tipo_liq.is_(None))))
+    mejor = Decimal(0)
+    for r in q.all():
+        v = _dec(r[0])
+        if v > mejor:
+            mejor = v
+    return mejor
 
 
 def _eval_opt(formula, ctx):
