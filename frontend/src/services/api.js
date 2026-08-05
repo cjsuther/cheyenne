@@ -1066,3 +1066,12 @@ dmerge(rrhhAPI, {
     recibo: (id, params) => api.get(`/rrhh/legajos/${id}/recibo`, { params }),
   },
 });
+
+// RRHH Fase 3: ausencias/licencias, horas extra, embargos
+dmerge(rrhhAPI, {
+  motivosAusencia: crud('/rrhh/motivos-ausencia'),
+  ausencias: crud('/rrhh/ausencias'),
+  licenciasAnuales: crud('/rrhh/licencias-anuales'),
+  horasExtra: crud('/rrhh/horas-extra'),
+  embargos: { ...crud('/rrhh/embargos'), liquidados: (id) => api.get(`/rrhh/embargos/${id}/liquidados`) },
+});

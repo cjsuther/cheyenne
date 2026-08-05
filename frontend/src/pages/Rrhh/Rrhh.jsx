@@ -4,6 +4,7 @@ import PageHeader from '../../components/common/PageHeader';
 import GroupedTabBar from '../../components/common/GroupedTabBar';
 import { CrudTab } from '../../components/common/CrudComponents';
 import { Empleado360Tab, ConceptosTab, NovedadesTab, TiposLiqTab, LiquidacionTab } from './RrhhFase2';
+import { MotivosAusenciaTab, AusenciasTab, LicenciasTab, HorasExtraTab, EmbargosTab } from './RrhhFase3';
 
 const bool = (v) => (v ? 'Sí' : 'No');
 const num = (v) => (v == null ? '—' : Number(v).toLocaleString('es-AR'));
@@ -23,6 +24,11 @@ const TABS = [
   { key: 'cargos', label: 'Cargos' },
   { key: 'antiguedad', label: 'Antigüedad' },
   { key: 'familiares', label: 'Familiares' },
+  { key: 'ausencias', label: 'Ausencias' },
+  { key: 'motivos', label: 'Motivos de Ausencia' },
+  { key: 'licencias', label: 'Licencias Anuales' },
+  { key: 'horasExtra', label: 'Horas Extra' },
+  { key: 'embargos', label: 'Embargos' },
   { key: 'categorias', label: 'Categorías' },
   { key: 'tiposCargo', label: 'Tipos de Cargo' },
   { key: 'cargosFunciones', label: 'Cargos/Funciones' },
@@ -40,6 +46,7 @@ const GRUPOS = [
   { label: 'Empleado 360', keys: ['empleado360'] },
   { label: 'Liquidación', keys: ['liquidar', 'conceptos', 'novedades', 'tiposLiq'] },
   { label: 'Legajo', keys: ['legajos', 'cargos', 'antiguedad', 'familiares'] },
+  { label: 'Novedades y Embargos', keys: ['ausencias', 'motivos', 'licencias', 'horasExtra', 'embargos'] },
   { label: 'Maestros', keys: ['categorias', 'tiposCargo', 'cargosFunciones', 'nivelesLaboral', 'tiposRelacion', 'oficinas', 'parentescos', 'tiposAntiguedad', 'sindicatos', 'obrasSociales'] },
   { label: 'Planta', keys: ['planta'] },
 ];
@@ -66,6 +73,11 @@ export default function Rrhh() {
       {tab === 'conceptos' && <ConceptosTab />}
       {tab === 'novedades' && <NovedadesTab />}
       {tab === 'tiposLiq' && <TiposLiqTab />}
+      {tab === 'ausencias' && <AusenciasTab />}
+      {tab === 'motivos' && <MotivosAusenciaTab />}
+      {tab === 'licencias' && <LicenciasTab />}
+      {tab === 'horasExtra' && <HorasExtraTab />}
+      {tab === 'embargos' && <EmbargosTab />}
 
       {tab === 'legajos' && (
         <CrudTab queryKey="rrhh-legajos" apiFns={rrhhAPI.legajos} entityName="Legajo" wide

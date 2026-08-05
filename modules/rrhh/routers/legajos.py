@@ -20,6 +20,7 @@ from models.rrhh import (
     TipoRelacion, ObraSocial, Sindicato, Categoria, TipoCargo, CargoFuncion,
     Oficina, TipoAntiguedad, Parentesco,
     LiquidacionProceso, LiquidacionRenglon, TotalesLiquidacion,
+    MotivoAusencia, Ausencia, LicenciaAnual, Embargo, EmbargoLiquidado,
 )
 
 settings = get_settings()
@@ -183,6 +184,45 @@ def ficha_legajo(id: int, db: Session = Depends(get_db), current_user: dict = De
 
     out["antiguedad_total_anios"] = round(antig_total, 2)
     out["cantidad_familiares_a_cargo"] = sum(1 for f in fams if f.a_cargo)
+
+    # FASE 3: ausencias (últimas ~10), licencias anuales (con saldo), embargos activos
+    mot = _label_map(db, MotivoAusencia)
+    _AUS = ["id", "id_legajo", "id_motivo", "fecha_inicio", "fecha_fin", "dias_habiles",
+            "certificado", "observaciones", "activo"]
+    ausencias = (db.query(Ausencia)
+                 .filter(Ausencia.id_legajo == id, Ausencia.activo == True)
+                 .order_by(Ausencia.fecha_inicio.desc(), Ausencia.id.desc()).limit(10).all())
+    out["ausencias"] = []
+    for a in ausencias:
+        row = _ser(a, _AUS)
+        row["motivo_descripcion"] = mot.get(a.id_motivo)
+        out["ausencias"].append(row)
+
+    _LIC = ["id", "id_legajo", "anio", "cant_dias", "dias_tomados", "activo"]
+    licencias = (db.query(LicenciaAnual)
+                 .filter(LicenciaAnual.id_legajo == id, LicenciaAnual.activo == True)
+                 .order_by(LicenciaAnual.anio.desc()).all())
+    out["licencias_anuales"] = []
+    for l in licencias:
+        row = _ser(l, _LIC)
+        row["saldo"] = int(l.cant_dias) - int(l.dias_tomados)
+        out["licencias_anuales"].append(row)
+
+    _EMB = ["id", "id_legajo", "numero", "tipo", "retiene", "cuota_valor", "monto_total",
+            "respeta_salario_familiar", "fecha", "fecha_vencimiento", "caratula", "juzgado",
+            "estado", "banco_destino", "activo"]
+    embargos = (db.query(Embargo)
+                .filter(Embargo.id_legajo == id, Embargo.activo == True,
+                        Embargo.estado == "autorizado")
+                .order_by(Embargo.id).all())
+    out["embargos_activos"] = []
+    for e in embargos:
+        row = _ser(e, _EMB)
+        total = sum((r[0] for r in db.query(EmbargoLiquidado.monto)
+                     .filter(EmbargoLiquidado.id_embargo == e.id).all()), Decimal(0))
+        row["total_retenido"] = float(total)
+        row["saldo"] = float(e.monto_total - total) if e.monto_total and e.monto_total > 0 else None
+        out["embargos_activos"].append(row)
 
     # Último recibo (TotalesLiquidacion más reciente por proceso)
     ult = (db.query(TotalesLiquidacion, LiquidacionProceso)

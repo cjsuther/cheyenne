@@ -20,6 +20,22 @@ Acumuladores por tipo de concepto:
     H -> TN_HABER   A -> TN_ASIGN   E -> TN_EXENT
     R -> TN_RETEN   D -> TN_DESCU   P -> TN_APORT
 Neto = TN_HABER + TN_ASIGN + TN_EXENT - TN_RETEN - TN_DESCU (P no afecta neto).
+
+FASE 3 — variables expuestas al motor (además de las de Fase 2), calculadas por legajo
+antes del loop de conceptos:
+    @DIAS_DESCONTAR     días a descontar por ausencias del período (motivos con
+                        descuenta_dias=True): suma(dias_habiles * porcentaje_descuento/100);
+                        si el motivo descuenta pero porcentaje_descuento=0 se usa 100%.
+    @HORAS_50 / @HORAS_100        suma de HoraExtra.cantidad del período por tipo.
+    @VALOR_HORA_50 / @VALOR_HORA_100  suma de (cantidad*valor_hora) del período por tipo.
+    @HS_EXTRA_IMPORTE   suma(cantidad*valor_hora*(1.5 si tipo 50 else 2)) de todo el período.
+
+FASE 3 — embargos: tras el loop de conceptos (con TN_* ya acumulados) se aplican en código
+(no por fórmula) los Embargo activos/autorizados del legajo, respetando tope monto_total y
+orden (alimentos primero, luego por fecha ASC). Cada cuota genera un LiquidacionRenglon 'D'
+(suma a TN_DESCU) y un EmbargoLiquidado. Al alcanzar el tope el embargo pasa a 'finalizado'.
+Idempotencia: al recalcular un proceso se borran sus EmbargoLiquidado y se revierten a
+'autorizado' los embargos que habían finalizado en ESE proceso.
 """
 import sys
 import os
@@ -33,6 +49,7 @@ from interprete import Contexto, evaluar, evaluar_logica, ErrorFormula
 from models.rrhh import (
     Concepto, Legajo, LegajoCargo, Categoria, Antiguedad, TipoAntiguedad,
     Novedad, LiquidacionProceso, LiquidacionRenglon, TotalesLiquidacion,
+    MotivoAusencia, Ausencia, HoraExtra, Embargo, EmbargoLiquidado,
 )
 
 Q2 = Decimal("0.01")
@@ -118,15 +135,141 @@ def _novedades(db, id_legajo, anio, mes):
 
 
 def _reset_proceso(db, proc):
-    """Borra renglones y totales del proceso para recalcular (repetible)."""
+    """Borra renglones y totales del proceso para recalcular (repetible).
+
+    FASE 3: también revierte a 'autorizado' los embargos que habían finalizado en ESTE
+    proceso y borra sus EmbargoLiquidado, para que la re-liquidación sea repetible sin
+    romper el control de tope.
+    """
+    # Revertir 'finalizado' -> 'autorizado' de embargos que se cerraron en este proceso.
+    ids_emb = {r.id_embargo for r in db.query(EmbargoLiquidado.id_embargo)
+               .filter(EmbargoLiquidado.id_proceso == proc.id).all()}
+    if ids_emb:
+        for emb in db.query(Embargo).filter(Embargo.id.in_(ids_emb),
+                                            Embargo.estado == "finalizado").all():
+            emb.estado = "autorizado"
+    db.query(EmbargoLiquidado).filter(EmbargoLiquidado.id_proceso == proc.id).delete()
     db.query(LiquidacionRenglon).filter(LiquidacionRenglon.id_proceso == proc.id).delete()
     db.query(TotalesLiquidacion).filter(TotalesLiquidacion.id_proceso == proc.id).delete()
     db.flush()
 
 
+# ─── FASE 3: cálculo de variables y embargos ─────────────────────────
+def _en_periodo(fecha_inicio, fecha_fin, ini_periodo, fin_periodo):
+    """True si el rango [fecha_inicio, fecha_fin] intersecta el mes/período."""
+    if not fecha_inicio or not fecha_fin:
+        return False
+    return fecha_inicio <= fin_periodo and fecha_fin >= ini_periodo
+
+
+def _vars_fase3(db, id_legajo, anio, mes, ini_periodo, fin_periodo):
+    """Calcula las variables de Fase 3 (ausencias + horas extra) del legajo/período."""
+    # Ausencias que descuentan días
+    motivos = {m.id: m for m in db.query(MotivoAusencia).filter(MotivoAusencia.activo == True).all()}
+    dias_desc = Decimal(0)
+    for a in db.query(Ausencia).filter(
+            Ausencia.id_legajo == id_legajo, Ausencia.activo == True).all():
+        if not _en_periodo(a.fecha_inicio, a.fecha_fin, ini_periodo, fin_periodo):
+            continue
+        mot = motivos.get(a.id_motivo)
+        if not mot or not mot.descuenta_dias:
+            continue
+        pct = _dec(mot.porcentaje_descuento)
+        if pct <= 0:
+            pct = Decimal(100)
+        dias_desc += _dec(a.dias_habiles) * pct / Decimal(100)
+
+    # Horas extra del período por tipo
+    h50 = h100 = Decimal(0)
+    v50 = v100 = Decimal(0)
+    hs_importe = Decimal(0)
+    for he in db.query(HoraExtra).filter(
+            HoraExtra.id_legajo == id_legajo, HoraExtra.activo == True,
+            HoraExtra.anio == anio, HoraExtra.mes == mes).all():
+        cant = _dec(he.cantidad)
+        val = _dec(he.valor_hora)
+        subtotal = cant * val
+        if he.tipo == "100":
+            h100 += cant
+            v100 += subtotal
+            hs_importe += subtotal * Decimal(2)
+        else:
+            h50 += cant
+            v50 += subtotal
+            hs_importe += subtotal * Decimal("1.5")
+
+    return {
+        "DIAS_DESCONTAR": dias_desc,
+        "HORAS_50": h50, "HORAS_100": h100,
+        "VALOR_HORA_50": v50, "VALOR_HORA_100": v100,
+        "HS_EXTRA_IMPORTE": hs_importe,
+    }
+
+
+def _aplicar_embargos(db, proc, leg, anio, mes, fin_periodo, ctx):
+    """Aplica los embargos autorizados del legajo tras el loop de conceptos.
+
+    Usa TN_* del ctx; agrega renglones 'D' (sumando a TN_DESCU), crea EmbargoLiquidado y
+    marca 'finalizado' al alcanzar el tope. Devuelve nada (muta ctx/db)."""
+    q = db.query(Embargo).filter(
+        Embargo.id_legajo == leg.id, Embargo.activo == True,
+        Embargo.estado == "autorizado")
+    embargos = q.all()
+    # Filtrar por vencimiento y tope ya consumido; ordenar alimentos primero, luego fecha ASC
+    aplicables = []
+    for emb in embargos:
+        if emb.fecha_vencimiento is not None and emb.fecha_vencimiento < fin_periodo:
+            continue
+        ya = sum((_dec(r[0]) for r in db.query(EmbargoLiquidado.monto)
+                  .filter(EmbargoLiquidado.id_embargo == emb.id).all()), Decimal(0))
+        if _dec(emb.monto_total) > 0 and ya >= _dec(emb.monto_total):
+            continue
+        aplicables.append((emb, ya))
+
+    aplicables.sort(key=lambda t: (0 if t[0].tipo == "alimentos" else 1,
+                                   t[0].fecha or fin_periodo, t[0].id))
+
+    for emb, ya in aplicables:
+        h = _dec(ctx.variables["TN_HABER"]); af = _dec(ctx.variables["TN_ASIGN"])
+        ex = _dec(ctx.variables["TN_EXENT"]); rt = _dec(ctx.variables["TN_RETEN"])
+        ds = _dec(ctx.variables["TN_DESCU"])
+        base_embargable = h + af + ex - rt - ds
+        if emb.respeta_salario_familiar:
+            base_embargable -= af
+        if base_embargable <= 0:
+            continue
+
+        if emb.retiene == "porcentaje":
+            cuota = _r2(base_embargable * _dec(emb.cuota_valor) / Decimal(100))
+        else:
+            cuota = _r2(emb.cuota_valor)
+
+        if _dec(emb.monto_total) > 0:
+            restante = _dec(emb.monto_total) - ya
+            if cuota > restante:
+                cuota = _r2(restante)
+        if cuota <= 0:
+            continue
+
+        db.add(LiquidacionRenglon(
+            id_proceso=proc.id, id_legajo=leg.id,
+            concepto_codigo=f"EMB-{emb.numero or emb.id}",
+            concepto_descripcion=f"Embargo {emb.tipo} - {(emb.caratula or '')[:40]}",
+            orden=Decimal("500"), tipo_concepto="D",
+            importe=cuota, created_at=_now()))
+        ctx.variables["TN_DESCU"] = ds + cuota
+        db.add(EmbargoLiquidado(
+            id_embargo=emb.id, id_proceso=proc.id, id_legajo=leg.id,
+            anio=anio, mes=mes, monto=cuota, created_at=_now()))
+        if _dec(emb.monto_total) > 0 and (ya + cuota) >= _dec(emb.monto_total):
+            emb.estado = "finalizado"
+
+
 def liquidar(db, anio, mes, tipo_liq, valor_modulo, legajos_ids=None, quien=None):
     valor_modulo = _dec(valor_modulo)
-    tope = date(int(anio), int(mes), _ultimo_dia(int(anio), int(mes)))
+    anio = int(anio); mes = int(mes)
+    ini_periodo = date(anio, mes, 1)
+    tope = date(anio, mes, _ultimo_dia(anio, mes))  # también = fin del período
 
     # 1) Proceso idempotente por (anio, mes, tipo_liq) activo
     proc = db.query(LiquidacionProceso).filter(
@@ -182,6 +325,8 @@ def liquidar(db, anio, mes, tipo_liq, valor_modulo, legajos_ids=None, quien=None
         })
         # Novedades inyectadas al contexto
         ctx.variables.update(_novedades(db, leg.id, anio, mes))
+        # FASE 3: variables de ausencias y horas extra del período
+        ctx.variables.update(_vars_fase3(db, leg.id, anio, mes, ini_periodo, tope))
 
         for con in conceptos:
             # condición
@@ -225,6 +370,9 @@ def liquidar(db, anio, mes, tipo_liq, valor_modulo, legajos_ids=None, quien=None
                 base=_r2(base) if base is not None else Decimal(0),
                 porcentaje=_r4(porcentaje) if porcentaje is not None else Decimal(0),
                 importe=importe, created_at=_now()))
+
+        # FASE 3: aplicar embargos (usa el neto preliminar; suma a TN_DESCU)
+        _aplicar_embargos(db, proc, leg, anio, mes, tope, ctx)
 
         h = _dec(ctx.variables["TN_HABER"]); af = _dec(ctx.variables["TN_ASIGN"])
         ex = _dec(ctx.variables["TN_EXENT"]); rt = _dec(ctx.variables["TN_RETEN"])

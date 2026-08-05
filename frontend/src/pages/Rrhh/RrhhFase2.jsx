@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { rrhhAPI } from '../../services/api';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { CrudTab, Modal, inputClass, btnPrimary, btnSecondary, apiErrorMessage } from '../../components/common/CrudComponents';
+import { EmbargoProgreso } from './RrhhFase3';
 
 const fmt = (v) => `$${Number(v || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}`;
 const allQuery = (apiFns) => () => apiFns.list({ limit: 200 }).then((r) => r.data);
@@ -142,6 +143,27 @@ export function Empleado360Tab() {
                 {f.familiares?.length ? f.familiares.map((fa) => (
                   <p key={fa.id} className="text-xs text-gray-700">{fa.apellido_nombre} · {fa.parentesco_descripcion || 's/parentesco'} {fa.a_cargo ? '· a cargo' : ''} {fa.deduce_ganancias ? '· deduce Gcias.' : ''}</p>
                 )) : <p className="text-xs text-gray-400">Sin registros.</p>}
+              </Sec>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-3">
+              <Sec t={`Licencias anuales (${f.licencias_anuales?.length || 0})`}>
+                {f.licencias_anuales?.length ? f.licencias_anuales.map((l) => (
+                  <p key={l.id} className="text-xs text-gray-700">{l.anio}: {l.cant_dias} días · saldo <b className={Number(l.saldo) <= 0 ? 'text-red-600' : 'text-green-700'}>{l.saldo}</b></p>
+                )) : <p className="text-xs text-gray-400">Sin registros.</p>}
+              </Sec>
+              <Sec t={`Ausencias (${f.ausencias?.length || 0})`}>
+                {f.ausencias?.length ? f.ausencias.slice(0, 6).map((a) => (
+                  <p key={a.id} className="text-xs text-gray-700">{a.fecha_inicio} → {a.fecha_fin} · {a.motivo_descripcion || 's/motivo'} <span className="text-gray-400">({a.dias_habiles}d)</span></p>
+                )) : <p className="text-xs text-gray-400">Sin registros.</p>}
+              </Sec>
+              <Sec t={`Embargos activos (${f.embargos_activos?.length || 0})`}>
+                {f.embargos_activos?.length ? f.embargos_activos.map((e) => (
+                  <div key={e.id} className="mb-2">
+                    <p className="text-xs text-gray-700">#{e.numero} · {e.tipo}</p>
+                    <EmbargoProgreso retenido={e.total_retenido} tope={e.monto_total} />
+                  </div>
+                )) : <p className="text-xs text-gray-400">Sin embargos.</p>}
               </Sec>
             </div>
           </div>

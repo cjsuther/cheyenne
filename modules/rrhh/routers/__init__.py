@@ -11,3 +11,7 @@ from .liquidacion import (
     conceptos_router, tipos_liquidacion_router, novedades_router,
     liquidar_router, procesos_router,
 )
+from .fase3 import (
+    motivos_ausencia_router, ausencias_router, licencias_anuales_router,
+    horas_extra_router, embargos_router,
+)

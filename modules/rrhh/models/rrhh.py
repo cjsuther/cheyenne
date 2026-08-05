@@ -331,3 +331,102 @@ class Novedad(Base):
     descripcion = Column(String(200), nullable=True)
     activo = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), default=_now)
+
+
+# ─── FASE 3: AUSENCIAS / LICENCIAS, HORAS EXTRA y EMBARGOS ────────────
+TIPOS_HORA_EXTRA = ("50", "100")
+TIPOS_EMBARGO = ("alimentos", "comun")
+RETIENE_EMBARGO = ("porcentaje", "importe")
+ESTADOS_EMBARGO = ("autorizado", "anulado", "finalizado")
+
+
+class MotivoAusencia(Base):
+    """Motivo de ausencia/licencia y su impacto sobre la liquidación."""
+    __tablename__ = "rrhh_motivos_ausencia"
+    __table_args__ = (UniqueConstraint("codigo", name="uq_rrhh_motivo_ausencia_codigo"),)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    codigo = Column(String(20), nullable=False, index=True)
+    descripcion = Column(String(200), nullable=False)
+    porcentaje_descuento = Column(Numeric(6, 2), nullable=False, default=0)
+    descuenta_dias = Column(Boolean, nullable=False, default=False)
+    descuenta_aguinaldo = Column(Boolean, nullable=False, default=False)
+    afecta_presentismo = Column(Boolean, nullable=False, default=False)
+    es_licencia_anual = Column(Boolean, nullable=False, default=False)
+    requiere_certificado = Column(Boolean, nullable=False, default=False)
+    activo = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class Ausencia(Base):
+    """Ausencia/licencia de un legajo en un rango de fechas."""
+    __tablename__ = "rrhh_ausencias"
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id_legajo = Column(BigInteger, nullable=False, index=True)
+    id_motivo = Column(BigInteger, nullable=True)
+    fecha_inicio = Column(Date, nullable=False)
+    fecha_fin = Column(Date, nullable=False)
+    dias_habiles = Column(Integer, nullable=False, default=0)
+    certificado = Column(Boolean, nullable=False, default=False)
+    observaciones = Column(String(300), nullable=True)
+    activo = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class LicenciaAnual(Base):
+    """Cupo de licencia anual (vacaciones) de un legajo por año."""
+    __tablename__ = "rrhh_licencias_anuales"
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id_legajo = Column(BigInteger, nullable=False, index=True)
+    anio = Column(Integer, nullable=False)
+    cant_dias = Column(Integer, nullable=False, default=0)
+    dias_tomados = Column(Integer, nullable=False, default=0)
+    activo = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class HoraExtra(Base):
+    """Horas extra de un legajo en un período, por tipo (50% / 100%)."""
+    __tablename__ = "rrhh_horas_extra"
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id_legajo = Column(BigInteger, nullable=False, index=True)
+    anio = Column(Integer, nullable=False)
+    mes = Column(Integer, nullable=False)
+    tipo = Column(String(10), nullable=False, default="50")  # 50 | 100
+    cantidad = Column(Numeric(8, 2), nullable=False, default=0)
+    valor_hora = Column(Numeric(18, 4), nullable=False, default=0)
+    activo = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class Embargo(Base):
+    """Embargo judicial sobre el sueldo de un legajo."""
+    __tablename__ = "rrhh_embargos"
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id_legajo = Column(BigInteger, nullable=False, index=True)
+    numero = Column(String(30), nullable=True)
+    tipo = Column(String(20), nullable=False, default="comun")  # alimentos | comun
+    retiene = Column(String(10), nullable=False, default="porcentaje")  # porcentaje | importe
+    cuota_valor = Column(Numeric(18, 4), nullable=False, default=0)  # % si porcentaje, importe fijo si importe
+    monto_total = Column(Numeric(18, 2), nullable=False, default=0)  # tope total (0 = sin tope)
+    respeta_salario_familiar = Column(Boolean, nullable=False, default=True)
+    fecha = Column(Date, nullable=True)
+    fecha_vencimiento = Column(Date, nullable=True)
+    caratula = Column(String(300), nullable=True)
+    juzgado = Column(String(200), nullable=True)
+    estado = Column(String(20), nullable=False, default="autorizado")  # autorizado | anulado | finalizado
+    banco_destino = Column(String(100), nullable=True)
+    activo = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class EmbargoLiquidado(Base):
+    """Cuota de embargo efectivamente retenida en un proceso de liquidación."""
+    __tablename__ = "rrhh_embargos_liquidados"
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id_embargo = Column(BigInteger, nullable=False, index=True)
+    id_proceso = Column(BigInteger, nullable=False, index=True)
+    id_legajo = Column(BigInteger, nullable=True)
+    anio = Column(Integer, nullable=True)
+    mes = Column(Integer, nullable=True)
+    monto = Column(Numeric(18, 2), nullable=False, default=0)
+    created_at = Column(DateTime(timezone=True), default=_now)
